@@ -22,11 +22,12 @@ namespace MLang
             t.Start();
 
             var parser = new Parser();
-            while (--it > 0)
-            {
-                // Resolve.resolve_test();
-                parser.parse_test();
-            }
+            parser.parse_test();
+            //while (--it > 0)
+            //{
+            //    // Resolve.resolve_test();
+            //    parser.parse_test();
+            //}
 
             t.Stop();
             Console.WriteLine("Time Parsing: {0} ns", t.Duration(iterations));

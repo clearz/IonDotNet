@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace MLang
@@ -669,12 +670,12 @@ namespace MLang
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void parse_test() {
-         //   var printer = new Print();
+            var printer = new Print();
             foreach (var it in decls) {
                 _lexer.init_stream(it);
                 Decl decl = parse_decl();
-                //printer.print_decl(decl);
-                //Console.WriteLine();
+                printer.print_decl(decl);
+                Console.WriteLine();
             }
         }
     }

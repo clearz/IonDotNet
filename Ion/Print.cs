@@ -472,7 +472,7 @@ namespace Lang
                             ),
                         num_stmts = 1,
                     },
-                    (ElseIf*) Unsafe.AsPointer(ref elif),
+                    &elif,
                     1,
                     new StmtBlock {
                         stmts = (Stmt**)
@@ -521,7 +521,8 @@ namespace Lang
                 printf("\n\n");
             }
 
-            //flush_print_buf(new StreamWriter(Console.OpenStandardOutput()));
+            Console.WriteLine();
+            flush_print_buf(new StreamWriter(Console.OpenStandardOutput()));
             use_print_buf = false;
         }
 

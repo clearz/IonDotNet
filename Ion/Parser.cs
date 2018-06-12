@@ -36,7 +36,7 @@ namespace Lang
                 ret = parse_type();
             }
 
-            return typespec_func((Typespec**)&buf->_begin , buf->count, ret); // ast_dup(buf->_begin, buf->count * PTR_SIZE)
+            return typespec_func((Typespec**)buf->_begin , buf->count, ret); // ast_dup(buf->_begin, buf->count * PTR_SIZE)
         }
 
         Typespec* parse_type_base() {
@@ -92,7 +92,7 @@ namespace Lang
             }
 
             expect_token(TOKEN_RBRACE);
-            return expr_compound(type, (Expr**) &buf->_begin, buf->count);
+            return expr_compound(type, (Expr**) buf->_begin, buf->count);
         }
 
         Expr* parse_expr_operand() {
@@ -168,7 +168,7 @@ namespace Lang
                     }
 
                     expect_token(TOKEN_RPAREN);
-                    expr = expr_call(expr, (Expr**) &buf->_begin, buf->count);
+                    expr = expr_call(expr, (Expr**) buf->_begin, buf->count);
                 }
                 else if (match_token(TOKEN_LBRACKET)) {
                     Expr* index = parse_expr();
@@ -298,7 +298,7 @@ namespace Lang
 
             expect_token(TOKEN_RBRACE);
             return new StmtBlock() {
-                stmts = (Stmt**) &buf->_begin,
+                stmts = (Stmt**) buf->_begin,
                 num_stmts = buf->count
             };
         }
@@ -431,11 +431,11 @@ namespace Lang
             }
 
             StmtBlock block = new StmtBlock {
-                stmts = (Stmt**) &buf2->_begin,
+                stmts = (Stmt**) buf2->_begin,
                 num_stmts = buf2->count
             };
             return new SwitchCase {
-                exprs = (Expr**) &buf->_begin,
+                exprs = (Expr**) buf->_begin,
                 num_exprs = buf->count,
                 is_default = is_default,
                 block = block
@@ -547,7 +547,7 @@ namespace Lang
             Typespec* type = parse_type();
             expect_token(TOKEN_SEMICOLON);
             return new AggregateItem {
-                names = (char**) &buf->_begin,
+                names = (char**) buf->_begin,
                 num_names = buf->count,
                 type = type
             };
@@ -702,8 +702,8 @@ namespace Lang
                 var it = *(_ptr + i);
                 init_stream(it);
                 Decl* decl = parse_decl();
-                // print_decl(decl);
-                //Console.WriteLine();
+                 print_decl(decl);
+                Console.WriteLine();
             }
         }
     }
