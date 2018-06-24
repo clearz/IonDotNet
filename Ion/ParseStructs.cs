@@ -18,26 +18,6 @@ namespace Lang
         public Stmt** stmts;
         public size_t num_stmts;
     }
-    
-    unsafe struct FuncTypespec
-    {
-        public Typespec** args;
-        public size_t num_args;
-        public Typespec* ret;
-    }
-
-    [StructLayout(LayoutKind.Sequential, Size = 8)]
-    unsafe struct PtrTypespec
-    {
-        public Typespec* elem;
-    }
-    
-
-    unsafe struct ArrayTypespec
-    {
-        public Typespec* elem;
-        public Expr* size;
-    }
 
     [StructLayout(LayoutKind.Explicit)]
     unsafe struct Typespec
@@ -47,21 +27,35 @@ namespace Lang
         [FieldOffset(4)] public PtrTypespec ptr;
         [FieldOffset(4)] public FuncTypespec func;
         [FieldOffset(4)] public ArrayTypespec array;
+
+
+        internal struct FuncTypespec
+        {
+            public Typespec** args;
+            public size_t num_args;
+            public Typespec* ret;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Size = 8)]
+        internal struct PtrTypespec
+        {
+            public Typespec* elem;
+        }
+
+
+        internal struct ArrayTypespec
+        {
+            public Typespec* elem;
+            public Expr* size;
+        }
+
     }
+
 
     unsafe struct FuncParam
     {
         public char* name;
         public Typespec* type;
-    }
-
-
-    unsafe struct FuncDecl
-    {
-        public FuncParam* @params;
-        public size_t num_params;
-        public Typespec* ret_type;
-        public StmtBlock block;
     }
 
 
@@ -71,14 +65,6 @@ namespace Lang
         public Expr* init;
     }
 
-
-    unsafe struct EnumDecl
-    {
-        public EnumItem* items;
-        public size_t num_items;
-    }
-
-
     unsafe struct AggregateItem
     {
         public char** names;
@@ -86,31 +72,6 @@ namespace Lang
         public Typespec* type;
     }
 
-
-    unsafe struct AggregateDecl
-    {
-        public AggregateItem* items;
-        public size_t num_items;
-    }
-
-
-    unsafe struct TypedefDecl
-    {
-        public Typespec* type;
-    }
-
-
-    unsafe struct VarDecl
-    {
-        public Typespec* type;
-        public Expr* expr;
-    }
-
-
-    unsafe struct ConstDecl
-    {
-        public Expr* expr;
-    }
 
     [StructLayout(LayoutKind.Explicit)]
     unsafe struct Decl
@@ -124,65 +85,48 @@ namespace Lang
         [FieldOffset(4 + Ion.PTR_SIZE)] public VarDecl var;
         [FieldOffset(4 + Ion.PTR_SIZE)] public ConstDecl const_decl;
 
-    }
-
-    unsafe struct CompoundExpr
-    {
-        public Typespec* type;
-        public Expr** args;
-        public size_t num_args;
-    }
 
 
-    unsafe struct CastExpr
-    {
-        public Typespec* type;
-        public Expr* expr;
-    }
+        internal struct FuncDecl
+        {
+            public FuncParam* @params;
+            public size_t num_params;
+            public Typespec* ret_type;
+            public StmtBlock block;
+        }
 
 
-    unsafe struct UnaryExpr
-    {
-        public TokenKind op;
-        public Expr* expr;
-    }
+        internal struct EnumDecl
+        {
+            public EnumItem* items;
+            public size_t num_items;
+        }
+
+        internal struct AggregateDecl
+        {
+            public AggregateItem* items;
+            public size_t num_items;
+        }
 
 
-    unsafe struct BinaryExpr
-    {
-        public TokenKind op;
-        public Expr* left;
-        public Expr* right;
-    }
+        internal struct TypedefDecl
+        {
+            public Typespec* type;
+        }
 
 
-    unsafe struct TernaryExpr
-    {
-        public Expr* cond;
-        public Expr* then_expr;
-        public Expr* else_expr;
-    }
+        internal struct VarDecl
+        {
+            public Typespec* type;
+            public Expr* expr;
+        }
 
 
-    unsafe struct CallExpr
-    {
-        public Expr* expr;
-        public Expr** args;
-        public size_t num_args;
-    }
+        internal struct ConstDecl
+        {
+            public Expr* expr;
+        }
 
-
-    unsafe struct IndexExpr
-    {
-        public Expr* expr;
-        public Expr* index;
-    }
-
-
-    unsafe struct FieldExpr
-    {
-        public Expr* expr;
-        public char* name;
     }
 
     [StructLayout(LayoutKind.Explicit)]
@@ -190,7 +134,7 @@ namespace Lang
     {
 
         [FieldOffset(0)] public ExprKind kind;
-        [FieldOffset(4)] public ulong int_val;
+        [FieldOffset(4)] public long int_val;
         [FieldOffset(4)] public double float_val;
         [FieldOffset(4)] public char* str_val;
         [FieldOffset(4)] public char* name;
@@ -204,43 +148,73 @@ namespace Lang
         [FieldOffset(4)] public CallExpr call;
         [FieldOffset(4)] public IndexExpr index;
         [FieldOffset(4)] public FieldExpr field;
-    }
 
-    unsafe struct ReturnStmt
-    {
-        public Expr* expr;
+
+        internal struct CompoundExpr
+        {
+            public Typespec* type;
+            public Expr** args;
+            public size_t num_args;
+        }
+
+
+        internal struct CastExpr
+        {
+            public Typespec* type;
+            public Expr* expr;
+        }
+
+
+        internal struct UnaryExpr
+        {
+            public TokenKind op;
+            public Expr* expr;
+        }
+
+
+        internal struct BinaryExpr
+        {
+            public TokenKind op;
+            public Expr* left;
+            public Expr* right;
+        }
+
+
+        internal struct TernaryExpr
+        {
+            public Expr* cond;
+            public Expr* then_expr;
+            public Expr* else_expr;
+        }
+
+
+        internal struct CallExpr
+        {
+            public Expr* expr;
+            public Expr** args;
+            public size_t num_args;
+        }
+
+
+        internal struct IndexExpr
+        {
+            public Expr* expr;
+            public Expr* index;
+        }
+
+
+        internal struct FieldExpr
+        {
+            public Expr* expr;
+            public char* name;
+        }
+
     }
 
 
     unsafe struct ElseIf
     {
         public Expr* cond;
-        public StmtBlock block;
-    }
-
-
-    unsafe struct IfStmt
-    {
-        public Expr* cond;
-        public StmtBlock then_block;
-        public ElseIf* elseifs;
-        public size_t num_elseifs;
-        public StmtBlock else_block;
-    }
-
-
-    unsafe struct WhileStmt
-    {
-        public Expr* cond;
-        public StmtBlock block;
-    }
-
-
-    unsafe struct ForStmt
-    {
-        public Stmt* init;
-        public Expr* cond;
-        public Stmt* next;
         public StmtBlock block;
     }
 
@@ -254,33 +228,10 @@ namespace Lang
     }
 
 
-    unsafe struct SwitchStmt
-    {
-        public Expr* expr;
-        public SwitchCase* cases;
-        public size_t num_cases;
-    }
-
-
-    unsafe struct AssignStmt
-    {
-        public TokenKind op;
-        public Expr* left;
-        public Expr* right;
-    }
-
-
-    unsafe struct InitStmt
-    {
-        public char* name;
-        public Expr* expr;
-    }
-
     [StructLayout(LayoutKind.Explicit)]
     unsafe struct Stmt
     {
         [FieldOffset(0)] public StmtKind kind;
-        [FieldOffset(4)] public ReturnStmt return_stmt;
         [FieldOffset(4)] public IfStmt if_stmt;
         [FieldOffset(4)] public WhileStmt while_stmt;
         [FieldOffset(4)] public ForStmt for_stmt;
@@ -290,6 +241,56 @@ namespace Lang
         [FieldOffset(4)] public InitStmt init;
         [FieldOffset(4)] public Expr* expr;
         [FieldOffset(4)] public Decl* decl;
+
+
+        internal struct IfStmt
+        {
+            public Expr* cond;
+            public StmtBlock then_block;
+            public ElseIf* elseifs;
+            public size_t num_elseifs;
+            public StmtBlock else_block;
+        }
+
+
+        internal struct WhileStmt
+        {
+            public Expr* cond;
+            public StmtBlock block;
+        }
+
+
+        internal struct ForStmt
+        {
+            public Stmt* init;
+            public Expr* cond;
+            public Stmt* next;
+            public StmtBlock block;
+        }
+
+
+        internal struct SwitchStmt
+        {
+            public Expr* expr;
+            public SwitchCase* cases;
+            public size_t num_cases;
+        }
+
+
+        internal struct AssignStmt
+        {
+            public TokenKind op;
+            public Expr* left;
+            public Expr* right;
+        }
+
+
+        internal struct InitStmt
+        {
+            public char* name;
+            public Expr* expr;
+        }
+
     }
 
 

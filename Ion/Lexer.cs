@@ -47,56 +47,57 @@ namespace Lang
 
         private char** token_kind_names;
 
-        readonly Dictionary<int, string> tokenKindNames = new Dictionary<int, string> {
-            [(int) TOKEN_EOF] = "EOF",
-            [(int) TOKEN_COLON] = ":",
-            [(int) TOKEN_LPAREN] = "(",
-            [(int) TOKEN_RPAREN] = ")",
-            [(int) TOKEN_LBRACE] = "{",
-            [(int) TOKEN_RBRACE] = "}",
-            [(int) TOKEN_LBRACKET] = "[",
-            [(int) TOKEN_RBRACKET] = "]",
-            [(int) TOKEN_COMMA] = ",",
-            [(int) TOKEN_DOT] = ".",
-            [(int) TOKEN_QUESTION] = "?",
-            [(int) TOKEN_SEMICOLON] = ";",
-            [(int) TOKEN_KEYWORD] = "keyword",
-            [(int) TOKEN_INT] = "int",
-            [(int) TOKEN_FLOAT] = "float",
-            [(int) TOKEN_STR] = "string",
-            [(int) TOKEN_NAME] = "name",
-            [(int) TOKEN_MUL] = "*",
-            [(int) TOKEN_DIV] = "/",
-            [(int) TOKEN_MOD] = "%",
-            [(int) TOKEN_AND] = "&",
-            [(int) TOKEN_LSHIFT] = "<<",
-            [(int) TOKEN_RSHIFT] = ">>",
-            [(int) TOKEN_ADD] = "+",
-            [(int) TOKEN_SUB] = "-",
-            [(int) TOKEN_OR] = "|",
-            [(int) TOKEN_XOR] = "^",
-            [(int) TOKEN_EQ] = "==",
-            [(int) TOKEN_NOTEQ] = "!=",
-            [(int) TOKEN_LT] = "<",
-            [(int) TOKEN_GT] = ">",
-            [(int) TOKEN_LTEQ] = "<=",
-            [(int) TOKEN_GTEQ] = ">=",
-            [(int) TOKEN_AND_AND] = "&&",
-            [(int) TOKEN_OR_OR] = "||",
-            [(int) TOKEN_ASSIGN] = "=",
-            [(int) TOKEN_ADD_ASSIGN] = "+=",
-            [(int) TOKEN_SUB_ASSIGN] = "-=",
-            [(int) TOKEN_OR_ASSIGN] = "|=",
-            [(int) TOKEN_AND_ASSIGN] = "&=",
-            [(int) TOKEN_XOR_ASSIGN] = "^=",
-            [(int) TOKEN_MUL_ASSIGN] = "*=",
-            [(int) TOKEN_DIV_ASSIGN] = "/=",
-            [(int) TOKEN_MOD_ASSIGN] = "%=",
-            [(int) TOKEN_LSHIFT_ASSIGN] = "<<=",
-            [(int) TOKEN_RSHIFT_ASSIGN] = ">>=",
-            [(int) TOKEN_INC] = "++",
-            [(int) TOKEN_DEC] = "--",
-            [(int) TOKEN_COLON_ASSIGN] = ":=",
+        readonly Dictionary<int, string> tokenKindNames = new Dictionary<int, string>
+        {
+            [(int)TOKEN_EOF] = "EOF",
+            [(int)TOKEN_COLON] = ":",
+            [(int)TOKEN_LPAREN] = "(",
+            [(int)TOKEN_RPAREN] = ")",
+            [(int)TOKEN_LBRACE] = "{",
+            [(int)TOKEN_RBRACE] = "}",
+            [(int)TOKEN_LBRACKET] = "[",
+            [(int)TOKEN_RBRACKET] = "]",
+            [(int)TOKEN_COMMA] = ",",
+            [(int)TOKEN_DOT] = ".",
+            [(int)TOKEN_QUESTION] = "?",
+            [(int)TOKEN_SEMICOLON] = ";",
+            [(int)TOKEN_KEYWORD] = "keyword",
+            [(int)TOKEN_INT] = "int",
+            [(int)TOKEN_FLOAT] = "float",
+            [(int)TOKEN_STR] = "string",
+            [(int)TOKEN_NAME] = "name",
+            [(int)TOKEN_MUL] = "*",
+            [(int)TOKEN_DIV] = "/",
+            [(int)TOKEN_MOD] = "%",
+            [(int)TOKEN_AND] = "&",
+            [(int)TOKEN_LSHIFT] = "<<",
+            [(int)TOKEN_RSHIFT] = ">>",
+            [(int)TOKEN_ADD] = "+",
+            [(int)TOKEN_SUB] = "-",
+            [(int)TOKEN_OR] = "|",
+            [(int)TOKEN_XOR] = "^",
+            [(int)TOKEN_EQ] = "==",
+            [(int)TOKEN_NOTEQ] = "!=",
+            [(int)TOKEN_LT] = "<",
+            [(int)TOKEN_GT] = ">",
+            [(int)TOKEN_LTEQ] = "<=",
+            [(int)TOKEN_GTEQ] = ">=",
+            [(int)TOKEN_AND_AND] = "&&",
+            [(int)TOKEN_OR_OR] = "||",
+            [(int)TOKEN_ASSIGN] = "=",
+            [(int)TOKEN_ADD_ASSIGN] = "+=",
+            [(int)TOKEN_SUB_ASSIGN] = "-=",
+            [(int)TOKEN_OR_ASSIGN] = "|=",
+            [(int)TOKEN_AND_ASSIGN] = "&=",
+            [(int)TOKEN_XOR_ASSIGN] = "^=",
+            [(int)TOKEN_MUL_ASSIGN] = "*=",
+            [(int)TOKEN_DIV_ASSIGN] = "/=",
+            [(int)TOKEN_MOD_ASSIGN] = "%=",
+            [(int)TOKEN_LSHIFT_ASSIGN] = "<<=",
+            [(int)TOKEN_RSHIFT_ASSIGN] = ">>=",
+            [(int)TOKEN_INC] = "++",
+            [(int)TOKEN_DEC] = "--",
+            [(int)TOKEN_COLON_ASSIGN] = ":=",
         };
 
         private readonly byte[] char_to_digit = new byte[256];
@@ -105,7 +106,8 @@ namespace Lang
         Token token;
         char* stream;
 
-        public void lex_init() {
+        public void lex_init()
+        {
             if (inited)
                 return;
             keywords = PtrBuffer.Create();
@@ -148,8 +150,9 @@ namespace Lang
             inited = true;
         }
 
-        private void init_keywords() {
-            
+        private void init_keywords()
+        {
+
 
             typedef_keyword = _I("typedef");
             keywords->Add(typedef_keyword);
@@ -218,59 +221,73 @@ namespace Lang
 
         bool is_keyword_name(char* name) => first_keyword <= name && name <= last_keyword;
 
-        char* token_kind_name(TokenKind kind) {
-            if (kind < TOKEN_SIZE) {
-                return token_kind_names[(int) kind];
+        char* token_kind_name(TokenKind kind)
+        {
+            if (kind < TOKEN_SIZE)
+            {
+                return token_kind_names[(int)kind];
             }
-            else {
+            else
+            {
                 char* ukn;
                 "<unknown>".ToPtr(&ukn);
                 return ukn;
             }
         }
 
-        char* token_info() {
+        char* token_info()
+        {
             if (token.kind == TOKEN_NAME || token.kind == TOKEN_KEYWORD)
                 return token.name;
 
             return token_kind_name(token.kind);
         }
 
-        void scan_int() {
+        void scan_int()
+        {
             ulong @base = 10;
-            if (*stream == '0') {
+            if (*stream == '0')
+            {
                 stream++;
-                if (tolower(*stream) == 'x') {
+                if (tolower(*stream) == 'x')
+                {
                     stream++;
                     token.mod = TOKENMOD_HEX;
                     @base = 16;
                 }
-                else if (tolower(*stream) == 'b') {
+                else if (tolower(*stream) == 'b')
+                {
                     stream++;
                     token.mod = TOKENMOD_BIN;
                     @base = 2;
                 }
-                else if (isdigit(*stream)) {
+                else if (isdigit(*stream))
+                {
                     token.mod = TOKENMOD_OCT;
                     @base = 8;
                 }
             }
 
             ulong val = 0;
-            for (;;) {
+            for (; ; )
+            {
                 ulong digit = char_to_digit[*stream];
-                if (digit == 0 && *stream != '0') {
+                if (digit == 0 && *stream != '0')
+                {
                     break;
                 }
 
-                if (digit >= @base) {
+                if (digit >= @base)
+                {
                     syntax_error("Digit '{0}' out of range for base {1}", *stream, @base);
                     digit = 0;
                 }
 
-                if (val > (18446744073709551615ul - digit) / @base) {
+                if (val > (18446744073709551615ul - digit) / @base)
+                {
                     syntax_error("Integer literal overflow");
-                    while (isdigit(*stream)) {
+                    while (isdigit(*stream))
+                    {
                         stream++;
                     }
 
@@ -283,40 +300,49 @@ namespace Lang
             }
 
             token.kind = TOKEN_INT;
-            token.int_val = (ulong) val;
+            token.int_val = (long)val;
         }
 
-        void scan_float() {
+        void scan_float()
+        {
             char* start = stream;
-            while (isdigit(*stream)) {
+            while (isdigit(*stream))
+            {
                 stream++;
             }
 
-            if (*stream == '.') {
+            if (*stream == '.')
+            {
                 stream++;
             }
 
-            while (isdigit(*stream)) {
+            while (isdigit(*stream))
+            {
                 stream++;
             }
 
-            if (tolower(*stream) == 'e') {
+            if (tolower(*stream) == 'e')
+            {
                 stream++;
-                if (*stream == '+' || *stream == '-') {
+                if (*stream == '+' || *stream == '-')
+                {
                     stream++;
                 }
 
-                if (!isdigit(*stream)) {
+                if (!isdigit(*stream))
+                {
                     syntax_error("Expected digit after float literal exponent, found '%c'.", *stream);
                 }
 
-                while (isdigit(*stream)) {
+                while (isdigit(*stream))
+                {
                     stream++;
                 }
             }
 
-            double val = double.Parse(new String(start, 0, (int) (stream - start)));
-            if (double.IsPositiveInfinity(val)) {
+            double val = double.Parse(new String(start, 0, (int)(stream - start)));
+            if (double.IsPositiveInfinity(val))
+            {
                 syntax_error("Float literal overflow");
             }
 
@@ -324,35 +350,43 @@ namespace Lang
             token.float_val = val;
         }
 
-        void scan_char() {
+        void scan_char()
+        {
             assert(*stream == '\'');
             stream++;
             char val = '\0';
-            if (*stream == '\'') {
+            if (*stream == '\'')
+            {
                 syntax_error("Char literal cannot be empty");
                 stream++;
             }
-            else if (*stream == '\n') {
+            else if (*stream == '\n')
+            {
                 syntax_error("Char literal cannot contain newline");
             }
-            else if (*stream == '\\') {
+            else if (*stream == '\\')
+            {
                 stream++;
                 val = escape_to_char[*stream];
-                if (val == 0 && *stream != '0') {
+                if (val == 0 && *stream != '0')
+                {
                     syntax_error("Invalid char literal escape '\\%c'", *stream);
                 }
 
                 stream++;
             }
-            else {
+            else
+            {
                 val = *stream;
                 stream++;
             }
 
-            if (*stream != '\'') {
+            if (*stream != '\'')
+            {
                 syntax_error("Expected closing char quote, got '%c'", *stream);
             }
-            else {
+            else
+            {
                 stream++;
             }
 
@@ -363,21 +397,26 @@ namespace Lang
 
         Buffer<char> str_buf = Buffer<char>.Create(multiplier: 2);
 
-        void scan_str() {
+        void scan_str()
+        {
             assert(*stream == '"');
             stream++;
             char* start = stream;
             str_buf.clear();
-            while (*stream != 0 && *stream != '"') {
+            while (*stream != 0 && *stream != '"')
+            {
                 char val = *stream;
-                if (val == '\n') {
+                if (val == '\n')
+                {
                     syntax_error("String literal cannot contain newline");
                     break;
                 }
-                else if (val == '\\') {
+                else if (val == '\\')
+                {
                     stream++;
                     val = escape_to_char[*stream];
-                    if (val == 0 && *stream != '0') {
+                    if (val == 0 && *stream != '0')
+                    {
                         syntax_error("Invalid string literal escape '\\%c'", *stream);
                     }
                 }
@@ -386,31 +425,36 @@ namespace Lang
                 stream++;
             }
 
-            if (*stream != 0) {
+            if (*stream != 0)
+            {
                 assert(*stream == '"');
                 stream++;
             }
-            else {
+            else
+            {
                 syntax_error("Unexpected end of file within string literal");
             }
 
             str_buf.Add('\0');
 
             token.kind = TOKEN_STR;
-            token.str_val = (char*) str_buf._begin;
+            token.str_val = (char*)str_buf._begin;
         }
 
-        void next_token() {
+        void next_token()
+        {
             repeat:
             token.start = stream;
             token.mod = 0;
-            switch (*stream) {
+            switch (*stream)
+            {
                 case ' ':
                 case '\n':
                 case '\r':
                 case '\t':
                 case '\v':
-                    while (isspace(*stream)) {
+                    while (isspace(*stream))
+                    {
                         stream++;
                     }
                     goto repeat;
@@ -421,10 +465,12 @@ namespace Lang
                     scan_str();
                     break;
                 case '.':
-                    if (isdigit(stream[1])) {
+                    if (isdigit(stream[1]))
+                    {
                         scan_float();
                     }
-                    else {
+                    else
+                    {
                         token.kind = TOKEN_DOT;
                         stream++;
                     }
@@ -439,22 +485,25 @@ namespace Lang
                 case '6':
                 case '7':
                 case '8':
-                case '9': 
-                    while (isdigit(*stream)) {
+                case '9':
+                    while (isdigit(*stream))
+                    {
                         stream++;
                     }
 
                     char c = *stream;
                     stream = token.start;
-                    if (c == '.' || tolower(c) == 'e') {
+                    if (c == '.' || tolower(c) == 'e')
+                    {
                         scan_float();
                     }
-                    else {
+                    else
+                    {
                         scan_int();
                     }
 
                     break;
-                
+
                 case 'a':
                 case 'b':
                 case 'c':
@@ -508,7 +557,8 @@ namespace Lang
                 case 'Y':
                 case 'Z':
                 case '_':
-                    while (isalnum(*stream) || *stream == '_') {
+                    while (isalnum(*stream) || *stream == '_')
+                    {
                         stream++;
                     }
 
@@ -518,15 +568,18 @@ namespace Lang
                 case '<':
                     token.kind = TOKEN_LT;
                     stream++;
-                    if (*stream == '<') {
+                    if (*stream == '<')
+                    {
                         token.kind = TOKEN_LSHIFT;
                         stream++;
-                        if (*stream == '=') {
+                        if (*stream == '=')
+                        {
                             token.kind = TOKEN_LSHIFT_ASSIGN;
                             stream++;
                         }
                     }
-                    else if (*stream == '=') {
+                    else if (*stream == '=')
+                    {
                         token.kind = TOKEN_LTEQ;
                         stream++;
                     }
@@ -535,15 +588,18 @@ namespace Lang
                 case '>':
                     token.kind = TOKEN_GT;
                     stream++;
-                    if (*stream == '>') {
+                    if (*stream == '>')
+                    {
                         token.kind = TOKEN_RSHIFT;
                         stream++;
-                        if (*stream == '=') {
+                        if (*stream == '=')
+                        {
                             token.kind = TOKEN_RSHIFT_ASSIGN;
                             stream++;
                         }
                     }
-                    else if (*stream == '=') {
+                    else if (*stream == '=')
+                    {
                         token.kind = TOKEN_GTEQ;
                         stream++;
                     }
@@ -592,7 +648,8 @@ namespace Lang
                 case ':':
                     token.kind = TOKEN_COLON;
                     stream++;
-                    if (*stream == '=') {
+                    if (*stream == '=')
+                    {
                         token.kind = TOKEN_COLON_ASSIGN;
                         stream++;
                     }
@@ -601,7 +658,8 @@ namespace Lang
                 case '=':
                     token.kind = TOKEN_ASSIGN;
                     stream++;
-                    if (*stream == '=') {
+                    if (*stream == '=')
+                    {
                         token.kind = TOKEN_EQ;
                         stream++;
                     }
@@ -610,7 +668,8 @@ namespace Lang
                 case '^':
                     token.kind = TOKEN_XOR;
                     stream++;
-                    if (*stream == '=') {
+                    if (*stream == '=')
+                    {
                         token.kind = TOKEN_XOR_ASSIGN;
                         stream++;
                     }
@@ -619,7 +678,8 @@ namespace Lang
                 case '*':
                     token.kind = TOKEN_MUL;
                     stream++;
-                    if (*stream == '=') {
+                    if (*stream == '=')
+                    {
                         token.kind = TOKEN_MUL_ASSIGN;
                         stream++;
                     }
@@ -628,7 +688,8 @@ namespace Lang
                 case '/':
                     token.kind = TOKEN_DIV;
                     stream++;
-                    if (*stream == '=') {
+                    if (*stream == '=')
+                    {
                         token.kind = TOKEN_DIV_ASSIGN;
                         stream++;
                     }
@@ -637,7 +698,8 @@ namespace Lang
                 case '%':
                     token.kind = TOKEN_MOD;
                     stream++;
-                    if (*stream == '=') {
+                    if (*stream == '=')
+                    {
                         token.kind = TOKEN_MOD_ASSIGN;
                         stream++;
                     }
@@ -646,11 +708,13 @@ namespace Lang
                 case '+':
                     token.kind = TOKEN_ADD;
                     stream++;
-                    if (*stream == '=') {
+                    if (*stream == '=')
+                    {
                         token.kind = TOKEN_ADD_ASSIGN;
                         stream++;
                     }
-                    else if (*stream == '+') {
+                    else if (*stream == '+')
+                    {
                         token.kind = TOKEN_INC;
                         stream++;
                     }
@@ -659,11 +723,13 @@ namespace Lang
                 case '-':
                     token.kind = TOKEN_SUB;
                     stream++;
-                    if (*stream == '=') {
+                    if (*stream == '=')
+                    {
                         token.kind = TOKEN_SUB_ASSIGN;
                         stream++;
                     }
-                    else if (*stream == '-') {
+                    else if (*stream == '-')
+                    {
                         token.kind = TOKEN_DEC;
                         stream++;
                     }
@@ -672,11 +738,13 @@ namespace Lang
                 case '&':
                     token.kind = TOKEN_AND;
                     stream++;
-                    if (*stream == '=') {
+                    if (*stream == '=')
+                    {
                         token.kind = TOKEN_AND_ASSIGN;
                         stream++;
                     }
-                    else if (*stream == '&') {
+                    else if (*stream == '&')
+                    {
                         token.kind = TOKEN_AND_AND;
                         stream++;
                     }
@@ -685,11 +753,13 @@ namespace Lang
                 case '|':
                     token.kind = TOKEN_OR;
                     stream++;
-                    if (*stream == '=') {
+                    if (*stream == '=')
+                    {
                         token.kind = TOKEN_OR_ASSIGN;
                         stream++;
                     }
-                    else if (*stream == '|') {
+                    else if (*stream == '|')
+                    {
                         token.kind = TOKEN_OR_OR;
                         stream++;
                     }
@@ -710,65 +780,81 @@ namespace Lang
             stream = str.ToPtr();
             next_token();
         }
-        void init_stream(char* str) {
+        void init_stream(char* str)
+        {
 
             stream = str;
             next_token();
         }
 
-        bool is_token(TokenKind kind) {
+        bool is_token(TokenKind kind)
+        {
             return token.kind == kind;
         }
 
 
-        bool is_token_eof() {
+        bool is_token_eof()
+        {
             return token.kind == TOKEN_EOF;
         }
 
-        bool is_token_name(char* name) {
+        bool is_token_name(char* name)
+        {
             return token.kind == TOKEN_NAME && token.name == name;
         }
 
-        bool is_keyword(char* name) {
+        bool is_keyword(char* name)
+        {
             return is_token(TOKEN_KEYWORD) && token.name == name;
         }
 
-        bool match_keyword(char* name) {
-            if (is_keyword(name)) {
+        bool match_keyword(char* name)
+        {
+            if (is_keyword(name))
+            {
                 next_token();
                 return true;
             }
-            else {
+            else
+            {
                 return false;
             }
         }
 
-        bool match_token(TokenKind kind) {
-            if (is_token(kind)) {
+        bool match_token(TokenKind kind)
+        {
+            if (is_token(kind))
+            {
                 next_token();
                 return true;
             }
-            else {
+            else
+            {
                 return false;
             }
         }
 
-        bool expect_token(TokenKind kind) {
-            if (is_token(kind)) {
+        bool expect_token(TokenKind kind)
+        {
+            if (is_token(kind))
+            {
                 next_token();
                 return true;
             }
-            else {
-                fatal("expected token {0}, got {1}", tokenKindNames[(int) kind], new String(token_info()));
+            else
+            {
+                fatal("expected token {0}, got {1}", tokenKindNames[(int)kind], new String(token_info()));
                 return false;
             }
         }
 
-        void keyword_test() {
+        void keyword_test()
+        {
             init_keywords();
             assert(is_keyword_name(first_keyword));
             assert(is_keyword_name(last_keyword));
-            for (char** it = (char**) keywords->_begin; it != keywords->_top; it++) {
+            for (char** it = (char**)keywords->_begin; it != keywords->_top; it++)
+            {
                 assert(is_keyword_name(*it));
             }
 
@@ -777,13 +863,14 @@ namespace Lang
 
         private void assert_token(TokenKind x) => assert(match_token(x));
         private void assert_token_name(string x) => assert(token.name == _I(x) && match_token(TOKEN_NAME));
-        private void assert_token_int(ulong x) => assert(token.int_val == x && match_token(TOKEN_INT));
+        private void assert_token_int(ulong x) => assert((ulong)token.int_val == x && match_token(TOKEN_INT));
         private void assert_token_float(double x) => assert(token.float_val == x && match_token(TOKEN_FLOAT));
 
         private void assert_token_str(char* x) => assert(strcmp(token.str_val, x) == 0 && match_token(TOKEN_STR));
         private void assert_token_eof() => assert(is_token(0));
 
-        public void lex_test() {
+        public void lex_test()
+        {
             keyword_test();
 
             // Integer literal tests
@@ -852,7 +939,7 @@ namespace Lang
         [StructLayout(LayoutKind.Explicit)]
         unsafe struct Token
         {
-            [FieldOffset(0)] public ulong int_val;
+            [FieldOffset(0)] public long int_val;
             [FieldOffset(0)] public double float_val;
             [FieldOffset(0)] public char* str_val;
             [FieldOffset(0)] public char* name;

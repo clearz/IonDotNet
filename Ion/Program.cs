@@ -9,52 +9,35 @@ using static System.Console;
 
 namespace Lang
 {
-#if X64
-    using usize_t = UInt64;
-#else
-    using usize_t = UInt32;
-#endif
-
-    struct OMG
-    {
-        public int i;
-    }
     unsafe partial class Ion
     {
-        public Ion()
-        {
-        }
-        static void Main()
-        {
-
+        static void Main() {
             var ion = new Ion();
-
-
-            ion.resolve_test();
             ion.lex_init();
             ion.lex_test();
+            ion.resolve_test();
             int iterations = 100000;
             Console.WriteLine("{0} iterations\n", iterations);
             int it = iterations;
             Timer t = new Timer();
             ion.init_parse_test();
-            ion.parse_test();
-            ion.print_test();
-            //t.Start();
+            //ion.parse_test();
+            //ion.print_test();
+            t.Start();
 
             // Buffer* cached_ptr_types = Buffer.Create(sizeof(CachedPtrType));
             // Buffer<CachedPtrType> cached_ptr_types2 = Buffer<CachedPtrType>.Create();
             //Buffer<int> cached_ptr_types3 = Buffer<int>.Create();
             //  ReadKey();
             //  CachedPtrType type = default;
-            //while (--it > 0)
-            //{
-            //    //ion.resolve_test();
-            //    ion.parse_test();
-            //}
+            while (--it > 0)
+            {
+                //ion.resolve_test();
+                ion.parse_test();
+            }
 
-            //t.Stop();
-            //Console.WriteLine("Time Parsing: {0} ns", t.Duration(iterations));
+            t.Stop();
+            Console.WriteLine("Time Parsing: {0} ns", t.Duration(iterations));
             ReadKey();
         }
     }

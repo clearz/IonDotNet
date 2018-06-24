@@ -15,6 +15,8 @@ namespace Lang
 
 #if X64
     using size_t = Int64;
+    using System.IO;
+    using System.Diagnostics;
 #else
     using size_t = Int32;
 #endif
@@ -97,7 +99,7 @@ namespace Lang
 
         Expr* parse_expr_operand() {
             if (is_token(TOKEN_INT)) {
-                ulong val = token.int_val;
+                long val = token.int_val;
                 next_token();
                 return expr_int(val);
             }
@@ -297,10 +299,8 @@ namespace Lang
             }
 
             expect_token(TOKEN_RBRACE);
-            return new StmtBlock() {
-                stmts = (Stmt**) buf->_begin,
-                num_stmts = buf->count
-            };
+            return stmt_list((Stmt**)buf->_begin, buf->count);
+            
         }
 
         Stmt* parse_stmt_if() {
@@ -625,8 +625,7 @@ namespace Lang
             }
 
             StmtBlock block = parse_stmt_block();
-            return decl_func(name, (FuncParam*) buf._begin, buf.count, ret_type,
-                block);
+            return decl_func(name, (FuncParam*) buf._begin, buf.count, ret_type, block);
         }
 
         Decl* parse_decl_opt() {
@@ -690,7 +689,6 @@ namespace Lang
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void init_parse_test() {
             _ptr = (char**) Marshal.AllocHGlobal(PTR_SIZE * decls.Length);
-            ;
             for (var i = 0; i < decls.Length; i++) {
                 var it = decls[i].ToPtr();
                 *(_ptr + i) = it;
@@ -698,13 +696,19 @@ namespace Lang
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void parse_test() {
+            // use_print_buf = true;
             for (var i = 0; i < 18; i++) {
                 var it = *(_ptr + i);
                 init_stream(it);
                 Decl* decl = parse_decl();
-                 print_decl(decl);
-                Console.WriteLine();
+                 //print_decl(decl);
+                //sb.Append('\n');
             }
+
+            //var txt = File.ReadAllText("parser.output.txt");
+            //var txt2 = sb.ToString();
+            //assert(txt == txt2);
+            //use_print_buf = false;
         }
     }
 }

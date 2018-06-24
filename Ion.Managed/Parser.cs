@@ -674,8 +674,8 @@ namespace MLang
             foreach (var it in decls) {
                 _lexer.init_stream(it);
                 Decl decl = parse_decl();
-                printer.print_decl(decl);
-                Console.WriteLine();
+               // printer.print_decl(decl);
+                //Console.WriteLine();
             }
         }
     }

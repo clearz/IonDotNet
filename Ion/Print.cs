@@ -199,9 +199,9 @@ namespace Lang
                     break;
                 case STMT_RETURN:
                     printf("(return");
-                    if (s->return_stmt.expr != null) {
+                    if (s->expr != null) {
                         printf(" ");
-                        print_expr(s->return_stmt.expr);
+                        print_expr(s->expr);
                     }
 
                     printf(")");
@@ -331,6 +331,7 @@ namespace Lang
         }
 
         void print_decl(Decl* decl) {
+            
             Decl* d = decl;
             switch (d->kind) {
                 case DECL_ENUM:
