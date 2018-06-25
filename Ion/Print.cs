@@ -59,9 +59,11 @@ namespace Lang
                         printf(" ");
                         print_typespec(*it);
                     }
-
                     printf(" ) ");
-                    print_typespec(t->func.ret);
+                    if (t->func.ret != null)
+                        print_typespec(t->func.ret);
+                    else
+                        printf("void");
                     printf(")");
                     break;
                 case TYPESPEC_ARRAY:
@@ -321,11 +323,10 @@ namespace Lang
             for (AggregateItem* it = d->aggregate.items; it != d->aggregate.items + d->aggregate.num_items; it++) {
                 print_newline();
                 printf("(");
-                print_typespec(it->type);
                 for (char** name = it->names; name != it->names + it->num_names; name++) {
-                    printf(" {0}", *name);
+                    printf("{0} ", *name);
                 }
-
+                print_typespec(it->type);
                 printf(")");
             }
         }
@@ -377,11 +378,15 @@ namespace Lang
                     }
 
                     printf(" ");
-                    print_expr(d->var.expr);
+                    if (d->var.expr != null)
+                        print_expr(d->var.expr);
+                    else
+                        printf("nil");
+                    
                     printf(")");
                     break;
                 case DECL_CONST:
-                    printf("({0} ", d->name);
+                    printf("(const {0} ", d->name);
                     print_expr(d->const_decl.expr);
                     printf(")");
                     break;

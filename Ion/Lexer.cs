@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,6 +27,7 @@ namespace Lang
         char* const_keyword;
         char* func_keyword;
         char* sizeof_keyword;
+        char* cast_keyword;
         char* break_keyword;
         char* continue_keyword;
         char* return_keyword;
@@ -47,8 +49,7 @@ namespace Lang
 
         private char** token_kind_names;
 
-        readonly Dictionary<int, string> tokenKindNames = new Dictionary<int, string>
-        {
+        readonly Dictionary<int, string> tokenKindNames = new Dictionary<int, string> {
             [(int)TOKEN_EOF] = "EOF",
             [(int)TOKEN_COLON] = ":",
             [(int)TOKEN_LPAREN] = "(",
@@ -61,6 +62,8 @@ namespace Lang
             [(int)TOKEN_DOT] = ".",
             [(int)TOKEN_QUESTION] = "?",
             [(int)TOKEN_SEMICOLON] = ";",
+            [(int)TOKEN_NEG] = "~",
+            [(int)TOKEN_NOT] = "!",
             [(int)TOKEN_KEYWORD] = "keyword",
             [(int)TOKEN_INT] = "int",
             [(int)TOKEN_FLOAT] = "float",
@@ -179,6 +182,9 @@ namespace Lang
 
             sizeof_keyword = _I("sizeof");
             keywords->Add(sizeof_keyword);
+
+            cast_keyword = _I("cast");
+            keywords->Add(cast_keyword);
 
             break_keyword = _I("break");
             keywords->Add(break_keyword);
@@ -340,8 +346,8 @@ namespace Lang
                 }
             }
 
-            double val = double.Parse(new String(start, 0, (int)(stream - start)));
-            if (double.IsPositiveInfinity(val))
+            double val = Double.Parse(new String(start, 0, (int)(stream - start)));
+            if (Double.IsPositiveInfinity(val))
             {
                 syntax_error("Float literal overflow");
             }
@@ -395,7 +401,7 @@ namespace Lang
             token.mod = TOKENMOD_CHAR;
         }
 
-        Buffer<char> str_buf = Buffer<char>.Create(multiplier: 2);
+        Buffer<char> str_buf = Buffer<char>.Create();
 
         void scan_str()
         {
@@ -645,6 +651,17 @@ namespace Lang
                     token.kind = TOKEN_SEMICOLON;
                     stream++;
                     break;
+                case '~':
+                    token.kind = TOKEN_NEG;
+                    stream++;
+                    break;
+                case '!':
+                    token.kind = TOKEN_NOT;
+                    stream++;
+                    break;
+
+
+                // CASE2
                 case ':':
                     token.kind = TOKEN_COLON;
                     stream++;
@@ -705,6 +722,8 @@ namespace Lang
                     }
 
                     break;
+
+                // CASE3 Types
                 case '+':
                     token.kind = TOKEN_ADD;
                     stream++;
@@ -970,6 +989,8 @@ namespace Lang
         TOKEN_FLOAT,
         TOKEN_STR,
         TOKEN_NAME,
+        TOKEN_NEG,
+        TOKEN_NOT,
 
         // Multiplicative precedence
         TOKEN_FIRST_MUL,

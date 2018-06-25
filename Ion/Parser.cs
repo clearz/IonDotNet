@@ -56,7 +56,7 @@ namespace Lang
                 return type;
             }
             else {
-                fatal_syntax_error("Unexpected token %s in type", new String(token_info()));
+                fatal_syntax_error("Unexpected token {0} in type", new String(token_info()));
                 return null;
             }
         }
@@ -122,8 +122,15 @@ namespace Lang
                 else {
                     return expr_name(name);
                 }
-            }
-            else if (match_keyword(sizeof_keyword)) {
+            }else if (match_keyword(cast_keyword)) {
+            expect_token(TOKEN_LPAREN);
+            Typespec* type = parse_type();
+            expect_token(TOKEN_COMMA);
+            Expr* expr = parse_expr();
+            expect_token(TOKEN_RPAREN);
+            return expr_cast(type, expr);
+        }
+        else if (match_keyword(sizeof_keyword)) {
                 expect_token(TOKEN_LPAREN);
                 if (match_token(TOKEN_COLON)) {
                     Typespec* type = parse_type();
@@ -152,7 +159,7 @@ namespace Lang
                 }
             }
             else {
-                fatal_syntax_error("Unexpected token %s in expression", new String(token_info()));
+                fatal_syntax_error("Unexpected token {0} in expression", new String(token_info()));
                 return null;
             }
         }
@@ -190,7 +197,7 @@ namespace Lang
         }
 
         bool is_unary_op() {
-            return is_token(TOKEN_ADD) || is_token(TOKEN_SUB) || is_token(TOKEN_MUL) || is_token(TOKEN_AND);
+            return is_token(TOKEN_ADD) || is_token(TOKEN_SUB) || is_token(TOKEN_MUL) || is_token(TOKEN_AND) || is_token(TOKEN_NEG) || is_token(TOKEN_NOT);
         }
 
         Expr* parse_expr_unary() {
@@ -582,7 +589,7 @@ namespace Lang
                 return decl_var(name, type, expr);
             }
             else {
-                fatal_syntax_error("Expected : or = after var, got %s", new String(token_info()));
+                fatal_syntax_error("Expected : or = after var, got {0}", new String(token_info()));
                 return null;
             }
         }
@@ -658,7 +665,7 @@ namespace Lang
         Decl* parse_decl() {
             Decl* decl = parse_decl_opt();
             if (decl == null) {
-                fatal_syntax_error("Expected declaration keyword, got %s", new String(token_info()));
+                fatal_syntax_error("Expected declaration keyword, got {0}", new String(token_info()));
             }
 
             return decl;
@@ -695,20 +702,34 @@ namespace Lang
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void parse_test() {
-            // use_print_buf = true;
-            for (var i = 0; i < 18; i++) {
+        internal void parse_test_and_print()
+        {
+            init_parse_test();
+            Console.WriteLine();
+            for (var i = 0; i < 18; i++)
+            {
                 var it = *(_ptr + i);
                 init_stream(it);
                 Decl* decl = parse_decl();
-                 //print_decl(decl);
-                //sb.Append('\n');
+                print_decl(decl);
+                Console.WriteLine();
             }
 
             //var txt = File.ReadAllText("parser.output.txt");
             //var txt2 = sb.ToString();
             //assert(txt == txt2);
             //use_print_buf = false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void parse_test()
+        {
+            for (var i = 0; i < 18; i++)
+            {
+                var it = *(_ptr + i);
+                init_stream(it);
+                Decl* decl = parse_decl();
+            }
         }
     }
 }

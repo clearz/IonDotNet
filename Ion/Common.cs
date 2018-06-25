@@ -23,12 +23,7 @@ namespace Lang
     #endregion
     unsafe partial class Ion {
         #region Macros*
-#if X64
-        internal const int PTR_SIZE = 8;
-#else
-        internal const int PTR_SIZE = 4;
-#endif
-        private const double HUGE_VAL = (double) (1e+300 * 1e+300);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static size_t MAX(size_t a, size_t b) => a > b ? a : b;
 
@@ -42,7 +37,19 @@ namespace Lang
         public static size_t CLAMP_MAX(size_t x, size_t max) => MIN(x, max);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IS_POW2(size_t x) => (((x) != 0) && ((x) & ((x) - 1)) == 0);
+        public static bool IS_POW2(size_t x) => x != 0 && (x & x - 1) == 0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static size_t ALIGN_DOWN(size_t n, size_t a) => n & ~(a - 1);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Int64 ALIGN_UP(Int64 n, Int64 a) => n + a - 1 & ~(a - 1);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void* ALIGN_DOWN_PTR(void* p, size_t a) => (void*) ALIGN_DOWN((size_t)p, a);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void* ALIGN_UP_PTR(void* p, Int64 a) => (void*) ALIGN_UP((Int64)p, a);
 
         #endregion
         #region Globals*
@@ -71,8 +78,9 @@ namespace Lang
             private const int START_CAPACITY = 8,
                               MULTIPLIER = 2;
 
-            public size_t count, buf_byte_size, size_of;
+            public int count, buf_byte_size, size_of;
             private int _capacity, _multiplier;
+            
 
             public T Peek => *((T*)_top);
 
@@ -86,14 +94,13 @@ namespace Lang
                     _capacity *= _multiplier;
                     assert(count <= _capacity);
                     assert(count <= _capacity);
-                    _begin = (byte*) Marshal.ReAllocHGlobal((IntPtr)_begin, (IntPtr)(_capacity * size_of));
-                    _top = _begin + size_of * count;
+                    _begin = (T*) Marshal.ReAllocHGlobal((IntPtr)_begin, (IntPtr)(_capacity * size_of));
+                    _top = _begin + count;
                     buf_byte_size = _capacity * size_of;
-                    _end = _begin + buf_byte_size;
                 }
                 else
                 {
-                    _top += size_of;
+                    _top++;
                 }
                 
                 count++;
@@ -106,7 +113,6 @@ namespace Lang
             {
                 assert(capacity >= START_CAPACITY);
                 assert(multiplier > 1);
-                assert(sizeof(T) == Unsafe.SizeOf<T>());
                 var b = new Buffer<T> {
                     size_of = sizeof(T),
                     _capacity = capacity,
@@ -114,9 +120,8 @@ namespace Lang
                     count = 0
                 };
                 b.buf_byte_size = b._capacity * b.size_of;
-                b._begin = (byte*)Marshal.AllocHGlobal((IntPtr)b.buf_byte_size);
+                b._begin = (T*)Marshal.AllocHGlobal((IntPtr)b.buf_byte_size);
                 b._top = b._begin;
-                b._end = b._begin + b.buf_byte_size;
                 return b;
             }
 
@@ -128,13 +133,12 @@ namespace Lang
                 {
                     _capacity *= _multiplier;
                     buf_byte_size = _capacity * size_of;
-                    _begin = (byte*)Marshal.ReAllocHGlobal((IntPtr)_begin, (IntPtr)buf_byte_size);
-                    _top = _begin + size_of * count;
-                    _end = _begin + buf_byte_size;
+                    _begin = (T*)Marshal.ReAllocHGlobal((IntPtr)_begin, (IntPtr)buf_byte_size);
+                    _top = _begin + count;
                 }
                 else
                 {
-                    _top += size_of;
+                    _top ++;
                 }
                 
             }
@@ -154,7 +158,7 @@ namespace Lang
                 count = 0;
             }
 
-            internal byte* _begin, _top, _end;
+            internal T* _begin, _top;
             
         }
         internal struct Buffer
@@ -344,18 +348,6 @@ namespace Lang
             internal PtrBuffer* arenas;
 
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static size_t ALIGN_DOWN(size_t n, size_t a) => n & ~(a - 1);
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static size_t ALIGN_UP(size_t n, size_t a) => n + a - 1 & ~(a - 1);
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void* ALIGN_DOWN_PTR(void* p, size_t a) => (void*)ALIGN_DOWN((size_t)p, a);
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void* ALIGN_UP_PTR(void* p, size_t a) => (void*)ALIGN_UP((size_t)p, a);
-
             public const int ARENA_ALIGNMENT = 8;
 
             public const int ARENA_BLOCK_SIZE = 1024 * 1024;
@@ -390,7 +382,7 @@ namespace Lang
                 }
 
                 void* new_ptr = ptr;
-                ptr = (byte*)ALIGN_UP_PTR(ptr + size, ARENA_ALIGNMENT);
+                ptr = (byte*) ALIGN_UP_PTR(ptr + size, ARENA_ALIGNMENT);
                 assert(ptr <= end);
                 assert(new_ptr == ALIGN_DOWN_PTR(new_ptr, ARENA_ALIGNMENT));
                 return new_ptr;
