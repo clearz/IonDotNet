@@ -128,6 +128,22 @@ namespace Lang
         }
 
     }
+    enum CompoundFieldKind
+    {
+        FIELD_DEFAULT,
+        FIELD_NAME,
+        FIELD_INDEX,
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    unsafe struct CompoundField
+    {
+        [FieldOffset(0)] public CompoundFieldKind kind;
+        [FieldOffset(4)] public Expr* init;
+        [FieldOffset(Ion.PTR_SIZE + 4)] public char* name;
+        [FieldOffset(Ion.PTR_SIZE + 4)] public Expr* index;
+    }
+    
 
     [StructLayout(LayoutKind.Explicit)]
     unsafe struct Expr
@@ -153,8 +169,8 @@ namespace Lang
         internal struct CompoundExpr
         {
             public Typespec* type;
-            public Expr** args;
-            public size_t num_args;
+            public CompoundField* fields;
+            public size_t num_fields;
         }
 
 

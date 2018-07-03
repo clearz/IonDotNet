@@ -15,10 +15,10 @@ namespace Lang
     #region Typedefs
 #if X64
     using size_t = Int64;
-    using UPTR   = UInt64;
+    using uptr_t = UInt64;
 #else
     using size_t = Int32;
-    using UPTR   = UInt32;
+    using uptr_t = UInt32;
 #endif
     #endregion
     unsafe partial class Ion {
@@ -52,7 +52,7 @@ namespace Lang
         public static void* ALIGN_UP_PTR(void* p, Int64 a) => (void*) ALIGN_UP((Int64)p, a);
 
         #endregion
-        #region Globals*
+        #region ErrorHandling*
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void fatal(string format, params object[] pmz)
         {
@@ -263,7 +263,7 @@ namespace Lang
                 if (count == _capacity) {
                     _capacity *= _multiplier;
                     assert(count <= _capacity);
-                    _begin = (UPTR*) Marshal.ReAllocHGlobal((IntPtr) _begin, (IntPtr) (_capacity * PTR_SIZE));
+                    _begin = (uptr_t*) Marshal.ReAllocHGlobal((IntPtr) _begin, (IntPtr) (_capacity * PTR_SIZE));
                     _top = _begin + PTR_SIZE * count;
                     buf_byte_size = _capacity * PTR_SIZE;
                     _end = _begin + buf_byte_size;
@@ -289,7 +289,7 @@ namespace Lang
                 b->_multiplier = multiplier;
                 b->count = 0;
                 b->buf_byte_size = capacity * PTR_SIZE;
-                b->_begin = (UPTR*)Marshal.AllocHGlobal(b->buf_byte_size);
+                b->_begin = (uptr_t*)Marshal.AllocHGlobal(b->buf_byte_size);
                 b->_top = b->_begin;
                 b->_end = b->_begin + b->buf_byte_size;
                 return b;
@@ -297,12 +297,12 @@ namespace Lang
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Add(void* val) {
-                *_top = (UPTR)val;
+                *_top = (uptr_t)val;
 
                 if (++count == _capacity) {
                     _capacity *= _multiplier;
                     buf_byte_size = _capacity * PTR_SIZE;
-                    _begin = (UPTR*) Marshal.ReAllocHGlobal((IntPtr) _begin, (IntPtr) buf_byte_size);
+                    _begin = (uptr_t*) Marshal.ReAllocHGlobal((IntPtr) _begin, (IntPtr) buf_byte_size);
                     _top = _begin + count;
                     _end = _begin + _capacity;
                 }
@@ -326,12 +326,12 @@ namespace Lang
                 count = 0;
             }
 
-            internal UPTR* _begin, _top, _end;
+            internal uptr_t* _begin, _top, _end;
 
             public static void* Array(params void*[] ptrs) {
-                UPTR* array = (UPTR*)Marshal.AllocHGlobal(PTR_SIZE * ptrs.Length);
+                uptr_t* array = (uptr_t*)Marshal.AllocHGlobal(PTR_SIZE * ptrs.Length);
                 for (var i = 0; i < ptrs.Length; i++) {
-                    array[i] = (UPTR)ptrs[i];
+                    array[i] = (uptr_t)ptrs[i];
             }
 
                 return array;

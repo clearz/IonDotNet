@@ -13,6 +13,7 @@ namespace Lang
     using static ExprKind;
     using static StmtKind;
     using static TokenKind;
+    using static CompoundFieldKind;
 
 #if X64
     using size_t = Int64;
@@ -147,9 +148,26 @@ namespace Lang
                         printf("nil");
                     }
 
-                    for (Expr** it = e->compound.args; it != e->compound.args + e->compound.num_args; it++) {
+                    for (CompoundField* it = e->compound.fields; it != e->compound.fields + e->compound.num_fields; it++)
+                    {
                         printf(" ");
-                        print_expr(*it);
+                        if (it->kind == FIELD_DEFAULT)
+                        {
+                            printf("(nil ");
+                        }
+                        else if (it->kind == FIELD_NAME)
+                        {
+                            printf("(name {0} ", it->name);
+                        }
+                        else
+                        {
+                            assert(it->kind == FIELD_INDEX);
+                            printf("(index ");
+                            print_expr(it->index);
+                            printf(" ");
+                        }
+                        print_expr(it->init);
+                        printf(")");
                     }
 
                     printf(")");
@@ -434,7 +452,6 @@ namespace Lang
                 expr_call(expr_name("fact".ToPtr()), (Expr**) PtrBuffer.Array(expr_int(42)), 1),
                 expr_index(expr_field(expr_name("person".ToPtr()), "siblings".ToPtr()), expr_int(3)),
                 expr_cast(typespec_ptr(typespec_name("int".ToPtr())), expr_name("void_ptr".ToPtr())),
-                expr_compound(typespec_name("Vector".ToPtr()), (Expr**) PtrBuffer.Array(expr_int(1), expr_int(2)), 2),
             };
             foreach (Expr* it in exprs) {
                 print_expr(it);

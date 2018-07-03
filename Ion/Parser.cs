@@ -12,6 +12,7 @@ namespace Lang
     using static DeclKind;
     using static ExprKind;
     using static StmtKind;
+    using static CompoundFieldKind;
 
 #if X64
     using size_t = Int64;
@@ -82,19 +83,45 @@ namespace Lang
 
             return type;
         }
+        CompoundField parse_expr_compound_field()
+        {
+            if (match_token(TOKEN_LBRACKET))
+            {
+                Expr* index = parse_expr();
+                expect_token(TOKEN_RBRACKET);
+                expect_token(TOKEN_ASSIGN);
+                return new CompoundField { kind = FIELD_INDEX, init = parse_expr(), index = index};
+            }
+            else
+            {
+                Expr* expr = parse_expr();
+                if (match_token(TOKEN_ASSIGN))
+                {
+                    if (expr->kind != EXPR_NAME)
+                    {
+                        fatal_syntax_error("Named initializer in compound literal must be preceded by field name");
+                    }
+                    return new CompoundField { kind = FIELD_NAME, init = parse_expr(), name = expr->name};
+                }
+                else
+                {
+                    return new CompoundField { kind = FIELD_DEFAULT, init = expr};
+                }
+            }
+        }
 
         Expr* parse_expr_compound(Typespec* type) {
             expect_token(TOKEN_LBRACE);
-            var buf = PtrBuffer.Create();; // Expr**
+            var buf = Buffer<CompoundField>.Create();; // Expr**
             if (!is_token(TOKEN_RBRACE)) {
-                buf->Add(parse_expr());
+                buf.Add(parse_expr_compound_field());
                 while (match_token(TOKEN_COMMA)) {
-                    buf->Add(parse_expr());
+                    buf.Add(parse_expr_compound_field());
                 }
             }
 
             expect_token(TOKEN_RBRACE);
-            return expr_compound(type, (Expr**) buf->_begin, buf->count);
+            return expr_compound(type, buf._begin, buf.count);
         }
 
         Expr* parse_expr_operand() {
@@ -672,6 +699,10 @@ namespace Lang
         }
 
         static readonly string[] decls = {
+            "var x: char[256] = {1, 2, 3, ['a'] = 4}",
+            "struct Vector { x, y: float; }",
+            "var v = Vector{x = 1.0, y = -1.0}",
+            "var v: Vector = {1.0, -1.0}",
             "const n = sizeof(:int*[16])",
             "const n = sizeof(1+2)",
             "var x = b == 1 ? 1+2 : 3-4",
@@ -681,9 +712,6 @@ namespace Lang
             "func f(x: int): bool { switch(x) { case 0: case 1: return true; case 2: default: return false; } }",
             "enum Color { RED = 3, GREEN, BLUE = 0 }",
             "const pi = 3.14",
-            "struct Vector { x, y: float; }",
-            "var v = Vector{1.0, -1.0}",
-            "var v: Vector = {1.0, -1.0}",
             "union IntOrFloat { i: int; f: float; }",
             "typedef Vectors = Vector[1+2]",
             "func f() { do { print(42); } while(1); }",

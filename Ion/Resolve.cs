@@ -9,12 +9,15 @@ using DotNetCross.Memory;
 namespace Lang
 {
     using static TypeKind;
-    using static EntityState;
+    using static SymState;
     using static DeclKind;
-    using static EntityKind;
+    using static SymKind;
     using static TypespecKind;
     using static ExprKind;
     using static TokenKind;
+    using static StmtKind;
+    using static CompoundFieldKind;
+
     #region Typedefs
 
 #if X64
@@ -119,10 +122,15 @@ namespace Lang
             Type* type = type_alloc(TYPE_FUNC);
             type->size = PTR_SIZE;
             type->align = PTR_ALIGN;
-            type->func.@params = (Type**)Marshal.AllocHGlobal(sizeof(Type*) * num_params);
-            Unsafe.CopyBlock(type->func.@params, @params, (uint) (num_params * sizeof(Type*)));//memcpy(t->func.@params, @params, num_params * sizeof(Type*));
-            type->func.num_params = num_params;
-             type->func.ret = ret;
+            if (num_params > 0) {
+                type->func.@params = (Type**) Marshal.AllocHGlobal(sizeof(Type*) * num_params);
+                Unsafe.CopyBlock(type->func.@params, @params,
+                    (uint) (num_params *
+                            sizeof(Type*))); //memcpy(t->func.@params, @params, num_params * sizeof(Type*));
+                type->func.num_params = num_params;
+            }
+
+            type->func.ret = ret;
             cached_func_types.Add(new CachedFuncType{func = type, num_params =num_params, ret = ret, @params = @params});
             return type;
         }
@@ -168,95 +176,130 @@ namespace Lang
             return type;
         }
 
-        Type* type_incomplete(Entity* entity) {
+        Type* type_incomplete(Sym* sym) {
             Type* type = type_alloc(TYPE_INCOMPLETE);
-            type->entity = entity;
+            type->sym = sym;
             return type;
         }
 
+        public const int MAX_LOCAL_SYMS = 1024;
 
-        readonly PtrBuffer* entities = PtrBuffer.Create();
+        private readonly PtrBuffer* global_syms = PtrBuffer.Create();
+        private Buffer<Sym> local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
+        
 
-        Entity* entity_new(EntityKind kind, char* name, Decl* decl) {
-            Entity* entity = (Entity*) Marshal.AllocHGlobal(sizeof(Entity));
-            Unsafe.InitBlock(entity,0, (uint)sizeof(Entity));
-            entity->kind = kind;
-            entity->name = name;
-            entity->decl = decl;
-            return entity;
+        Sym* sym_new(SymKind kind, char* name, Decl* decl) {
+            Sym* sym = (Sym*) Marshal.AllocHGlobal(sizeof(Sym));
+            Unsafe.InitBlock(sym,0, (uint)sizeof(Sym));
+            sym->kind = kind;
+            sym->name = name;
+            sym->decl = decl;
+            return sym;
         }
 
-        Entity* entity_decl(Decl* decl)
+        Sym* sym_decl(Decl* decl)
         {
-            EntityKind kind = ENTITY_NONE;
+            SymKind kind = SYM_NONE;
             switch (decl->kind)
             {
                 case DECL_STRUCT:
                 case DECL_UNION:
                 case DECL_TYPEDEF:
                 case DECL_ENUM:
-                    kind = ENTITY_TYPE;
+                    kind = SYM_TYPE;
                     break;
                 case DECL_VAR:
-                    kind = ENTITY_VAR;
+                    kind = SYM_VAR;
                     break;
                 case DECL_CONST:
-                    kind = ENTITY_CONST;
+                    kind = SYM_CONST;
                     break;
                 case DECL_FUNC:
-                    kind = ENTITY_FUNC;
+                    kind = SYM_FUNC;
                     break;
                 default:
                     assert(false);
                     break;
             }
-            Entity* entity = entity_new(kind, decl->name, decl);
+            Sym* sym = sym_new(kind, decl->name, decl);
             if (decl->kind == DECL_STRUCT || decl->kind == DECL_UNION)
             {
-                entity->state = ENTITY_RESOLVED;
-                entity->type = type_incomplete(entity);
+                sym->state = SYM_RESOLVED;
+                sym->type = type_incomplete(sym);
             }
-            return entity;
+            return sym;
         }
 
-        Entity* entity_enum_const(char* name, Decl *decl) {
-            return entity_new(ENTITY_ENUM_CONST, name, decl);
+        Sym* sym_enum_const(char* name, Decl *decl) {
+            return sym_new(SYM_ENUM_CONST, name, decl);
         }
 
-        Entity* entity_get(char* name)
+        Sym* sym_get(char* name)
         {
-            for (Entity** it = (Entity**)entities->_begin; it != entities->_top; it++)
+            for (Sym* it = local_syms._top; it >= local_syms._begin; it--)
             {
-                Entity* entity = *it;
-                if (entity->name == name)
+                Sym* sym = it - 1;
+                if (sym->name == name)
                 {
-                    return entity;
+                    return sym;
+                }
+            }
+            for (Sym** it = (Sym**)global_syms->_begin; it != global_syms->_top; it++)
+            {
+                Sym* sym = *it;
+                if (sym->name == name)
+                {
+                    return sym;
                 }
             }
             return null;
         }
 
-        Entity* entity_install_decl(Decl* decl)
+        void sym_push_var(char* name, Type *type) {
+            if (local_syms._top == local_syms._begin + MAX_LOCAL_SYMS) {
+                fatal("Too many local symbols");
+            }
+
+            local_syms.Add(new Sym {
+                name = name,
+                kind = SYM_VAR,
+                state = SYM_RESOLVED,
+                type = type,
+            });
+            
+        }
+
+        Sym* sym_enter()
         {
-            Entity* entity = entity_decl(decl);
-            entities->Add(entity);
+            return local_syms._top;
+        }
+
+        void sym_leave(Sym* sym)
+        {
+            local_syms._top = sym;
+        }
+
+        Sym* sym_global_decl(Decl* decl)
+        {
+            Sym* sym = sym_decl(decl);
+            global_syms->Add(sym);
             if (decl->kind == DECL_ENUM)
             {
                 for (size_t i = 0; i < decl->enum_decl.num_items; i++)
                 {
-                    entities->Add(entity_enum_const(decl->enum_decl.items[i].name, decl));
+                    global_syms->Add(sym_enum_const(decl->enum_decl.items[i].name, decl));
                 }
             }
-            return entity;
+            return sym;
         }
 
-        Entity* entity_install_type(char* name, Type* type)
+        Sym* sym_global_type(char* name, Type* type)
         {
-            Entity* entity = entity_new(ENTITY_TYPE, name, null);
-            entity->state = ENTITY_RESOLVED;
-            entity->type = type;
-            entities->Add(entity);
-            return entity;
+            Sym* sym = sym_new(SYM_TYPE, name, null);
+            sym->state = SYM_RESOLVED;
+            sym->type = type;
+            global_syms->Add(sym);
+            return sym;
         }
 
         void resolve_decl(Decl* decl) {
@@ -264,19 +307,6 @@ namespace Lang
                 case DECL_CONST:
                     break;
             }
-        }
-
-        void resolve_sym(Entity* entity) {
-            if (entity->state == ENTITY_RESOLVED) {
-                return;
-            }
-
-            if (entity->state == ENTITY_RESOLVING) {
-                fatal("Cyclic dependency");
-                return;
-            }
-
-            resolve_decl(entity->decl);
         }
 
         private readonly ResolvedExpr resolved_null;
@@ -295,22 +325,29 @@ namespace Lang
 
         Type* resolve_typespec(Typespec* typespec)
         {
+            if (typespec == null)
+                return type_void;
+
             switch (typespec->kind)
             {
                 case TYPESPEC_NAME:
                 {
-                    Entity* entity = resolve_name(typespec->name);
-                    if (entity->kind != ENTITY_TYPE)
+                    Sym* sym = resolve_name(typespec->name);
+                    if (sym->kind != SYM_TYPE)
                     {
                         fatal("{0} must denote a type", new string(typespec->name));
                         return null;
                     }
-                    return entity->type;
+                    return sym->type;
                 }
                 case TYPESPEC_PTR:
                     return type_ptr(resolve_typespec(typespec->ptr.elem));
                 case TYPESPEC_ARRAY:
-                    return type_array(resolve_typespec(typespec->array.elem), resolve_const_expr(typespec->array.size));
+                    long size = resolve_const_expr(typespec->array.size);
+                    if (size < 0)
+                        fatal("Negative array size");
+
+                    return type_array(resolve_typespec(typespec->array.elem), size);
                 case TYPESPEC_FUNC:
                 {
                     //Type** args = null;
@@ -332,7 +369,7 @@ namespace Lang
             }
         }
 
-        private PtrBuffer* ordered_entities = PtrBuffer.Create();
+        private PtrBuffer* ordered_syms = PtrBuffer.Create();
 
         void complete_type(Type* type)
         {
@@ -346,7 +383,7 @@ namespace Lang
                 return;
             }
             type->kind = TYPE_COMPLETING;
-            Decl* decl = type->entity->decl;
+            Decl* decl = type->sym->decl;
             assert(decl->kind == DECL_STRUCT || decl->kind == DECL_UNION);
             var fields = Buffer<TypeField>.Create();
             for (size_t i = 0; i < decl->aggregate.num_items; i++)
@@ -369,7 +406,7 @@ namespace Lang
                 assert(decl->kind == DECL_UNION);
                 type_complete_union(type, (TypeField*)fields._begin, fields.count);
             }
-            ordered_entities->Add(type->entity);
+            ordered_syms->Add(type->sym);
         }
 
         Type* resolve_decl_type(Decl* decl)
@@ -420,56 +457,198 @@ namespace Lang
 
             return type_func((Type**) @params->_begin, @params->count, ret_type);
         }
+        
 
-        void resolve_entity(Entity* entity)
+        void resolve_cond_expr(Expr* expr)
         {
-            if (entity->state == ENTITY_RESOLVED)
+            ResolvedExpr cond = resolve_expr(expr);
+            if (cond.type != type_int)
             {
-                return;
+                fatal("Conditional expression must have type int");
             }
-            else if (entity->state == ENTITY_RESOLVING)
+        }
+
+        void resolve_stmt_block(StmtBlock block, Type* ret_type)
+        {
+            Sym* start = sym_enter();
+            for (size_t i = 0; i < block.num_stmts; i++)
             {
-                fatal("Cyclic dependency");
-                return;
+                resolve_stmt(block.stmts[i], ret_type);
             }
-            assert(entity->state == ENTITY_UNRESOLVED);
-            entity->state = ENTITY_RESOLVING;
-            switch (entity->kind)
+            sym_leave(start);
+        }
+
+        void resolve_stmt(Stmt* stmt, Type* ret_type)
+        {
+            switch (stmt->kind)
             {
-                case ENTITY_TYPE:
-                    entity->type = resolve_decl_type(entity->decl);
+                case STMT_RETURN:
+                    if (stmt->expr != null)
+                    {
+                        ResolvedExpr result = resolve_expected_expr(stmt->expr, ret_type);
+                        if (result.type != ret_type)
+                        {
+                            fatal("Return type mismatch");
+                        }
+                    }
+                    else
+                    {
+                        if (ret_type != type_void)
+                        {
+                            fatal("Empty return expression for function with non-void return type");
+                        }
+                    }
                     break;
-                case ENTITY_VAR:
-                    entity->type = resolve_decl_var(entity->decl);
+                case STMT_BREAK:
+                case STMT_CONTINUE:
+                    // Do nothing
                     break;
-                case ENTITY_CONST:
-                    entity->type = resolve_decl_const(entity->decl, &entity->val);
+                case STMT_BLOCK:
+                    resolve_stmt_block(stmt->block, ret_type);
                     break;
-                case ENTITY_FUNC:
-                    entity->type = resolve_decl_func(entity->decl);
+                case STMT_IF:
+                    resolve_cond_expr(stmt->if_stmt.cond);
+                    resolve_stmt_block(stmt->if_stmt.then_block, ret_type);
+                    for (size_t i = 0; i < stmt->if_stmt.num_elseifs; i++)
+                    {
+                        ElseIf elseif = stmt->if_stmt.elseifs[i];
+                        resolve_cond_expr(elseif.cond);
+                        resolve_stmt_block(elseif.block, ret_type);
+                    }
+                    if (stmt->if_stmt.else_block.stmts != null)
+                    {
+                        resolve_stmt_block(stmt->if_stmt.else_block, ret_type);
+                    }
+                    break;
+                case STMT_WHILE:
+                case STMT_DO_WHILE:
+                    resolve_cond_expr(stmt->while_stmt.cond);
+                    resolve_stmt_block(stmt->while_stmt.block, ret_type);
+                    break;
+                case STMT_FOR:
+                    {
+                        Sym* sym = sym_enter();
+                        resolve_stmt(stmt->for_stmt.init, ret_type);
+                        resolve_cond_expr(stmt->for_stmt.cond);
+                        resolve_stmt_block(stmt->for_stmt.block, ret_type);
+                        resolve_stmt(stmt->for_stmt.next, ret_type);
+                        sym_leave(sym);
+                        break;
+                    }
+                case STMT_SWITCH:
+                    {
+                        ResolvedExpr result = resolve_expr(stmt->switch_stmt.expr);
+                        for (size_t i = 0; i < stmt->switch_stmt.num_cases; i++)
+                        {
+                            SwitchCase switch_case = stmt->switch_stmt.cases[i];
+                            for (size_t j = 0; j < switch_case.num_exprs; j++)
+                            {
+                                ResolvedExpr case_result = resolve_expr(switch_case.exprs[j]);
+                                if (case_result.type != result.type)
+                                {
+                                    fatal("Switch case expression type mismatch");
+                                }
+                                resolve_stmt_block(switch_case.block, ret_type);
+                            }
+                        }
+                        break;
+                    }
+                case STMT_ASSIGN:
+                    {
+                        ResolvedExpr left = resolve_expr(stmt->assign.left);
+                        if (stmt->assign.right != null)
+                        {
+                            ResolvedExpr right = resolve_expected_expr(stmt->assign.right, left.type);
+                            if (left.type != right.type)
+                            {
+                                fatal("Left/right types do not match in assignment statement");
+                            }
+                        }
+                        if (!left.is_lvalue)
+                        {
+                            fatal("Cannot assign to non-lvalue");
+                        }
+                        if (stmt->assign.op != TOKEN_ASSIGN && left.type != type_int)
+                        {
+                            fatal("Can only use assignment operators with type int");
+                        }
+                        break;
+                    }
+                case STMT_INIT:
+                    sym_push_var(stmt->init.name, resolve_expr(stmt->init.expr).type);
                     break;
                 default:
                     assert(false);
                     break;
             }
-            entity->state = ENTITY_RESOLVED;
-            ordered_entities->Add(entity);
-        }
-        void complete_entity(Entity* entity)
-        {
-            resolve_entity(entity);
-            if (entity->kind == ENTITY_TYPE)
-                complete_type(entity->type);
         }
 
-        Entity* resolve_name(char* name) {
-            Entity* entity = entity_get(name);
-            if (entity == null) {
+        void resolve_func(Sym* sym) {
+            Decl* decl = sym->decl;
+            assert(decl->kind == DECL_FUNC);
+            assert(sym->state == SYM_RESOLVED);
+            Sym* start = sym_enter();
+            for (size_t i = 0; i < decl->func.num_params; i++) {
+                FuncParam param = decl->func.@params[i];
+                sym_push_var(param.name, resolve_typespec(param.type));
+            }
+
+            resolve_stmt_block(decl->func.block, resolve_typespec(decl->func.ret_type));
+            sym_leave(start);
+        }
+
+        void resolve_sym(Sym* sym)
+        {
+            if (sym->state == SYM_RESOLVED)
+            {
+                return;
+            }
+            else if (sym->state == SYM_RESOLVING)
+            {
+                fatal("Cyclic dependency");
+                return;
+            }
+            assert(sym->state == SYM_UNRESOLVED);
+            sym->state = SYM_RESOLVING;
+            switch (sym->kind)
+            {
+                case SYM_TYPE:
+                    sym->type = resolve_decl_type(sym->decl);
+                    break;
+                case SYM_VAR:
+                    sym->type = resolve_decl_var(sym->decl);
+                    break;
+                case SYM_CONST:
+                    sym->type = resolve_decl_const(sym->decl, &sym->val);
+                    break;
+                case SYM_FUNC:
+                    sym->type = resolve_decl_func(sym->decl);
+                    break;
+                default:
+                    assert(false);
+                    break;
+            }
+            sym->state = SYM_RESOLVED;
+            ordered_syms->Add(sym);
+        }
+
+        void complete_entity(Sym* sym) {
+            resolve_sym(sym);
+            if (sym->kind == SYM_TYPE)
+                complete_type(sym->type);
+            else if (sym->kind == SYM_FUNC) {
+                resolve_func(sym);
+            }
+        }
+
+        Sym* resolve_name(char* name) {
+            Sym* sym = sym_get(name);
+            if (sym == null) {
                 fatal("Non-existent name");
                 return null;
             }
-            resolve_entity(entity);
-            return entity;
+            resolve_sym(sym);
+            return sym;
         }
 
 
@@ -512,13 +691,13 @@ namespace Lang
         ResolvedExpr resolve_expr_name(Expr* expr)
         {
             assert(expr->kind == EXPR_NAME);
-            Entity* entity = resolve_name(expr->name);
-            if (entity->kind == ENTITY_VAR)
-                return resolved_lvalue(entity->type);
-            else if (entity->kind == ENTITY_CONST)
-                return resolved_const(entity->val);
-            else if (entity->kind == ENTITY_FUNC) {
-                return resolved_rvalue(entity->type);
+            Sym* sym = resolve_name(expr->name);
+            if (sym->kind == SYM_VAR)
+                return resolved_lvalue(sym->type);
+            else if (sym->kind == SYM_CONST)
+                return resolved_const(sym->val);
+            else if (sym->kind == SYM_FUNC) {
+                return resolved_rvalue(sym->type);
             }
             else {
                 fatal("{0} must denote a var func or const", new String(expr->name));
@@ -641,6 +820,16 @@ namespace Lang
             else
                 return resolved_rvalue(left.type);
         }
+        size_t aggregate_field_index(Type* type, char* name) {
+            assert(type->kind == TYPE_STRUCT || type->kind == TYPE_UNION);
+            for (size_t i = 0; i<type->aggregate.num_fields; i++) {
+                if (type->aggregate.fields[i].name == name) {
+                    return i;
+                }
+            }
+            fatal("Field '{0}' in compound literal not found in struct/union", new String(name));
+            return size_t.MaxValue;
+        }
 
         ResolvedExpr resolve_expr_compound(Expr* expr, Type* expected_type)
         {
@@ -653,10 +842,6 @@ namespace Lang
             if (expr->compound.type != null)
             {
                 type = resolve_typespec(expr->compound.type);
-                if (expected_type != null && expected_type != type)
-                {
-                    fatal("Explicit compound literal type does not match expected type");
-                }
             }
             else
             {
@@ -667,35 +852,63 @@ namespace Lang
             {
                 fatal("Compound literals can only be used with struct and array types");
             }
+
             if (type->kind == TYPE_STRUCT || type->kind == TYPE_UNION)
             {
-                if (expr->compound.num_args > type->aggregate.num_fields)
+                size_t index = 0;
+                for (size_t i = 0; i < expr->compound.num_fields; i++)
                 {
-                    fatal("Compound literal has too many fields");
-                }
-                for (size_t i = 0; i < expr->compound.num_args; i++)
-                {
-                    ResolvedExpr field = resolve_expr(expr->compound.args[i]);
-                    if (field.type != type->aggregate.fields[i].type)
+                    CompoundField field = expr->compound.fields[i];
+                    if (field.kind == FIELD_INDEX)
+                    {
+                        fatal("Index field initializer not allowed for struct/union compound literal");
+                    }
+                    else if (field.kind == FIELD_NAME)
+                    {
+                        index = aggregate_field_index(type, field.name);
+                    }
+                    if (index >= type->aggregate.num_fields)
+                    {
+                        fatal("Field initializer in struct/union compound literal out of range");
+                    }
+                    ResolvedExpr init = resolve_expected_expr(expr->compound.fields[i].init, type->aggregate.fields[index].type);
+                    if (init.type != type->aggregate.fields[index].type)
                     {
                         fatal("Compound literal field type mismatch");
                     }
+                    index++;
                 }
             }
             else
             {
                 assert(type->kind == TYPE_ARRAY);
-                if (expr->compound.num_args > type->array.size)
+                size_t index = 0;
+                for (size_t i = 0; i < expr->compound.num_fields; i++)
                 {
-                    fatal("Compound literal has too many elements");
-                }
-                for (size_t i = 0; i < expr->compound.num_args; i++)
-                {
-                    ResolvedExpr elem = resolve_expr(expr->compound.args[i]);
-                    if (elem.type != type->array.elem)
+                    CompoundField field = expr->compound.fields[i];
+                    if (field.kind == FIELD_NAME)
+                    {
+                        fatal("Named field initializer not allowed for array compound literals");
+                    }
+                    else if (field.kind == FIELD_INDEX)
+                    {
+                        long result = resolve_const_expr(field.index);
+                        if (result < 0)
+                        {
+                            fatal("Field initializer index cannot be negative");
+                        }
+                        index = result;
+                    }
+                    if (index >= type->array.size)
+                    {
+                        fatal("Field initializer in array compound literal out of range");
+                    }
+                    ResolvedExpr init = resolve_expected_expr(expr->compound.fields[i].init, type->array.elem);
+                    if (init.type != type->array.elem)
                     {
                         fatal("Compound literal element type mismatch");
                     }
+                    index++;
                 }
             }
             return resolved_rvalue(type);
@@ -820,8 +1033,7 @@ ResolvedExpr resolve_expr_cast(Expr* expr)
                     return resolve_expr_ternary(expr, expected_type);
                 case EXPR_SIZEOF_EXPR:
                 {
-                    ResolvedExpr result = resolve_expr(expr->sizeof_expr);
-                    Type* type = result.type;
+                    Type* type = resolve_expr(expr->sizeof_expr).type;
                     complete_type(type);
                     return resolved_const(type_sizeof(type));
                 }
@@ -879,218 +1091,238 @@ ResolvedExpr resolve_expr_cast(Expr* expr)
                 assert(int_func == type_func(null, 0, type_int));
             }
 
-            entity_install_type(_I("void"), type_void);
-            entity_install_type(_I("char"), type_char);
-            entity_install_type(_I("int"), type_int);
+            sym_global_type(_I("void"), type_void);
+            sym_global_type(_I("char"), type_char);
+            sym_global_type(_I("int"), type_int);
+            sym_global_type(_I("float"), type_float);
 
             char*[] code = {
-                "struct A { c: char; }".ToPtr(),
-                "struct B { i: int; }".ToPtr(),
-                "struct C { c: char; a: A; }".ToPtr(),
-                "struct D { c: char; b: B; }".ToPtr(),
                 "struct Vector { x, y: int; }".ToPtr(),
-                "func print(v: Vector) { printf(\"{%d, %d}\", v.x, v.y); }".ToPtr(),
-                "func add(v: Vector, w: Vector): Vector { return {v.x + w.x, v.y + w.y}; }".ToPtr(),
-                "var x = add({1,2}, {3,4})".ToPtr(),
-                "var v: Vector = {1,2}".ToPtr(),
-                "var w = Vector{3,4}".ToPtr(),
-                "var p: void*".ToPtr(),
-                "var i = cast(int, p) + 1".ToPtr(),
-                "var fp: func(Vector)".ToPtr(),
-                //  "struct Dup { x: int; x: int; }".ToPtr(),
-                "var a: int[3] = {1,2,3}".ToPtr(),
-                "var b: int[4]".ToPtr(),
-                "var p = &a[1]".ToPtr(),
-                "var i = p[1]".ToPtr(),
-                "var j = *p".ToPtr(),
-                "const n = sizeof(a)".ToPtr(),
-                "const m = sizeof(&a[0])".ToPtr(),
-                "const l = sizeof(1 ? a : b)".ToPtr(),
-                "var pi = 3.14".ToPtr(),
-                "var name = \"Per\"".ToPtr(),
-                "var v = Vector{1,2}".ToPtr(),
-                "var j = cast(int, p)".ToPtr(),
-                //  "var q = cast(int*, j)".ToPtr(),
-                "const i = 42".ToPtr(),
-                // "const j = +i".ToPtr(),
-                //  "const k = -i".ToPtr(),
-                "const a = 1000/((2*3-5) << 1)".ToPtr(),
-                "const b = !0".ToPtr(),
-                "const c = ~100 + 1 == -100".ToPtr(),
-                "const k = 1 ? 2 : 3".ToPtr(),
-                "union IntOrPtr { i: int; p: int*; }".ToPtr(),
-                "var i = 42".ToPtr(),
-                "var u = IntOrPtr{i, &i}".ToPtr(),
-                "const n = 1+sizeof(p)".ToPtr(),
-                "var p: T*".ToPtr(),
-                "var u = *p".ToPtr(),
-                "struct T { a: int[n]; }".ToPtr(),
-                "var r = &t.a".ToPtr(),
-                "var t: T".ToPtr(),
-                "typedef S = int[n+m]".ToPtr(),
-                "const m = sizeof(t.a)".ToPtr(),
-                "var i = n+m".ToPtr(),
-                "var q = &i".ToPtr(),
-                "const n = sizeof(x)".ToPtr(),
-                "var x: T".ToPtr(),
-                "struct T { s: S*; }".ToPtr(),
-                "struct S { t: T[n]; }".ToPtr()
-            };
+                "var i: int".ToPtr(),
+                "func f1() { v := Vector{1, 2}; j := i; i++; j++; v.x = 2*j; }".ToPtr(),
+                 "func f2(n: int): int { return 2*n; }".ToPtr(),
+                 "func f3(x: int): int { if (x) { return -x; } else if (x % 2 == 0) { return 42; } else { return -1; } }".ToPtr(),
+                 "func f4(n: int): int { for (i := 0; i < n; i++) { if (i % 3 == 0) { return n; } } return 0; }".ToPtr(),
+                 "func f5(x: int): int { switch(x) { case 0: case 1: return 42; case 3: default: return -1; } }".ToPtr(),
+                 "func f6(n: int): int { p := 1; while (n) { p *= 2; n--; } return p; }".ToPtr(),
+                 "func f7(n: int): int { p := 1; do { p *= 2; n--; } while (n); return p; }".ToPtr(),
+                 "func add(v: Vector, w: Vector): Vector { return {v.x + w.x, v.y + w.y}; }".ToPtr(),
+              
+              "union IntOrPtr { i: int; p: int*; }".ToPtr(),
+              "var u1 = IntOrPtr{i = 42}".ToPtr(),
+              "var u2 = IntOrPtr{p = cast(int*, 42)}".ToPtr(),
+              "var a: int[256] = {1, 2, ['a'] = 42, [255] = 123}".ToPtr(),
+              "var v: Vector = 0 ? {1,2} : {3,4}".ToPtr(),
+              "var vs: Vector[2][2] = {{{1,2},{3,4}}, {{5,6},{7,8}}}".ToPtr(),
+                /*               "struct A { c: char; }".ToPtr(),
+                               "struct B { i: int; }".ToPtr(),
+                               "struct C { c: char; a: A; }".ToPtr(),
+                               "struct D { c: char; b: B; }".ToPtr(),
+                               "struct Vector { x, y: int; }".ToPtr(),
+                               "func print(v: Vector) { printf(\"{%d, %d}\", v.x, v.y); }".ToPtr(),
+                               "func add(v: Vector, w: Vector): Vector { return {v.x + w.x, v.y + w.y}; }".ToPtr(),
+                               "var x = add({1,2}, {3,4})".ToPtr(),
+                               "var v: Vector = {1,2}".ToPtr(),
+                               "var w = Vector{3,4}".ToPtr(),
+                               "var p: void*".ToPtr(),
+                               "var i = cast(int, p) + 1".ToPtr(),
+                               "var fp: func(Vector)".ToPtr(),
+                               //  "struct Dup { x: int; x: int; }".ToPtr(),
+                               "var a: int[3] = {1,2,3}".ToPtr(),
+                               "var b: int[4]".ToPtr(),
+                               "var p = &a[1]".ToPtr(),
+                               "var i = p[1]".ToPtr(),
+                               "var j = *p".ToPtr(),
+                               "const n = sizeof(a)".ToPtr(),
+                               "const m = sizeof(&a[0])".ToPtr(),
+                               "const l = sizeof(1 ? a : b)".ToPtr(),
+                               "var pi = 3.14".ToPtr(),
+                               "var name = \"Per\"".ToPtr(),
+                               "var v = Vector{1,2}".ToPtr(),
+                               "var j = cast(int, p)".ToPtr(),
+                               //  "var q = cast(int*, j)".ToPtr(),
+                               "const i = 42".ToPtr(),
+                               // "const j = +i".ToPtr(),
+                               //  "const k = -i".ToPtr(),
+                               "const a = 1000/((2*3-5) << 1)".ToPtr(),
+                               "const b = !0".ToPtr(),
+                               "const c = ~100 + 1 == -100".ToPtr(),
+                               "const k = 1 ? 2 : 3".ToPtr(),
+                               "union IntOrPtr { i: int; p: int*; }".ToPtr(),
+                               "var i = 42".ToPtr(),
+                               "var u = IntOrPtr{i, &i}".ToPtr(),
+                               "const n = 1+sizeof(p)".ToPtr(),
+                               "var p: T*".ToPtr(),
+                               "var u = *p".ToPtr(),
+                               "struct T { a: int[n]; }".ToPtr(),
+                               "var r = &t.a".ToPtr(),
+                               "var t: T".ToPtr(),
+                               "typedef S = int[n+m]".ToPtr(),
+                               "const m = sizeof(t.a)".ToPtr(),
+                               "var i = n+m".ToPtr(),
+                               "var q = &i".ToPtr(),
+                       
+                               "const n = sizeof(x)".ToPtr(),
+                               "var x: T".ToPtr(),
+                               "struct T { s: S*; }".ToPtr(),
+                               "struct S { t: T[n]; }".ToPtr()*/
+                                 
+    };
 
-            for (size_t i = 0; i < code.Length ; i++) {
-                init_stream(code[i]);
-                Decl* decl = parse_decl();
-                entity_install_decl(decl);
-            }
-
-            for (Entity** it = (Entity**)entities->_begin; it != entities->_top; it++)
-            {
-                Entity* entity = *it;
-                complete_entity(entity);
-            }
-            Console.WriteLine();
-            for (Entity** it = (Entity**)ordered_entities->_begin; it != ordered_entities->_top; it++)
-            {
-                Entity* entity = *it;
-                if (entity->decl != null)
-                    print_decl(entity->decl);
-                else
-                    printf("{0}", entity->name);
-
-                printf("\n");
-            }
-
-            Console.WriteLine();
-        }
-
+    for (size_t i = 0; i < code.Length ; i++) {
+        init_stream(code[i]);
+        Decl* decl = parse_decl();
+        sym_global_decl(decl);
     }
-    unsafe struct ResolvedExpr
+
+    for (Sym** it = (Sym**)global_syms->_begin; it != global_syms->_top; it++)
     {
-        public Type* type;
-        public bool is_lvalue;
-        public bool is_const;
-        public long val;
+        Sym* sym = *it;
+        complete_entity(sym);
     }
-    unsafe struct CachedPtrType
+    Console.WriteLine();
+    for (Sym** it = (Sym**)ordered_syms->_begin; it != ordered_syms->_top; it++)
     {
-        public Type* elem;
-        public Type* ptr;
+        Sym* sym = *it;
+        if (sym->decl != null)
+            print_decl(sym->decl);
+        else
+            printf("{0}", sym->name);
+
+        printf("\n");
     }
 
-    unsafe struct CachedArrayType
-    {
-        public Type* elem;
-        public size_t size;
-        public Type* array;
-    }
+    Console.WriteLine();
+}
 
-    unsafe struct CachedFuncType
-    {
-        public Type** @params;
-        public size_t num_params;
-        public Type* ret;
-        public Type* func;
-    }
+}
+unsafe struct ResolvedExpr
+{
+public Type* type;
+public bool is_lvalue;
+public bool is_const;
+public long val;
+}
+unsafe struct CachedPtrType
+{
+public Type* elem;
+public Type* ptr;
+}
 
-    [StructLayout(LayoutKind.Explicit)]
-    unsafe struct ConstEntity
-    {
-        [FieldOffset(0)] public Type* type;
-        [FieldOffset(Ion.PTR_SIZE)] public ulong int_val;
-        [FieldOffset(Ion.PTR_SIZE)] public double float_val;
-    }
+unsafe struct CachedArrayType
+{
+public Type* elem;
+public size_t size;
+public Type* array;
+}
 
-    enum EntityKind
-    {
-        ENTITY_NONE,
-        ENTITY_VAR,
-        ENTITY_CONST,
-        ENTITY_FUNC,
-        ENTITY_TYPE,
-        ENTITY_ENUM_CONST,
-    }
+unsafe struct CachedFuncType
+{
+public Type** @params;
+public size_t num_params;
+public Type* ret;
+public Type* func;
+}
 
-    enum EntityState
-    {
-        ENTITY_UNRESOLVED,
-        ENTITY_RESOLVING,
-        ENTITY_RESOLVED,
-    }
+[StructLayout(LayoutKind.Explicit)]
+unsafe struct ConstEntity
+{
+[FieldOffset(0)] public Type* type;
+[FieldOffset(Ion.PTR_SIZE)] public ulong int_val;
+[FieldOffset(Ion.PTR_SIZE)] public double float_val;
+}
 
+enum SymKind
+{
+SYM_NONE,
+SYM_VAR,
+SYM_CONST,
+SYM_FUNC,
+SYM_TYPE,
+SYM_ENUM_CONST,
+}
 
-    unsafe struct Entity
-    {
-        public char* name;
-        public EntityKind kind;
-        public EntityState state;
-        public Decl* decl;
-        public Type* type;
-        public long val;
-    }
-
-    enum TypeKind
-    {
-        TYPE_NONE,
-        TYPE_INCOMPLETE,
-        TYPE_COMPLETING,
-        TYPE_VOID,
-        TYPE_CHAR,
-        TYPE_INT,
-        TYPE_FLOAT,
-        TYPE_PTR,
-        TYPE_ARRAY,
-        TYPE_STRUCT,
-        TYPE_UNION,
-        TYPE_ENUM,
-        TYPE_FUNC,
-    }
+enum SymState
+{
+SYM_UNRESOLVED,
+SYM_RESOLVING,
+SYM_RESOLVED,
+}
 
 
+unsafe struct Sym
+{
+public char* name;
+public SymKind kind;
+public SymState state;
+public Decl* decl;
+public Type* type;
+public long val;
+}
 
-    unsafe struct TypeField
-    {
-        public char* name;
-        public Type* type;
-    }
+enum TypeKind
+{
+TYPE_NONE,
+TYPE_INCOMPLETE,
+TYPE_COMPLETING,
+TYPE_VOID,
+TYPE_CHAR,
+TYPE_INT,
+TYPE_FLOAT,
+TYPE_PTR,
+TYPE_ARRAY,
+TYPE_STRUCT,
+TYPE_UNION,
+TYPE_ENUM,
+TYPE_FUNC,
+}
 
-    [StructLayout(LayoutKind.Explicit)]
-    unsafe struct Type
-    {
-        [FieldOffset(0)] public TypeKind kind;
-        [FieldOffset(4)] public size_t size;
-        [FieldOffset(Ion.PTR_SIZE + 4)] public size_t align;
-        [FieldOffset(Ion.PTR_SIZE * 2 + 4)] public Entity* entity;
-        [FieldOffset(Ion.PTR_SIZE * 3 + 4)] public _ptr ptr;
-        [FieldOffset(Ion.PTR_SIZE * 3 + 4)] public _array array;
-        [FieldOffset(Ion.PTR_SIZE * 3 + 4)] public _aggregate aggregate;
-        [FieldOffset(Ion.PTR_SIZE * 3 + 4)] public _func func;
 
 
-        [StructLayout(LayoutKind.Sequential, Size = 8)]
-        internal struct _ptr
-        {
-            public Type* elem;
-        }
+unsafe struct TypeField
+{
+public char* name;
+public Type* type;
+}
 
-        internal struct _array
-        {
-            public Type* elem;
-            public size_t size;
-        }
+[StructLayout(LayoutKind.Explicit)]
+unsafe struct Type
+{
+[FieldOffset(0)] public TypeKind kind;
+[FieldOffset(4)] public size_t size;
+[FieldOffset(Ion.PTR_SIZE + 4)] public size_t align;
+[FieldOffset(Ion.PTR_SIZE * 2 + 4)] public Sym* sym;
+[FieldOffset(Ion.PTR_SIZE * 3 + 4)] public _ptr ptr;
+[FieldOffset(Ion.PTR_SIZE * 3 + 4)] public _array array;
+[FieldOffset(Ion.PTR_SIZE * 3 + 4)] public _aggregate aggregate;
+[FieldOffset(Ion.PTR_SIZE * 3 + 4)] public _func func;
 
-        internal struct _aggregate
-        {
-            public TypeField* fields;
-            public size_t num_fields;
-        }
 
-        internal struct _func
-        {
-            public Type** @params;
-            public int num_params;
-            public Type* ret;
-        }
+[StructLayout(LayoutKind.Sequential, Size = 8)]
+internal struct _ptr
+{
+    public Type* elem;
+}
 
-    }
+internal struct _array
+{
+    public Type* elem;
+    public size_t size;
+}
+
+internal struct _aggregate
+{
+    public TypeField* fields;
+    public size_t num_fields;
+}
+
+internal struct _func
+{
+    public Type** @params;
+    public int num_params;
+    public Type* ret;
+}
+
+}
 
 }

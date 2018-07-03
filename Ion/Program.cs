@@ -12,12 +12,13 @@ namespace Lang
     unsafe partial class Ion
     {
         static void Main() {
+
             var ion = new Ion();
             ion.lex_init();
-            ion.lex_test();
-            ion.print_test();
+          //  ion.lex_test();
+          //  ion.print_test();
             ion.resolve_test();
-            ion.parse_test_and_print();
+          //  ion.parse_test_and_print();
             ReadKey();
             int iterations = 100000;
             Console.WriteLine("{0} iterations\n", iterations);

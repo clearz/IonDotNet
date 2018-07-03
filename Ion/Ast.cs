@@ -199,12 +199,12 @@ namespace Lang
             return e;
         }
 
-        Expr* expr_compound(Typespec* type, Expr** args, size_t num_args)
+        Expr* expr_compound(Typespec* type, CompoundField* fields, size_t num_fields)
         {
             Expr* e = expr_new(EXPR_COMPOUND);
             e->compound.type = type;
-            e->compound.args = (Expr**)ast_dup(args, num_args * sizeof(Expr*));
-            e->compound.num_args = num_args;
+            e->compound.fields = (CompoundField*)ast_dup(fields, num_fields * sizeof(CompoundField));
+            e->compound.num_fields = num_fields;
             return e;
         }
 
