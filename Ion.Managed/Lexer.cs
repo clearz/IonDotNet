@@ -15,6 +15,7 @@ namespace MLang
         internal static string const_keyword;
         internal static string func_keyword;
         internal static string sizeof_keyword;
+        internal static string cast_keyword;
         internal static string break_keyword;
         internal static string continue_keyword;
         internal static string return_keyword;
@@ -46,6 +47,8 @@ namespace MLang
             [TokenKind.TOKEN_DOT] = ".",
             [TokenKind.TOKEN_QUESTION] = "?",
             [TokenKind.TOKEN_SEMICOLON] = ";",
+            [TokenKind.TOKEN_NEG] = "~",
+            [TokenKind.TOKEN_NOT] = "!",
             [TokenKind.TOKEN_KEYWORD] = "keyword",
             [TokenKind.TOKEN_INT] = "int",
             [TokenKind.TOKEN_FLOAT] = "float",
@@ -158,6 +161,9 @@ namespace MLang
 
             sizeof_keyword = "sizeof";
             keywords.Add(sizeof_keyword);
+
+            cast_keyword = "cast";
+            keywords.Add(cast_keyword);
 
             break_keyword = "break";
             keywords.Add(break_keyword);
@@ -286,7 +292,7 @@ namespace MLang
                 }
 
                 if (!Char.IsDigit(stream[idx])) {
-                    Error.syntax_error("Expected digit after float literal exponent, found '%c'.", stream[idx]);
+                    Error.syntax_error("Expected digit after float literal exponent, found '{0}'.", stream[idx]);
                 }
 
                 while (idx < stream.Length && Char.IsDigit(stream[idx])) {
@@ -490,7 +496,7 @@ namespace MLang
                 case 'Y':
                 case 'Z':
                 case '_':
-                    while (Char.IsLetterOrDigit(stream[idx]) || stream[idx] == '_') {
+                    while (idx != stream.Length && (Char.IsLetterOrDigit(stream[idx]) || stream[idx] == '_')) {
                         idx++;
                     }
 
@@ -571,6 +577,15 @@ namespace MLang
                     token.kind = TokenKind.TOKEN_SEMICOLON;
                     idx++;
                     break;
+                case '~':
+                    token.kind = TokenKind.TOKEN_NEG;
+                    idx++;
+                    break;
+                case '!':
+                    token.kind = TokenKind.TOKEN_NOT;
+                    idx++;
+                    break;
+
                 case ':':
                     token.kind = TokenKind.TOKEN_COLON;
                     idx++;
@@ -689,7 +704,7 @@ namespace MLang
         internal void init_stream(string str) {
             idx = 0;
             stream = str;
-            next_token();
+            next_token(); 
         }
 
         internal bool is_token(TokenKind kind) {
@@ -856,6 +871,8 @@ namespace MLang
         TOKEN_FLOAT,
         TOKEN_STR,
         TOKEN_NAME,
+        TOKEN_NEG,
+        TOKEN_NOT,
 
         // Multiplicative precedence
         TOKEN_FIRST_MUL,

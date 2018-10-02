@@ -24,7 +24,7 @@ namespace MLang
             var parser = new Parser();
             while (--it > 0)
             {
-                // Resolve.resolve_test();
+                 Resolve.resolve_test();
                 parser.parse_test();
             }
 
@@ -33,9 +33,12 @@ namespace MLang
         }
         static void Main()
         {
-            int iterations = 100000;
-            var mi = new Ion();
-            mi.Run(iterations);
+            //int iterations = 100000;
+            //var mi = new Ion();
+            //mi.Run(iterations);
+            var parser = new Parser();
+            Resolve.resolve_test(); 
+           // parser.parse_test();
             //var lexer = new Lexer();
             //var resolve = new Resolve();
             //var print = new Print();

@@ -17,7 +17,7 @@ namespace MLang
         }
 
 
-        public static void syntax_error(string format, params object[] pmz)
+        public static void syntax_error(string format, params object[] pmz) 
         {
             Console.WriteLine("Syntax Error: " + format, pmz);
         }

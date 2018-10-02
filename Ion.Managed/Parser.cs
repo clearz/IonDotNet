@@ -4,13 +4,14 @@ using System.Runtime.CompilerServices;
 
 namespace MLang
 {
+    using static CompoundFieldKind;
     public class Parser
     {
         private readonly Lexer _lexer;
         private readonly Ast _ast;
 
-        public Parser() {
-            _lexer = new Lexer();
+        public Parser(Lexer lex = null) {
+            _lexer = lex ?? new Lexer();
             _lexer.lex_init();
             _ast = new Ast();
         }
@@ -75,14 +76,39 @@ namespace MLang
 
             return type;
         }
-
+        CompoundField parse_expr_compound_field()
+        {
+            if (_lexer.match_token(TokenKind.TOKEN_LBRACKET))
+            {
+                Expr index = parse_expr();
+                _lexer.expect_token(TokenKind.TOKEN_RBRACKET);
+                _lexer.expect_token(TokenKind.TOKEN_ASSIGN);
+                return new CompoundField { kind = FIELD_INDEX, init = parse_expr(), index = index };
+            }
+            else
+            {
+                Expr expr = parse_expr();
+                if (_lexer.match_token(TokenKind.TOKEN_ASSIGN))
+                {
+                    if (expr.kind != ExprKind.EXPR_NAME)
+                    {
+                        throw new Exception("Named initializer in compound literal must be preceded by field name");
+                    }
+                    return new CompoundField { kind = FIELD_NAME, init = parse_expr(), name = expr.name };
+                }
+                else
+                {
+                    return new CompoundField { kind = FIELD_DEFAULT, init = expr };
+                }
+            }
+        }
         Expr parse_expr_compound(Typespec type) {
             _lexer.expect_token(TokenKind.TOKEN_LBRACE);
-            var exprs = new List<Expr>();
+            var exprs = new List<CompoundField>();
             if (!_lexer.is_token(TokenKind.TOKEN_RBRACE)) {
-                exprs.Add(parse_expr());
+                exprs.Add(parse_expr_compound_field());
                 while (_lexer.match_token(TokenKind.TOKEN_COMMA)) {
-                    exprs.Add(parse_expr());
+                    exprs.Add(parse_expr_compound_field());
                 }
             }
 
@@ -116,6 +142,14 @@ namespace MLang
                     return _ast.expr_name(name);
                 }
             }
+            else if (_lexer.match_keyword(Lexer.cast_keyword)) {
+                _lexer.expect_token(TokenKind.TOKEN_LPAREN);
+                Typespec type = parse_type();
+                _lexer.expect_token(TokenKind.TOKEN_COMMA);
+                Expr expr = parse_expr();
+                _lexer.expect_token(TokenKind.TOKEN_RPAREN);
+                return Ast.expr_cast(type, expr);
+            }
             else if (_lexer.match_keyword(Lexer.sizeof_keyword)) {
                 _lexer.expect_token(TokenKind.TOKEN_LPAREN);
                 if (_lexer.match_token(TokenKind.TOKEN_COLON)) {
@@ -145,7 +179,7 @@ namespace MLang
                 }
             }
             else {
-                Error.syntax_error("Unexpected token %s in expression", _lexer.token_info());
+                Error.syntax_error("Unexpected token {0} in expression", _lexer.token_info());
                 return null;
             }
         }
@@ -637,7 +671,7 @@ namespace MLang
             }
         }
 
-        Decl parse_decl() {
+        internal Decl parse_decl() {
             Decl decl = parse_decl_opt();
             if (decl == null) {
                 Error.syntax_error("Expected declaration keyword, got %s", _lexer.token_info());
@@ -647,25 +681,30 @@ namespace MLang
         }
 
         static readonly string[] decls = {
-            "func fact(): int { trace(\"fact\"); }",
-            "const n = sizeof(:int*[16])",
-            "const n = sizeof(1+2)",
-            "var x = b == 1 ? 1+2 : 3-4",
-            "func fact(n: int): int { trace(\"fact\"); if (n == 0) { return 1; } else { return n * fact(n-1); } }",
-            "func fact(n: int): int { p := 1; for (i := 1; i <= n; i++) { p *= i; } return p; }",
-            "var foo = a ? a&b + c<<d + e*f == +u-v-w + *g/h(x,y) + -i%k[x] && m <= n*(p+q)/r : 0",
-            "func f(x: int): bool { switch(x) { case 0: case 1: return true; case 2: default: return false; } }",
-            "enum Color { RED = 3, GREEN, BLUE = 0 }",
-            "const pi = 3.14",
-            "struct Vector { x, y: float; }",
-            "var v = Vector{1.0, -1.0}",
-            "var v: Vector = {1.0, -1.0}",
-            "union IntOrFloat { i: int; f: float; }",
-            "typedef Vectors = Vector[1+2]",
-            "func f() { do { print(42); } while(1); }",
-            "typedef T = (func(int):int)[16]",
-            "func f() { enum E { A, B, C } return; }",
-            "func f() { if (1) { return 1; } else if (2) { return 2; } else { return 3; } }",
+            "var i: int = cast(int*, 42)",
+            //"func fact(): int { trace(\"fact\"); }",
+            //"var x: char[256] = {1, 2, 3, ['a'] = 4}",
+            //"struct Vector { x, y: float; }",
+            //"var v = Vector{x = 1.0, y = -1.0}",
+            //"var v: Vector = {1.0, -1.0}",
+            //"const n = sizeof(:int*[16])",
+            //"const n = sizeof(1+2)",
+            //"var x = b == 1 ? 1+2 : 3-4",
+            //"func fact(n: int): int { trace(\"fact\"); if (n == 0) { return 1; } else { return n * fact(n-1); } }",
+            //"func fact(n: int): int { p := 1; for (i := 1; i <= n; i++) { p *= i; } return p; }",
+            //"var foo = a ? a&b + c<<d + e*f == +u-v-w + *g/h(x,y) + -i%k[x] && m <= n*(p+q)/r : 0",
+            //"func f(x: int): bool { switch(x) { case 0: case 1: return true; case 2: default: return false; } }",
+            //"enum Color { RED = 3, GREEN, BLUE = 0 }",
+            //"const pi = 3.14",
+            //"struct Vector { x, y: float; }",
+            //"var v = Vector{1.0, -1.0}",
+            //"var v: Vector = {1.0, -1.0}",
+            //"union IntOrFloat { i: int; f: float; }",
+            //"typedef Vectors = Vector[1+2]",
+            //"func f() { do { print(42); } while(1); }",
+            //"typedef T = (func(int):int)[16]",
+            //"func f() { enum E { A, B, C } return; }",
+            //"func f() { if (1) { return 1; } else if (2) { return 2; } else { return 3; } }",
         };
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -674,8 +713,8 @@ namespace MLang
             foreach (var it in decls) {
                 _lexer.init_stream(it);
                 Decl decl = parse_decl();
-               // printer.print_decl(decl);
-                //Console.WriteLine();
+                printer.print_decl(decl);
+                Console.WriteLine(); 
             }
         }
     }

@@ -1,7 +1,36 @@
-﻿namespace MLang
+﻿using System;
+using System.Linq;
+using System.Net.Mail;
+
+namespace MLang
 {
+    using static TokenKind;
+    using static TokenMod;
+    using static TypespecKind;
+    using static DeclKind;
+    using static ExprKind;
+    using static StmtKind;
+
+
     public class Ast
     {
+        object ast_alloc(int size) {
+            throw new NotImplementedException();
+        }
+
+        internal static T[] ast_dup<T>(T[] src) where T : ICloneable
+        {
+            
+            if (src == null)
+                return null;
+            if (src.Length == 0) return src;
+
+            return src.Select(s => s.Clone()).Cast<T>().ToArray();
+        }
+        StmtBlock stmt_list(Stmt[] stmts, int num_stmts)
+        {
+            return new StmtBlock { stmts = ast_dup(stmts), num_stmts = num_stmts };
+        }
         Typespec typespec_new(TypespecKind kind) {
             Typespec t = new Typespec();
             t.kind = kind;
@@ -57,7 +86,7 @@
             Error.assert(kind == DeclKind.DECL_STRUCT || kind == DeclKind.DECL_UNION);
             Decl d = decl_new(kind, name);
             d.aggregate = new AggregateDecl();
-            d.aggregate.items = items;
+            d.aggregate.items = ast_dup(items);
             d.aggregate.num_items = num_items;
             return d;
         }
@@ -65,7 +94,7 @@
         internal Decl decl_union(string name, AggregateItem[] items, int num_items) {
             Decl d = decl_new(DeclKind.DECL_UNION, name);
             d.aggregate = new AggregateDecl();
-            d.aggregate.items = items;
+            d.aggregate.items = ast_dup(items);
             d.aggregate.num_items = num_items;
             return d;
         }
@@ -81,7 +110,7 @@
         internal Decl decl_func(string name, FuncParam[] @params, int num_params, Typespec ret_type, StmtBlock block) {
             Decl d = decl_new(DeclKind.DECL_FUNC, name);
             d.func = new FuncDecl();
-            d.func.@params = @params;
+            d.func.@params = ast_dup(@params);
             d.func.num_params = num_params;
             d.func.ret_type = ret_type;
             d.func.block = block;
@@ -102,7 +131,7 @@
             return d;
         }
 
-        Expr expr_new(ExprKind kind) {
+        static Expr expr_new(ExprKind kind) {
             Expr e = new Expr();
             e.kind = kind;
             return e;
@@ -144,16 +173,17 @@
             return e;
         }
 
-        internal Expr expr_compound(Typespec type, Expr[] args, int num_args) {
+        internal Expr expr_compound(Typespec type, CompoundField[] fields, int num_args) {
             Expr e = expr_new(ExprKind.EXPR_COMPOUND);
             e.compound = new CompoundExpr();
             e.compound.type = type;
-            e.compound.args = args;
-            e.compound.num_args = num_args;
+            e.compound.fields = ast_dup(fields);
+            e.compound.num_fields = num_args;
             return e;
         }
 
-        internal Expr expr_cast(Typespec type, Expr expr) {
+        // Sort out static or not static? 
+        internal static Expr expr_cast(Typespec type, Expr expr) {
             Expr e = expr_new(ExprKind.EXPR_CAST);
             e.cast = new CastExpr();
             e.cast.type = type;
@@ -165,7 +195,7 @@
             Expr e = expr_new(ExprKind.EXPR_CALL);
             e.call = new CallExpr();
             e.call.expr = expr;
-            e.call.args = args;
+            e.call.args = ast_dup(args);
             e.call.num_args = num_args;
             return e;
         }
@@ -226,8 +256,7 @@
 
         internal Stmt stmt_return(Expr expr) {
             Stmt s = stmt_new(StmtKind.STMT_RETURN);
-            s.return_stmt = new ReturnStmt();
-            s.return_stmt.expr = expr;
+            s.expr = expr;
             return s;
         }
 
@@ -250,7 +279,7 @@
             s.if_stmt = new IfStmt();
             s.if_stmt.cond = cond;
             s.if_stmt.then_block = then_block;
-            s.if_stmt.elseifs = elseifs;
+            s.if_stmt.elseifs = ast_dup(elseifs);
             s.if_stmt.num_elseifs = num_elseifs;
             s.if_stmt.else_block = else_block;
             return s;
@@ -286,7 +315,7 @@
             Stmt s = stmt_new(StmtKind.STMT_SWITCH);
             s.switch_stmt = new SwitchStmt();
             s.switch_stmt.expr = expr;
-            s.switch_stmt.cases = cases;
+            s.switch_stmt.cases = ast_dup(cases);
             s.switch_stmt.num_cases = num_cases;
             return s;
         }

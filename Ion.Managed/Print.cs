@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 
@@ -12,14 +13,14 @@ namespace MLang
         private StringBuilder sb = new StringBuilder(256);
         bool use_print_buf;
 
-        void printf(string format, params object[] @params) {
+        internal void printf(string format, params object[] @params) {
             if (use_print_buf)
                 sb.AppendFormat(format, @params);
             else
                 Console.Write(format, @params);
         }
 
-        void printf(string format, string str) => printf(format, (object)str);
+        internal void printf(string format, string str) => printf(format, (object)str);
 
         void flush_print_buf(StreamWriter file) {
             if (sb.Length > 0) {
@@ -131,9 +132,25 @@ namespace MLang
                         printf("nil");
                     }
 
-                    foreach (var it in e.compound.args){
+                    foreach (var it in e.compound.fields){
                         printf(" ");
-                        print_expr(it);
+                        if (it.kind == CompoundFieldKind.FIELD_DEFAULT)
+                        {
+                            printf("(nil ");
+                        }
+                        else if (it.kind == CompoundFieldKind.FIELD_NAME)
+                        {
+                            printf("(name {0} ", it.name);
+                        }
+                        else
+                        {
+                            Debug.Assert(it.kind == CompoundFieldKind.FIELD_INDEX);
+                            printf("(index ");
+                            print_expr(it.index);
+                            printf(" ");
+                        }
+                        print_expr(it.init);
+                        printf(")");
                     }
 
                     printf(")");
@@ -185,9 +202,9 @@ namespace MLang
                     break;
                 case StmtKind.STMT_RETURN:
                     printf("(return");
-                    if (s.return_stmt.expr != null) {
+                    if (s.expr != null) {
                         printf(" ");
-                        print_expr(s.return_stmt.expr);
+                        print_expr(s.expr);
                     }
 
                     printf(")");
@@ -215,7 +232,7 @@ namespace MLang
                         print_stmt_block(it.block);
                     }
 
-                    if (s.if_stmt.else_block.num_stmts != 0) {
+                    if (s.if_stmt.else_block != null && s.if_stmt.else_block.num_stmts != 0) {
                         print_newline();
                         printf("else ");
                         print_newline();
@@ -404,7 +421,7 @@ namespace MLang
         internal void print_test() {
             Ast ast = new Ast();
             use_print_buf = true;
-            // Expressions
+            // Expressions 
             Expr[] exprs = new []{
                 ast.expr_binary(TokenKind.TOKEN_ADD, ast.expr_int(1), ast.expr_int(2)),
                 ast.expr_unary(TokenKind.TOKEN_SUB, ast.expr_float(3.14)),
@@ -412,8 +429,7 @@ namespace MLang
                 ast.expr_field(ast.expr_name("person"), "name"),
                 ast.expr_call(ast.expr_name("fact"), new []{ ast.expr_int(42)}, 1),
                 ast.expr_index(ast.expr_field(ast.expr_name("person"), "siblings"), ast.expr_int(3)),
-                ast.expr_cast(ast.typespec_ptr(ast.typespec_name("int")), ast.expr_name("void_ptr")),
-                ast.expr_compound(ast.typespec_name("Vector"), new []{ ast.expr_int(1), ast.expr_int(2)}, 2),
+                Ast.expr_cast(ast.typespec_ptr(ast.typespec_name("int")), ast.expr_name("void_ptr")),
             };
             foreach (Expr it in exprs) {
                 print_expr(it);
