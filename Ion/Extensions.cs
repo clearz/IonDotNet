@@ -11,7 +11,7 @@ namespace Lang
 {
     static unsafe class Extensions
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void* ToArrayPtr<T>(this T[] objs) {
             var size_of = Unsafe.SizeOf<T>();
             var size = size_of * objs.Length;    
@@ -23,7 +23,7 @@ namespace Lang
 
             return ptr;
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ToCharArrayPointer(this Dictionary<int, string> dict, char*** ptr){
             *ptr = (char**)Marshal.AllocHGlobal(dict.Count * sizeof(char**));
 
@@ -35,12 +35,12 @@ namespace Lang
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ToPtr(this string s, char** cptr, int pos = 0)
         {
             *(cptr + pos) = s.ToPtr();
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static char* ToPtr(this string s) {
             //var size = s.Length * 2 + 2;
             //char* ptr = (char*) Marshal.AllocHGlobal(size);
