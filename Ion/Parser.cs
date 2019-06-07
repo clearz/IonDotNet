@@ -755,7 +755,7 @@ namespace Lang
 		private readonly string code2 = "var i: int = cast(int*, 42)\nvar x: char[256] = {1, 2, 3, ['a'] = 4}\nstruct Vector { x, y: float; }\nvar v = Vector{x = 1.0, y = -1.0}\nvar v: Vector = {1.0, -1.0}\nconst n = sizeof(:int*[16])\nconst n = sizeof(1+2)\nvar x0 = b0 == 1 ? 1+2 : 3-4\nfunc fact(n: int): int { trace(\"fact\"); if (n == 0) { return 1; } else { return n * fact(n-1); } }\nfunc fact(n: int): int { p := 1; for (i := 1; i <= n; i++) { p *= i; } return p; }\nvar foo = a ? a&b + c<<d + e*f == +u-v-w + *g/h(x,y) + -i%k[x] && m <= n*(p+q)/r : 0\nfunc f(x: int): bool { switch(x) { case 0: case 1: return true; case 2: default: return false; } }\nenum Color0 { RED = 3, GREEN, BLUE = 0 }\nconst pi = 3.14\nunion IntOrFloat { i: int; f: float; }\ntypedef Vectors = Vector[1+2]\nfunc f() { do { print(42); } while(1); }\ntypedef T = (func(int):int)[16]\nfunc f() { enum E0 { A, B, C } return; }\nfunc f() { if (1) { return 1; } else if (2) { return 2; } else { return 3; } }";
         private char** _ptr; int _len = -1;
 		private char* _p2;
-		//[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		
 		internal void init_parse_test() {
 
 			_p2 = code1.ToPtr();
@@ -767,7 +767,7 @@ namespace Lang
                 *(_ptr + i) = it;
             }
         }
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         internal void parse_test_and_print()
         {
             init_parse_test();
@@ -792,7 +792,7 @@ namespace Lang
             //use_print_buf = false;
         }
 
-		//[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		
 		internal void parse_test()
 		{
 			for (var i = 0; i < _len; i++) {
@@ -801,7 +801,7 @@ namespace Lang
 				Decl* decl = parse_decl();
 			}
 		}
-		//[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		
 		internal void parse_test2()
 		{
 			init_stream(_p2);

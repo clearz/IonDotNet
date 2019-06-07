@@ -24,36 +24,19 @@ namespace Lang
     unsafe partial class Ion {
         #region Macros*
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static size_t MAX(size_t a, size_t b) => a > b ? a : b;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static size_t MIN(size_t a, size_t b) => a < b ? a : b;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static size_t CLAMP_MIN(size_t x, size_t min) => MAX(x, min);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static size_t CLAMP_MAX(size_t x, size_t max) => MIN(x, max);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IS_POW2(size_t x) => x != 0 && (x & x - 1) == 0;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static size_t ALIGN_DOWN(size_t n, size_t a) => n & ~(a - 1);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Int64 ALIGN_UP(Int64 n, Int64 a) => n + a - 1 & ~(a - 1);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static size_t ALIGN_UP( size_t n, size_t a ) => n + a - 1 & ~(a - 1);
         public static unsafe void* ALIGN_DOWN_PTR(void* p, size_t a) => (void*) ALIGN_DOWN((size_t)p, a);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void* ALIGN_UP_PTR(void* p, Int64 a) => (void*) ALIGN_UP((Int64)p, a);
+        public static void* ALIGN_UP_PTR(void* p, size_t a ) => (void*) ALIGN_UP((size_t)p, a);
 
         #endregion
         #region ErrorHandling*
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         static void fatal(string format, params object[] pmz)
         {
             Console.WriteLine("FATAL: " + format, pmz);
@@ -61,10 +44,10 @@ namespace Lang
            // Environment.Exit(1);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         static void syntax_error(string format, params object[] pmz) => WriteLine("Syntax Error: " + format, pmz);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         static void fatal_syntax_error(string format, params object[] pmz)
         {
             syntax_error(format, pmz);
@@ -86,7 +69,7 @@ namespace Lang
 
             public T this[size_t i] => *(T*)(_begin + i * size_of);
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public T* New()
             {
                 if (count == _capacity)
@@ -108,7 +91,7 @@ namespace Lang
             }
 
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public static Buffer<T> Create(int capacity = START_CAPACITY, int multiplier = MULTIPLIER)
             {
                 assert(capacity >= START_CAPACITY);
@@ -119,13 +102,13 @@ namespace Lang
                     _multiplier = multiplier,
                     count = 0
                 };
-                b.buf_byte_size = b._capacity * b.size_of;
+				b.buf_byte_size = b._capacity * b.size_of;
                 b._begin = (T*)Marshal.AllocHGlobal((IntPtr)b.buf_byte_size);
                 b._top = b._begin;
                 return b;
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void Add(T val)
             {
                 Unsafe.Write(_top, ref val);
@@ -143,15 +126,15 @@ namespace Lang
                 
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void free() {
                 Marshal.FreeHGlobal((IntPtr)_begin);
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public bool fits(size_t n) => n <= _capacity - count;
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void clear()
             {
                 _top = _begin;
@@ -173,7 +156,7 @@ namespace Lang
 
             public void* this[size_t i] => (_begin + i * size_of);
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void* New()
             {
                 if (count == _capacity)
@@ -195,7 +178,7 @@ namespace Lang
             }
 
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public static Buffer* Create(int size, int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
 
                 Buffer* b = (Buffer*)Marshal.AllocHGlobal(sizeof(Buffer));
@@ -208,10 +191,11 @@ namespace Lang
                 b->_begin = (byte*) Marshal.AllocHGlobal(b->buf_byte_size);
                 b->_top = b->_begin;
                 b->_end = b->_begin + b->buf_byte_size;
-                return b;
+				Console.WriteLine($"sizeof( Buffer ) = " + Marshal.SizeOf(*b));
+				return b;
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void Add(void* val)
             {
                 Unsafe.CopyBlock(_top, val, (uint)size_of);
@@ -228,15 +212,15 @@ namespace Lang
                 }
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void free() {
                 Marshal.FreeHGlobal((IntPtr) _begin);
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public bool fits(size_t n) => n <= _capacity - count;
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void clear()
             {
                 _top = _begin;
@@ -257,7 +241,7 @@ namespace Lang
 
             public void* this[size_t i] => (void*)*(_begin + i * PTR_SIZE);
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void* New<T>()
             {
                 if (count == _capacity) {
@@ -279,7 +263,7 @@ namespace Lang
 
            // public static implicit operator void*(PtrBuffer b) => b._begin;
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public static PtrBuffer* Create(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
                 assert(multiplier >= MULTIPLIER);
                 assert(capacity > 0);
@@ -295,7 +279,7 @@ namespace Lang
                 return b;
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void Add(void* val) {
                 *_top = (uptr_t)val;
 
@@ -310,16 +294,16 @@ namespace Lang
                     _top++;
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void free()
             {
                 Marshal.FreeHGlobal((IntPtr)_begin);
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public bool fits(size_t n) => n <= _capacity - count;
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void clear()
             {
                 _top = _begin;
@@ -340,19 +324,18 @@ namespace Lang
         #endregion
         private static Map interns;
         private static readonly MemArena* intern_arena = MemArena.Create();
-        internal struct MemArena
+
+		internal struct MemArena
         {
             internal byte* ptr;
             internal byte* end;
 
             internal PtrBuffer* arenas;
 
+            const int ARENA_ALIGNMENT = 8;
+            const int ARENA_BLOCK_SIZE = 1024 * 1024;
 
-            public const int ARENA_ALIGNMENT = 8;
-
-            public const int ARENA_BLOCK_SIZE = 1024 * 1024;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             void arena_grow(size_t min_size)
             {
                // Console.WriteLine("Growing: " + arenas->count);
@@ -372,7 +355,7 @@ namespace Lang
                 arena->arenas->Add(arena->ptr);
                 return arena;
             }
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void* Alloc(size_t size)
             {
                 var left = end - ptr;
@@ -394,7 +377,7 @@ namespace Lang
             char* str;
             Intern* next;
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public static char* InternRange(char* start, char* end)
             {
                 int len = (int)(end - start);
@@ -424,7 +407,7 @@ namespace Lang
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public static char* _I(string s) {
             char* c = s.ToPtr();
             return Intern.InternRange(c, c + s.Length);
@@ -442,7 +425,7 @@ namespace Lang
             size_t cap;
 
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public static ulong hash_uint64(ulong x)
             {
                 x *= 0xff51afd7ed558ccd;
@@ -451,14 +434,14 @@ namespace Lang
             }
 
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public static ulong hash_ptr(void* ptr)
             {
                 return hash_uint64((ulong)ptr);
             }
 
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public static ulong hash_mix(ulong x, ulong y)
             {
                 x ^= y;
@@ -468,7 +451,7 @@ namespace Lang
             }
 
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public static ulong hash_bytes(void* ptr, int len)
             {
                 ulong x = 0xcbf29ce484222325;
@@ -483,7 +466,7 @@ namespace Lang
             }
 
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             ulong map_get_uint64_from_uint64(ulong key)
             {
                 if (len == 0)
@@ -510,7 +493,7 @@ namespace Lang
 
 
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             void map_grow(size_t new_cap)
             {
                 new_cap = CLAMP_MIN(new_cap, 16);
@@ -537,7 +520,7 @@ namespace Lang
 
 
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             void map_put_uint64_from_uint64(ulong key, ulong val)
             {
                 assert(key != 0);
@@ -568,41 +551,41 @@ namespace Lang
                 }
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void* map_get(void* key) => (void*)map_get_uint64_from_uint64((ulong)key);
 
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void map_put(void* key, void* val) => map_put_uint64_from_uint64((ulong)key, (ulong)val);
 
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void* map_get_from_uint64(ulong key) => (void*)map_get_uint64_from_uint64(key);
 
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            
             public void map_put_from_uint64(ulong key, void* val) => map_put_uint64_from_uint64(key, (ulong)val);
         }
         #region Std Functions
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public static bool isalnum(char c) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public static bool isspace(char c) => c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\v';
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public static bool islower(char c) => c >= 'a' && c <= 'z';
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public static bool isupper(char c) => c >= 'A' && c <= 'Z';
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public static bool isdigit(char c) => c >= '0' && c <= '9';
 
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public static char tolower(char c) =>c >= 'a' ? c : (char)(c + 32);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public static int strcmp(char* c1, char* c2) {
             while(*c1++ == *c2++)
                 if (*c1 == '\0' || *c2 == '\0')

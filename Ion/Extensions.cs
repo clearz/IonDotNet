@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -11,7 +13,7 @@ namespace Lang
 {
     static unsafe class Extensions
     {
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public static void* ToArrayPtr<T>(this T[] objs) {
             var size_of = Unsafe.SizeOf<T>();
             var size = size_of * objs.Length;    
@@ -23,7 +25,7 @@ namespace Lang
 
             return ptr;
         }
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public static void ToCharArrayPointer(this Dictionary<int, string> dict, char*** ptr){
             *ptr = (char**)Marshal.AllocHGlobal(dict.Count * sizeof(char**));
 
@@ -35,12 +37,12 @@ namespace Lang
             }
         }
 
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public static void ToPtr(this string s, char** cptr, int pos = 0)
         {
             *(cptr + pos) = s.ToPtr();
         }
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public static char* ToPtr(this string s) {
             //var size = s.Length * 2 + 2;
             //char* ptr = (char*) Marshal.AllocHGlobal(size);
@@ -48,5 +50,67 @@ namespace Lang
             //Unsafe.CopyBlock(ptr, c, (uint)size);
             //return ptr;
         }
+    }
+
+
+    internal class Timer
+    {
+        [DllImport("Kernel32")]
+        private static extern bool QueryPerformanceCounter(
+            out long lpPerformanceCount);
+
+        [DllImport("Kernel32")]
+        private static extern bool QueryPerformanceFrequency(out long lpFrequency);
+
+        private Timer()
+        {
+            if (QueryPerformanceFrequency(out _frequency) == false)
+            {
+                throw new Win32Exception();
+            }
+        }
+
+
+        public static void Time(int iterations, Action parse_test)
+        {
+            var sw = new Stopwatch();
+            Console.WriteLine("{0} iterations", iterations);
+            int it = iterations;
+
+
+            sw.Start();
+            while (--it >= 0) parse_test();
+            sw.Stop();
+
+            decimal duration = (sw.ElapsedTicks) * 100 / (decimal)iterations;
+            decimal sec = (decimal)sw.Elapsed.TotalSeconds;
+            Console.WriteLine("  TotalTime: {0:#,#.####}, Individual Time: {1:0,0} ns", sec, duration);
+        }
+
+        public static void Time2(int iterations, Action parse_test)
+        {
+            var sw = new Timer();
+            Console.WriteLine("{0} iterations", iterations);
+            int it = iterations;
+
+
+            sw.Start();
+            while (--it >= 0) parse_test();
+            sw.Stop();
+
+            Console.WriteLine("  TotalTime: {0:#,#.####}, Individual Time: {1:0,0} ns", sw.DurationSeconds(), sw.Duration(iterations));
+        }
+
+        public void Start() => QueryPerformanceCounter(out _start);
+
+        public void Stop() => QueryPerformanceCounter(out _stop);
+
+        public long Duration(long iterations = 1) => (_stop - _start) * _multiplier / _frequency / iterations;
+        public decimal DurationSeconds(long iterations = 1) => (decimal)(_stop - _start) / (decimal)_frequency / (decimal)iterations;
+
+        private long _start;
+        private long _stop;
+        private readonly long _frequency;
+        private const long _multiplier = 1000000000;
     }
 }

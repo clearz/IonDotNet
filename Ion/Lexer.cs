@@ -12,8 +12,16 @@ namespace Lang
 {
     using static TokenKind;
     using static TokenMod;
-
-    public unsafe partial class Ion
+	#region Typedefs
+#if X64
+    using size_t = Int64;
+    using uptr_t = UInt64;
+#else
+	using size_t = Int32;
+	using uptr_t = UInt32;
+#endif
+	#endregion
+	public unsafe partial class Ion
     {
         [Conditional("DEBUG")]
         private static void assert(bool b) => Debug.Assert(b);
@@ -155,7 +163,6 @@ namespace Lang
 
         private void init_keywords()
         {
-
 
             typedef_keyword = _I("typedef");
             keywords->Add(typedef_keyword);
@@ -306,7 +313,7 @@ namespace Lang
             }
 
             token.kind = TOKEN_INT;
-            token.int_val = (long)val;
+            token.int_val = (size_t)val;
         }
 
         void scan_float()
@@ -869,7 +876,7 @@ namespace Lang
 
         void keyword_test()
         {
-            init_keywords();
+            lex_init();
             assert(is_keyword_name(first_keyword));
             assert(is_keyword_name(last_keyword));
             for (char** it = (char**)keywords->_begin; it != keywords->_top; it++)
@@ -958,7 +965,7 @@ namespace Lang
         [StructLayout(LayoutKind.Explicit)]
         unsafe struct Token
         {
-            [FieldOffset(0)] public long int_val;
+            [FieldOffset(0)] public size_t int_val;
             [FieldOffset(0)] public double float_val;
             [FieldOffset(0)] public char* str_val;
             [FieldOffset(0)] public char* name;
