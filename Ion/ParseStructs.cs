@@ -72,8 +72,13 @@ namespace Lang
         public Typespec* type;
     }
 
+	unsafe struct DeclSet
+	{
+		public Decl** decls;
+		public size_t num_decls;
+	}
 
-    [StructLayout(LayoutKind.Explicit)]
+	[StructLayout(LayoutKind.Explicit)]
     unsafe struct Decl
     {
         [FieldOffset(0)] public DeclKind kind;
@@ -150,7 +155,7 @@ namespace Lang
     {
 
         [FieldOffset(0)] public ExprKind kind;
-        [FieldOffset(4)] public long int_val;
+        [FieldOffset(4)] public size_t int_val;
         [FieldOffset(4)] public double float_val;
         [FieldOffset(4)] public char* str_val;
         [FieldOffset(4)] public char* name;

@@ -85,15 +85,23 @@ namespace Lang
             return t;
         }
 
-        Decl* decl_new(DeclKind kind, char* name)
-        {
-            Decl* d = (Decl*)ast_alloc(sizeof(Decl));
-            d->kind = kind;
-            d->name = name;
-            return d;
-        }
+		Decl* decl_new( DeclKind kind, char* name )
+		{
+			Decl* d = (Decl*)ast_alloc(sizeof(Decl));
+			d->kind = kind;
+			d->name = name;
+			return d;
+		}
 
-        Decl* decl_enum(char* name, EnumItem* items, size_t num_items)
+		DeclSet* declset_new(Decl** decls, size_t num_items)
+		{
+			DeclSet* d = (DeclSet*)ast_alloc(sizeof(DeclSet));
+			d->decls = decls;
+			d->num_decls = num_items;
+			return d;
+		}
+
+		Decl* decl_enum(char* name, EnumItem* items, size_t num_items)
         {
             Decl* d = decl_new(DECL_ENUM, name);
             d->enum_decl.items = (EnumItem*)ast_dup(items, num_items * sizeof(EnumItem)); ;
@@ -171,7 +179,7 @@ namespace Lang
             return e;
         }
 
-        Expr* expr_int(long int_val)
+        Expr* expr_int(size_t int_val )
         {
             Expr* e = expr_new(EXPR_INT);
             e->int_val = int_val;
