@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using DotNetCross.Memory;
 
 namespace Lang
 {
     using static TokenKind;
     using static TokenMod;
-	#region Typedefs
+    using PtrBuffer = Ion.Buffer<IntPtr>;
+    #region Typedefs
 #if X64
     using size_t = Int64;
     using uptr_t = UInt64;
@@ -23,10 +18,6 @@ namespace Lang
 	#endregion
 	public unsafe partial class Ion
     {
-        [Conditional("DEBUG")]
-        private static void assert(bool b) => Debug.Assert(b);
-
-
         char* typedef_keyword;
         char* enum_keyword;
         char* struct_keyword;
@@ -56,59 +47,58 @@ namespace Lang
         static bool inited = false;
 
         private char** token_kind_names;
-
-        readonly Dictionary<int, string> tokenKindNames = new Dictionary<int, string> {
-            [(int)TOKEN_EOF] = "EOF",
-            [(int)TOKEN_COLON] = ":",
-            [(int)TOKEN_LPAREN] = "(",
-            [(int)TOKEN_RPAREN] = ")",
-            [(int)TOKEN_LBRACE] = "{",
-            [(int)TOKEN_RBRACE] = "}",
-            [(int)TOKEN_LBRACKET] = "[",
-            [(int)TOKEN_RBRACKET] = "]",
-            [(int)TOKEN_COMMA] = ",",
-            [(int)TOKEN_DOT] = ".",
-            [(int)TOKEN_QUESTION] = "?",
-            [(int)TOKEN_SEMICOLON] = ";",
-            [(int)TOKEN_NEG] = "~",
-            [(int)TOKEN_NOT] = "!",
-            [(int)TOKEN_KEYWORD] = "keyword",
-            [(int)TOKEN_INT] = "int",
-            [(int)TOKEN_FLOAT] = "float",
-            [(int)TOKEN_STR] = "string",
-            [(int)TOKEN_NAME] = "name",
-            [(int)TOKEN_MUL] = "*",
-            [(int)TOKEN_DIV] = "/",
-            [(int)TOKEN_MOD] = "%",
-            [(int)TOKEN_AND] = "&",
-            [(int)TOKEN_LSHIFT] = "<<",
-            [(int)TOKEN_RSHIFT] = ">>",
-            [(int)TOKEN_ADD] = "+",
-            [(int)TOKEN_SUB] = "-",
-            [(int)TOKEN_OR] = "|",
-            [(int)TOKEN_XOR] = "^",
-            [(int)TOKEN_EQ] = "==",
-            [(int)TOKEN_NOTEQ] = "!=",
-            [(int)TOKEN_LT] = "<",
-            [(int)TOKEN_GT] = ">",
-            [(int)TOKEN_LTEQ] = "<=",
-            [(int)TOKEN_GTEQ] = ">=",
-            [(int)TOKEN_AND_AND] = "&&",
-            [(int)TOKEN_OR_OR] = "||",
-            [(int)TOKEN_ASSIGN] = "=",
-            [(int)TOKEN_ADD_ASSIGN] = "+=",
-            [(int)TOKEN_SUB_ASSIGN] = "-=",
-            [(int)TOKEN_OR_ASSIGN] = "|=",
-            [(int)TOKEN_AND_ASSIGN] = "&=",
-            [(int)TOKEN_XOR_ASSIGN] = "^=",
-            [(int)TOKEN_MUL_ASSIGN] = "*=",
-            [(int)TOKEN_DIV_ASSIGN] = "/=",
-            [(int)TOKEN_MOD_ASSIGN] = "%=",
-            [(int)TOKEN_LSHIFT_ASSIGN] = "<<=",
-            [(int)TOKEN_RSHIFT_ASSIGN] = ">>=",
-            [(int)TOKEN_INC] = "++",
-            [(int)TOKEN_DEC] = "--",
-            [(int)TOKEN_COLON_ASSIGN] = ":=",
+        readonly Dictionary<TokenKind, string> tokenKindNames = new Dictionary<TokenKind, string> {
+            [TOKEN_EOF] = String.Intern("EOF"),
+            [TOKEN_COLON] = String.Intern(":"),
+            [TOKEN_LPAREN] = String.Intern("("),
+            [TOKEN_RPAREN] = String.Intern(")"),
+            [TOKEN_LBRACE] = String.Intern("{"),
+            [TOKEN_RBRACE] = String.Intern("}"),
+            [TOKEN_LBRACKET] = String.Intern("["),
+            [TOKEN_RBRACKET] = String.Intern("]"),
+            [TOKEN_COMMA] = String.Intern("),"),
+            [TOKEN_DOT] = String.Intern("."),
+            [TOKEN_QUESTION] = String.Intern("?"),
+            [TOKEN_SEMICOLON] = String.Intern(";"),
+            [TOKEN_NEG] = String.Intern("~"),
+            [TOKEN_NOT] = String.Intern("!"),
+            [TOKEN_KEYWORD] = String.Intern("keyword"),
+            [TOKEN_INT] = String.Intern("int"),
+            [TOKEN_FLOAT] = String.Intern("float"),
+            [TOKEN_STR] = String.Intern("string"),
+            [TOKEN_NAME] = String.Intern("name"),
+            [TOKEN_MUL] = String.Intern("*"),
+            [TOKEN_DIV] = String.Intern("/"),
+            [TOKEN_MOD] = String.Intern("%"),
+            [TOKEN_AND] = String.Intern("&"),
+            [TOKEN_LSHIFT] = String.Intern("<<"),
+            [TOKEN_RSHIFT] = String.Intern(">>"),
+            [TOKEN_ADD] = String.Intern("+"),
+            [TOKEN_SUB] = String.Intern("-"),
+            [TOKEN_OR] = String.Intern("|"),
+            [TOKEN_XOR] = String.Intern("^"),
+            [TOKEN_EQ] = String.Intern("=="),
+            [TOKEN_NOTEQ] = String.Intern("!="),
+            [TOKEN_LT] = String.Intern("<"),
+            [TOKEN_GT] = String.Intern(">"),
+            [TOKEN_LTEQ] = String.Intern("<="),
+            [TOKEN_GTEQ] = String.Intern(">="),
+            [TOKEN_AND_AND] = String.Intern("&&"),
+            [TOKEN_OR_OR] = String.Intern("||"),
+            [TOKEN_ASSIGN] = String.Intern("="),
+            [TOKEN_ADD_ASSIGN] = String.Intern("+="),
+            [TOKEN_SUB_ASSIGN] = String.Intern("-="),
+            [TOKEN_OR_ASSIGN] = String.Intern("|="),
+            [TOKEN_AND_ASSIGN] = String.Intern("&="),
+            [TOKEN_XOR_ASSIGN] = String.Intern("^="),
+            [TOKEN_MUL_ASSIGN] = String.Intern("*="),
+            [TOKEN_DIV_ASSIGN] = String.Intern("/="),
+            [TOKEN_MOD_ASSIGN] = String.Intern("%="),
+            [TOKEN_LSHIFT_ASSIGN] = String.Intern("<<="),
+            [TOKEN_RSHIFT_ASSIGN] = String.Intern(">>="),
+            [TOKEN_INC] = String.Intern("++"),
+            [TOKEN_DEC] = String.Intern("--"),
+            [TOKEN_COLON_ASSIGN] = String.Intern(":="),
         };
 
         private readonly byte[] char_to_digit = new byte[256];
@@ -116,14 +106,21 @@ namespace Lang
 
         Token token;
         char* stream;
+        char* line_start;
+
+        int src_line;
+        char* src_name;
 
         public void lex_init()
         {
+            
             if (inited)
                 return;
             keywords = PtrBuffer.Create();
             fixed (char*** clPtr = &token_kind_names)
                 tokenKindNames.ToCharArrayPointer(clPtr);
+
+            src_line = 1;
 
             init_keywords();
 
@@ -234,24 +231,33 @@ namespace Lang
 
         bool is_keyword_name(char* name) => first_keyword <= name && name <= last_keyword;
 
-        char* token_kind_name(TokenKind kind)
+        string token_kind_name(TokenKind kind)
         {
             if (kind < TOKEN_SIZE)
             {
-                return token_kind_names[(int)kind];
+                return tokenKindNames[kind];
             }
             else
             {
-                char* ukn;
-                "<unknown>".ToPtr(&ukn);
-                return ukn;
+                return "<unknown>";
+            }
+        }
+        char* _token_kind_name(TokenKind kind)
+        {
+            if (kind < TOKEN_SIZE)
+            {
+                return *(token_kind_names + (int)kind);
+            }
+            else
+            {
+                return "<unknown>".ToPtr();
             }
         }
 
-        char* token_info()
+        string token_info()
         {
             if (token.kind == TOKEN_NAME || token.kind == TOKEN_KEYWORD)
-                return token.name;
+                return new string(token.name);
 
             return token_kind_name(token.kind);
         }
@@ -296,7 +302,7 @@ namespace Lang
                     digit = 0;
                 }
 
-                if (val > (18446744073709551615ul - digit) / @base)
+                if (val > (ulong.MaxValue - digit) / @base)
                 {
                     syntax_error("Integer literal overflow");
                     while (isdigit(*stream))
@@ -468,7 +474,11 @@ namespace Lang
                 case '\v':
                     while (isspace(*stream))
                     {
-                        stream++;
+                        if (*stream++ == '\n')
+                        {
+                            line_start = stream;
+                            src_line++;
+                        }
                     }
                     goto repeat;
                 case '\'':
@@ -710,14 +720,22 @@ namespace Lang
 
                     break;
                 case '/':
-                    token.kind = TOKEN_DIV;
-                    stream++;
-                    if (*stream == '=')
+                    if (*++stream == '=')
                     {
                         token.kind = TOKEN_DIV_ASSIGN;
                         stream++;
                     }
-
+                    else if (*stream == '/')
+                    {
+                        stream++;
+                        while (*stream != 0 && *stream != '\n')
+                        {
+                            stream++;
+                        }
+                        goto repeat;
+                    }
+                    else
+                        token.kind = TOKEN_DIV;
                     break;
                 case '%':
                     token.kind = TOKEN_MOD;
@@ -800,15 +818,11 @@ namespace Lang
             token.end = stream;
         }
 
-        void init_stream(string str)
+        void init_stream(string buf, string name = "<anonymous>") => init_stream(buf.ToPtr(), name.ToPtr());
+        void init_stream(char* str, char* name = null)
         {
 
-            stream = str.ToPtr();
-            next_token();
-        }
-        void init_stream(char* str)
-        {
-
+            src_name = name != null ? name : "<anonymous>".ToPtr();
             stream = str;
             next_token();
         }
@@ -869,7 +883,7 @@ namespace Lang
             }
             else
             {
-                fatal("expected token {0}, got {1}", tokenKindNames[(int)kind], new String(token_info()));
+                fatal("expected token {0}, got {1}", tokenKindNames[kind], token_info());
                 return false;
             }
         }

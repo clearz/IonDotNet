@@ -3,10 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using DotNetCross.Memory;
 
 namespace Lang
@@ -14,26 +11,26 @@ namespace Lang
     static unsafe class Extensions
     {
         
-        public static void* ToArrayPtr<T>(this T[] objs) {
-            var size_of = Unsafe.SizeOf<T>();
+        public static void* ToArrayPtr<T>(this T[] objs) where T : unmanaged {
+            var size_of = Marshal.SizeOf<T>();
             var size = size_of * objs.Length;    
-            byte* ptr = (byte*)Marshal.AllocHGlobal(size);
+            byte* ptr = (byte*)Ion.xmalloc(size);
             for (int i = 0, j = 0; i < size; i += size_of, j++) {
                 var obj = objs[j];
-                Unsafe.CopyBlock(ptr+i, Unsafe.AsPointer(ref obj), (uint)size_of);
+                Unsafe.CopyBlock(ptr+i, Ion.AsPointer(ref obj), (uint)size_of);
             }
 
             return ptr;
         }
         
-        public static void ToCharArrayPointer(this Dictionary<int, string> dict, char*** ptr){
-            *ptr = (char**)Marshal.AllocHGlobal(dict.Count * sizeof(char**));
-
+        public static void ToCharArrayPointer(this Dictionary<TokenKind, string> dict, char*** ptr){
+            *ptr = (char**)Ion.xmalloc(dict.Count * sizeof(char**));
+            //*ptr = (char**)Ion.xmalloc(dict.Count * sizeof(char**));
             var keys = dict.Keys.ToArray();
             for (int i=0; i < dict.Count; i++) {
                 var kVal = keys[i];
                 var sVal = dict[kVal];
-                sVal.ToPtr(*ptr, kVal);
+                sVal.ToPtr(*ptr, (int)kVal);
             }
         }
 
@@ -45,9 +42,9 @@ namespace Lang
         
         public static char* ToPtr(this string s) {
             //var size = s.Length * 2 + 2;
-            //char* ptr = (char*) Marshal.AllocHGlobal(size);
+            //char* ptr = (char*) xmalloc(size);
             fixed (char* c = s) return c;
-            //Unsafe.CopyBlock(ptr, c, (uint)size);
+            //Unsafe.Unsafe.CopyBlock(ptr, c, (uint)size);
             //return ptr;
         }
     }

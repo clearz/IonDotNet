@@ -13,7 +13,7 @@ namespace Lang
     using size_t = Int32;
 #endif
 
-    unsafe struct StmtBlock
+    unsafe struct StmtList
     {
         public Stmt** stmts;
         public size_t num_stmts;
@@ -23,10 +23,12 @@ namespace Lang
     unsafe struct Typespec
     {
         [FieldOffset(0)] public TypespecKind kind;
-        [FieldOffset(4)] public char* name;
-        [FieldOffset(4)] public PtrTypespec ptr;
-        [FieldOffset(4)] public FuncTypespec func;
-        [FieldOffset(4)] public ArrayTypespec array;
+        [FieldOffset(4)] public SrcLoc loc;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public Type *type;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* name;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public PtrTypespec ptr;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public FuncTypespec func;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public ArrayTypespec array;
 
 
         internal struct FuncTypespec
@@ -78,17 +80,21 @@ namespace Lang
 		public size_t num_decls;
 	}
 
-	[StructLayout(LayoutKind.Explicit)]
+
+
+    [StructLayout(LayoutKind.Explicit)]
     unsafe struct Decl
     {
         [FieldOffset(0)] public DeclKind kind;
         [FieldOffset(4)] public char* name;
-        [FieldOffset(4 + Ion.PTR_SIZE)] public EnumDecl enum_decl;
-        [FieldOffset(4 + Ion.PTR_SIZE)] public AggregateDecl aggregate;
-        [FieldOffset(4 + Ion.PTR_SIZE)] public FuncDecl func;
-        [FieldOffset(4 + Ion.PTR_SIZE)] public TypedefDecl typedef_decl;
-        [FieldOffset(4 + Ion.PTR_SIZE)] public VarDecl var;
-        [FieldOffset(4 + Ion.PTR_SIZE)] public ConstDecl const_decl;
+        [FieldOffset(4 + Ion.PTR_SIZE)] public SrcLoc loc;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Sym* sym;
+        [FieldOffset(20 + 3*Ion.PTR_SIZE)] public EnumDecl enum_decl;
+        [FieldOffset(20 + 3*Ion.PTR_SIZE)] public AggregateDecl aggregate;
+        [FieldOffset(20 + 3*Ion.PTR_SIZE)] public FuncDecl func;
+        [FieldOffset(20 + 3*Ion.PTR_SIZE)] public TypedefDecl typedef_decl;
+        [FieldOffset(20 + 3*Ion.PTR_SIZE)] public VarDecl var;
+        [FieldOffset(20 + 3*Ion.PTR_SIZE)] public ConstDecl const_decl;
 
 
 
@@ -97,7 +103,7 @@ namespace Lang
             public FuncParam* @params;
             public size_t num_params;
             public Typespec* ret_type;
-            public StmtBlock block;
+            public StmtList block;
         }
 
 
@@ -155,20 +161,22 @@ namespace Lang
     {
 
         [FieldOffset(0)] public ExprKind kind;
-        [FieldOffset(4)] public size_t int_val;
-        [FieldOffset(4)] public double float_val;
-        [FieldOffset(4)] public char* str_val;
-        [FieldOffset(4)] public char* name;
-        [FieldOffset(4)] public Expr* sizeof_expr;
-        [FieldOffset(4)] public Typespec* sizeof_type;
-        [FieldOffset(4)] public CompoundExpr compound;
-        [FieldOffset(4)] public CastExpr cast;
-        [FieldOffset(4)] public UnaryExpr unary;
-        [FieldOffset(4)] public BinaryExpr binary;
-        [FieldOffset(4)] public TernaryExpr ternary;
-        [FieldOffset(4)] public CallExpr call;
-        [FieldOffset(4)] public IndexExpr index;
-        [FieldOffset(4)] public FieldExpr field;
+        [FieldOffset(4)] public SrcLoc loc;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public Type* type;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public size_t int_val;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public double float_val;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public char* str_val;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public char* name;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public Expr* sizeof_expr;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public Typespec* sizeof_type;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public CompoundExpr compound;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public CastExpr cast;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public UnaryExpr unary;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public BinaryExpr binary;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public TernaryExpr ternary;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public CallExpr call;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public IndexExpr index;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public FieldExpr field;
 
 
         internal struct CompoundExpr
@@ -236,7 +244,7 @@ namespace Lang
     unsafe struct ElseIf
     {
         public Expr* cond;
-        public StmtBlock block;
+        public StmtList block;
     }
 
 
@@ -245,7 +253,7 @@ namespace Lang
         public Expr** exprs;
         public size_t num_exprs;
         public bool is_default;
-        public StmtBlock block;
+        public StmtList block;
     }
 
 
@@ -253,31 +261,32 @@ namespace Lang
     unsafe struct Stmt
     {
         [FieldOffset(0)] public StmtKind kind;
-        [FieldOffset(4)] public IfStmt if_stmt;
-        [FieldOffset(4)] public WhileStmt while_stmt;
-        [FieldOffset(4)] public ForStmt for_stmt;
-        [FieldOffset(4)] public SwitchStmt switch_stmt;
-        [FieldOffset(4)] public StmtBlock block;
-        [FieldOffset(4)] public AssignStmt assign;
-        [FieldOffset(4)] public InitStmt init;
-        [FieldOffset(4)] public Expr* expr;
-        [FieldOffset(4)] public Decl* decl;
+        [FieldOffset(4)] public SrcLoc loc;
+        [FieldOffset(20)] public IfStmt if_stmt;
+        [FieldOffset(20)] public WhileStmt while_stmt;
+        [FieldOffset(20)] public ForStmt for_stmt;
+        [FieldOffset(20)] public SwitchStmt switch_stmt;
+        [FieldOffset(20)] public StmtList block;
+        [FieldOffset(20)] public AssignStmt assign;
+        [FieldOffset(20)] public InitStmt init;
+        [FieldOffset(20)] public Expr* expr;
+        [FieldOffset(20)] public Decl* decl;
 
 
         internal struct IfStmt
         {
             public Expr* cond;
-            public StmtBlock then_block;
+            public StmtList then_block;
             public ElseIf* elseifs;
             public size_t num_elseifs;
-            public StmtBlock else_block;
+            public StmtList else_block;
         }
 
 
         internal struct WhileStmt
         {
             public Expr* cond;
-            public StmtBlock block;
+            public StmtList block;
         }
 
 
@@ -286,7 +295,7 @@ namespace Lang
             public Stmt* init;
             public Expr* cond;
             public Stmt* next;
-            public StmtBlock block;
+            public StmtList block;
         }
 
 

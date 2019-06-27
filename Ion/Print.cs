@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using DotNetCross.Memory;
 
 namespace Lang
 {
@@ -22,7 +18,7 @@ namespace Lang
 #endif
     unsafe partial class Ion
     {
-        int indent;
+        int _indent;
 
         //char* print_buf;
         private StringBuilder sb = new StringBuilder(256);
@@ -45,7 +41,7 @@ namespace Lang
         }
 
         void print_newline() {
-            printf("\n{0}", "".PadLeft(2 * indent));
+            printf("\n{0}", "".PadLeft(2 * _indent));
         }
 
         void print_typespec(Typespec* type) {
@@ -199,15 +195,15 @@ namespace Lang
             }
         }
 
-        void print_stmt_block(StmtBlock block) {
+        void print_stmt_block(StmtList block) {
             printf("(block");
-            indent++;
+            _indent++;
             for (Stmt** it = block.stmts; it != block.stmts + block.num_stmts; it++) {
                 print_newline();
                 print_stmt(*it);
             }
 
-            indent--;
+            _indent--;
             printf(")");
         }
 
@@ -238,7 +234,7 @@ namespace Lang
                 case STMT_IF:
                     printf("(if ");
                     print_expr(s->if_stmt.cond);
-                    indent++;
+                    _indent++;
                     print_newline();
                     print_stmt_block(s->if_stmt.then_block);
                     for (ElseIf* it = s->if_stmt.elseifs; it != s->if_stmt.elseifs + s->if_stmt.num_elseifs; it++) {
@@ -256,25 +252,25 @@ namespace Lang
                         print_stmt_block(s->if_stmt.else_block);
                     }
 
-                    indent--;
+                    _indent--;
                     printf(")");
                     break;
                 case STMT_WHILE:
                     printf("(while ");
                     print_expr(s->while_stmt.cond);
-                    indent++;
+                    _indent++;
                     print_newline();
                     print_stmt_block(s->while_stmt.block);
-                    indent--;
+                    _indent--;
                     printf(")");
                     break;
                 case STMT_DO_WHILE:
                     printf("(do-while ");
                     print_expr(s->while_stmt.cond);
-                    indent++;
+                    _indent++;
                     print_newline();
                     print_stmt_block(s->while_stmt.block);
-                    indent--;
+                    _indent--;
                     printf(")");
                     break;
                 case STMT_FOR:
@@ -282,16 +278,16 @@ namespace Lang
                     print_stmt(s->for_stmt.init);
                     print_expr(s->for_stmt.cond);
                     print_stmt(s->for_stmt.next);
-                    indent++;
+                    _indent++;
                     print_newline();
                     print_stmt_block(s->for_stmt.block);
-                    indent--;
+                    _indent--;
                     printf(")");
                     break;
                 case STMT_SWITCH:
                     printf("(switch ");
                     print_expr(s->switch_stmt.expr);
-                    indent++;
+                    _indent++;
                     for (SwitchCase* it = s->switch_stmt.cases;
                         it != s->switch_stmt.cases + s->switch_stmt.num_cases;
                         it++) {
@@ -303,13 +299,13 @@ namespace Lang
                         }
 
                         printf(" ) ");
-                        indent++;
+                        _indent++;
                         print_newline();
                         print_stmt_block(it->block);
-                        indent--;
+                        _indent--;
                     }
 
-                    indent--;
+                    _indent--;
                     printf(")");
                     break;
                 case STMT_ASSIGN:
@@ -355,7 +351,7 @@ namespace Lang
             switch (d->kind) {
                 case DECL_ENUM:
                     printf("(enum {0}", d->name);
-                    indent++;
+                    _indent++;
                     for (EnumItem* it = d->enum_decl.items; it != d->enum_decl.items + d->enum_decl.num_items; it++) {
                         print_newline();
                         printf("({0} ", it->name);
@@ -369,21 +365,21 @@ namespace Lang
                         printf(")");
                     }
 
-                    indent--;
+                    _indent--;
                     printf(")");
                     break;
                 case DECL_STRUCT:
                     printf("(struct {0}", d->name);
-                    indent++;
+                    _indent++;
                     print_aggregate_decl(d);
-                    indent--;
+                    _indent--;
                     printf(")");
                     break;
                 case DECL_UNION:
                     printf("(union {0}", d->name);
-                    indent++;
+                    _indent++;
                     print_aggregate_decl(d);
-                    indent--;
+                    _indent--;
                     printf(")");
                     break;
                 case DECL_VAR:
@@ -429,10 +425,10 @@ namespace Lang
                         printf("nil");
                     }
 
-                    indent++;
+                    _indent++;
                     print_newline();
                     print_stmt_block(d->func.block);
-                    indent--;
+                    _indent--;
                     printf(")");
                     break;
                 default:
@@ -441,113 +437,113 @@ namespace Lang
             }
         }
 
-        internal void print_test() {
-            use_print_buf = true;
-            // Expressions
-            Expr*[] exprs = {
-                expr_binary(TOKEN_ADD, expr_int(1), expr_int(2)),
-                expr_unary(TOKEN_SUB, expr_float(3.14)),
-                expr_ternary(expr_name("flag".ToPtr()), expr_str("true".ToPtr()), expr_str("false".ToPtr())),
-                expr_field(expr_name("person".ToPtr()), "name".ToPtr()),
-                expr_call(expr_name("fact".ToPtr()), (Expr**) PtrBuffer.Array(expr_int(42)), 1),
-                expr_index(expr_field(expr_name("person".ToPtr()), "siblings".ToPtr()), expr_int(3)),
-                expr_cast(typespec_ptr(typespec_name("int".ToPtr())), expr_name("void_ptr".ToPtr())),
-            };
-            foreach (Expr* it in exprs) {
-                print_expr(it);
-                printf("\n\n");
-            }
+        //internal void print_test() {
+        //    use_print_buf = true;
+        //    // Expressions
+        //    Expr*[] exprs = {
+        //        expr_binary(TOKEN_ADD, expr_int(1), expr_int(2)),
+        //        expr_unary(TOKEN_SUB, expr_float(3.14)),
+        //        expr_ternary(expr_name("flag".ToPtr()), expr_str("true".ToPtr()), expr_str("false".ToPtr())),
+        //        expr_field(expr_name("person".ToPtr()), "name".ToPtr()),
+        //        expr_call(expr_name("fact".ToPtr()), (Expr**) PtrBuffer.Array(expr_int(42)), 1),
+        //        expr_index(expr_field(expr_name("person".ToPtr()), "siblings".ToPtr()), expr_int(3)),
+        //        expr_cast(typespec_ptr(typespec_name("int".ToPtr())), expr_name("void_ptr".ToPtr())),
+        //    };
+        //    foreach (Expr* it in exprs) {
+        //        print_expr(it);
+        //        printf("\n\n");
+        //    }
 
-            printf("\n\n");
-            var elif = new ElseIf {
-                cond = expr_name("flag2".ToPtr()),
-                block = new StmtBlock {
-                    stmts = (Stmt**)
-                        PtrBuffer.Array(stmt_return(expr_int(2))
-                        ),
-                    num_stmts = 1,
-                }
-            };
+        //    printf("\n\n");
+        //    var elif = new ElseIf {
+        //        cond = expr_name("flag2".ToPtr()),
+        //        block = new StmtList {
+        //            stmts = (Stmt**)
+        //                PtrBuffer.Array(stmt_return(expr_int(2))
+        //                ),
+        //            num_stmts = 1,
+        //        }
+        //    };
 
-            // Statements
-            Stmt*[] stmts = {
-                stmt_return(expr_int(42)),
-                stmt_break(),
-                stmt_continue(),
-                stmt_block(
-                    new StmtBlock {
-                        stmts = (Stmt**)
-                            PtrBuffer.Array(
-                                stmt_break(),
-                                stmt_continue()
-                            ),
-                        num_stmts = 2,
-                    }
-                ),
-                stmt_expr(expr_call(expr_name("print".ToPtr()), (Expr**) PtrBuffer.Array(expr_int(1), expr_int(2)), 2)),
-                stmt_init("x".ToPtr(), expr_int(42)),
-                stmt_if(
-                    expr_name("flag1".ToPtr()),
-                    new StmtBlock {
-                        stmts = (Stmt**)
-                            PtrBuffer.Array(
-                                stmt_return(expr_int(1))
-                            ),
-                        num_stmts = 1,
-                    },
-                    &elif,
-                    1,
-                    new StmtBlock {
-                        stmts = (Stmt**)
-                            PtrBuffer.Array(stmt_return(expr_int(3))
-                            ),
-                        num_stmts = 1,
-                    }
-                ),
-                stmt_while(
-                    expr_name("running".ToPtr()),
-                    new StmtBlock {
-                        stmts = (Stmt**)
-                            PtrBuffer.Array(stmt_assign(TOKEN_ADD_ASSIGN, expr_name("i".ToPtr()), expr_int(16))),
-                        num_stmts = 1,
-                    }
-                ),
-                stmt_switch(
-                    expr_name("val".ToPtr()),
-                    (SwitchCase*) new[] {
-                        new SwitchCase {
-                            exprs = (Expr**) PtrBuffer.Array(expr_int(3), expr_int(4)),
-                            num_exprs = 2,
-                            is_default = false,
-                            block = new StmtBlock {
-                                stmts = (Stmt**)
-                                    PtrBuffer.Array(stmt_return(expr_name("val".ToPtr()))),
-                                num_stmts = 1,
-                            },
-                        },
-                        new SwitchCase {
-                            exprs = (Expr**) PtrBuffer.Array(expr_int(1)),
-                            num_exprs = 1,
-                            is_default = true,
-                            block = new StmtBlock {
-                                stmts = (Stmt**)
-                                    PtrBuffer.Array(stmt_return(expr_int(0))),
-                                num_stmts = 1,
-                            },
-                        }
-                    }.ToArrayPtr(),
-                    2
-                ),
-            };
-            foreach (Stmt* it in stmts) {
-                print_stmt(it);
-                printf("\n\n");
-            }
+        //    // Statements
+        //    Stmt*[] stmts = {
+        //        stmt_return(expr_int(42)),
+        //        stmt_break(),
+        //        stmt_continue(),
+        //        stmt_block(
+        //            new StmtList {
+        //                stmts = (Stmt**)
+        //                    PtrBuffer.Array(
+        //                        stmt_break(),
+        //                        stmt_continue()
+        //                    ),
+        //                num_stmts = 2,
+        //            }
+        //        ),
+        //        stmt_expr(expr_call(expr_name("print".ToPtr()), (Expr**) PtrBuffer.Array(expr_int(1), expr_int(2)), 2)),
+        //        stmt_init("x".ToPtr(), expr_int(42)),
+        //        stmt_if(
+        //            expr_name("flag1".ToPtr()),
+        //            new StmtList {
+        //                stmts = (Stmt**)
+        //                    PtrBuffer.Array(
+        //                        stmt_return(expr_int(1))
+        //                    ),
+        //                num_stmts = 1,
+        //            },
+        //            &elif,
+        //            1,
+        //            new StmtList {
+        //                stmts = (Stmt**)
+        //                    PtrBuffer.Array(stmt_return(expr_int(3))
+        //                    ),
+        //                num_stmts = 1,
+        //            }
+        //        ),
+        //        stmt_while(
+        //            expr_name("running".ToPtr()),
+        //            new StmtList {
+        //                stmts = (Stmt**)
+        //                    PtrBuffer.Array(stmt_assign(TOKEN_ADD_ASSIGN, expr_name("i".ToPtr()), expr_int(16))),
+        //                num_stmts = 1,
+        //            }
+        //        ),
+        //        stmt_switch(
+        //            expr_name("val".ToPtr()),
+        //            (SwitchCase*) new[] {
+        //                new SwitchCase {
+        //                    exprs = (Expr**) PtrBuffer.Array(expr_int(3), expr_int(4)),
+        //                    num_exprs = 2,
+        //                    is_default = false,
+        //                    block = new StmtList {
+        //                        stmts = (Stmt**)
+        //                            PtrBuffer.Array(stmt_return(expr_name("val".ToPtr()))),
+        //                        num_stmts = 1,
+        //                    },
+        //                },
+        //                new SwitchCase {
+        //                    exprs = (Expr**) PtrBuffer.Array(expr_int(1)),
+        //                    num_exprs = 1,
+        //                    is_default = true,
+        //                    block = new StmtList {
+        //                        stmts = (Stmt**)
+        //                            PtrBuffer.Array(stmt_return(expr_int(0))),
+        //                        num_stmts = 1,
+        //                    },
+        //                }
+        //            }.ToArrayPtr(),
+        //            2
+        //        ),
+        //    };
+        //    foreach (Stmt* it in stmts) {
+        //        print_stmt(it);
+        //        printf("\n\n");
+        //    }
 
-            Console.WriteLine();
-            flush_print_buf(new StreamWriter(Console.OpenStandardOutput()));
-            use_print_buf = false;
-        }
+        //    Console.WriteLine();
+        //    flush_print_buf(new StreamWriter(Console.OpenStandardOutput()));
+        //    use_print_buf = false;
+        //}
 
     }
 }

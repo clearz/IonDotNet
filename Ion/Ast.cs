@@ -1,15 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using DotNetCross.Memory;
 
 namespace Lang
 {
-    using static TokenKind;
-    using static TokenMod;
     using static TypespecKind;
     using static DeclKind;
     using static ExprKind;
@@ -28,7 +21,7 @@ namespace Lang
         {
             assert(size != 0);
             void* ptr = ast_arena->Alloc(size);
-            //Unsafe.InitBlock(ptr, 0, (uint) size);
+            //Unsafe.Unsafe.InitBlock(ptr, 0, (uint) size);
             return ptr;
         }
 
@@ -38,18 +31,19 @@ namespace Lang
             {
                 return null;
             }
-
+            return src;
             void* ptr = ast_arena->Alloc(size);
             Unsafe.CopyBlock(ptr, src, (uint)size);
             return ptr;
         }
-        StmtBlock stmt_list(Stmt** stmts, size_t num_stmts)
+        StmtList stmt_list(Stmt** stmts, size_t num_stmts)
         {
-            return new StmtBlock { stmts = (Stmt**)ast_dup(stmts, num_stmts * sizeof(Stmt*)), num_stmts = num_stmts };
+            return new StmtList { stmts = (Stmt**)ast_dup(stmts, num_stmts * sizeof(Stmt*)), num_stmts = num_stmts };
         }
         Typespec* typespec_new(TypespecKind kind)
         {
             Typespec* t = (Typespec*)ast_alloc(sizeof(Typespec));
+            t->loc = new SrcLoc { line = src_line, name = src_name };
             t->kind = kind;
             return t;
         }
@@ -88,7 +82,8 @@ namespace Lang
 		Decl* decl_new( DeclKind kind, char* name )
 		{
 			Decl* d = (Decl*)ast_alloc(sizeof(Decl));
-			d->kind = kind;
+            d->loc = new SrcLoc { line = src_line, name = src_name };
+            d->kind = kind;
 			d->name = name;
 			return d;
 		}
@@ -118,13 +113,6 @@ namespace Lang
             return d;
         }
 
-        Decl* decl_union(char* name, AggregateItem* items, size_t num_items)
-        {
-            Decl* d = decl_new(DECL_UNION, name);
-            d->aggregate.items = (AggregateItem*)ast_dup(items, num_items * sizeof(AggregateItem));
-            d->aggregate.num_items = num_items;
-            return d;
-        }
 
         Decl* decl_var(char* name, Typespec* type, Expr* expr)
         {
@@ -134,7 +122,7 @@ namespace Lang
             return d;
         }
 
-        Decl* decl_func(char* name, FuncParam* @params, size_t num_params, Typespec* ret_type, StmtBlock block)
+        Decl* decl_func(char* name, FuncParam* @params, size_t num_params, Typespec* ret_type, StmtList block)
         {
             Decl* d = decl_new(DECL_FUNC, name);
             d->func.@params = (FuncParam*)ast_dup(@params, num_params * sizeof(FuncParam));
@@ -161,6 +149,7 @@ namespace Lang
         Expr* expr_new(ExprKind kind)
         {
             Expr* e = (Expr*)ast_alloc(sizeof(Expr));
+            e->loc = new SrcLoc { line = src_line, name = src_name };
             e->kind = kind;
             return e;
         }
@@ -278,6 +267,7 @@ namespace Lang
         Stmt* stmt_new(StmtKind kind)
         {
             Stmt* s = (Stmt*)ast_alloc(sizeof(Stmt));
+            s->loc = new SrcLoc { line = src_line, name = src_name };
             s->kind = kind;
             return s;
         }
@@ -306,14 +296,14 @@ namespace Lang
             return stmt_new(STMT_CONTINUE);
         }
 
-        Stmt* stmt_block(StmtBlock block)
+        Stmt* stmt_block(StmtList block)
         {
             Stmt* s = stmt_new(STMT_BLOCK);
             s->block = block;
             return s;
         }
 
-        Stmt* stmt_if(Expr* cond, StmtBlock then_block, ElseIf* elseifs, size_t num_elseifs, StmtBlock else_block)
+        Stmt* stmt_if(Expr* cond, StmtList then_block, ElseIf* elseifs, size_t num_elseifs, StmtList else_block)
         {
             Stmt* s = stmt_new(STMT_IF);
             s->if_stmt.cond = cond;
@@ -324,7 +314,7 @@ namespace Lang
             return s;
         }
 
-        Stmt* stmt_while(Expr* cond, StmtBlock block)
+        Stmt* stmt_while(Expr* cond, StmtList block)
         {
             Stmt* s = stmt_new(STMT_WHILE);
             s->while_stmt.cond = cond;
@@ -332,7 +322,7 @@ namespace Lang
             return s;
         }
 
-        Stmt* stmt_do_while(Expr* cond, StmtBlock block)
+        Stmt* stmt_do_while(Expr* cond, StmtList block)
         {
             Stmt* s = stmt_new(STMT_DO_WHILE);
             s->while_stmt.cond = cond;
@@ -340,7 +330,7 @@ namespace Lang
             return s;
         }
 
-        Stmt* stmt_for(Stmt* init, Expr* cond, Stmt* next, StmtBlock block)
+        Stmt* stmt_for(Stmt* init, Expr* cond, Stmt* next, StmtList block)
         {
             Stmt* s = stmt_new(STMT_FOR);
             s->for_stmt.init = init;
