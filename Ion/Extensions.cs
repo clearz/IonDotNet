@@ -12,8 +12,8 @@ namespace Lang
     {
         
         public static void* ToArrayPtr<T>(this T[] objs) where T : unmanaged {
-            var size_of = Marshal.SizeOf<T>();
-            var size = size_of * objs.Length;    
+            int size_of = Marshal.SizeOf<T>();
+            int size = size_of * objs.Length;    
             byte* ptr = (byte*)Ion.xmalloc(size);
             for (int i = 0, j = 0; i < size; i += size_of, j++) {
                 var obj = objs[j];
@@ -25,27 +25,33 @@ namespace Lang
         
         public static void ToCharArrayPointer(this Dictionary<TokenKind, string> dict, char*** ptr){
             *ptr = (char**)Ion.xmalloc(dict.Count * sizeof(char**));
-            //*ptr = (char**)Ion.xmalloc(dict.Count * sizeof(char**));
             var keys = dict.Keys.ToArray();
-            for (int i=0; i < dict.Count; i++) {
+            for (int i =0; i < (long)dict.Count; i++) {
                 var kVal = keys[i];
                 var sVal = dict[kVal];
-                sVal.ToPtr(*ptr, (int)kVal);
+                sVal.ToPtr(*ptr, (long)kVal);
             }
         }
 
         
-        public static void ToPtr(this string s, char** cptr, int pos = 0)
+        private static void ToPtr(this string s, char** cptr, long pos = 0)
         {
             *(cptr + pos) = s.ToPtr();
         }
-        
-        public static char* ToPtr(this string s) {
-            //var size = s.Length * 2 + 2;
-            //char* ptr = (char*) xmalloc(size);
-            fixed (char* c = s) return c;
-            //Unsafe.Unsafe.CopyBlock(ptr, c, (uint)size);
-            //return ptr;
+
+        public static char* ToPtr(this string s)
+        {
+            fixed (char* c = s)
+                return c;
+        }
+
+        public static char* ToPtr2(this string s)
+        {
+            char* stream = Ion.xmalloc<char>(s.Length + 1);
+            fixed (char* c = s)
+                Unsafe.CopyBlock(stream, c, (uint)s.Length << 1);
+            stream[s.Length] = '\0';
+            return stream;
         }
     }
 
@@ -68,15 +74,15 @@ namespace Lang
         }
 
 
-        public static void Time(int iterations, Action parse_test)
+        public static void Time(long iterations, Action parse_test)
         {
             var sw = new Stopwatch();
             Console.WriteLine("{0} iterations", iterations);
-            int it = iterations;
+            long it = iterations;
 
 
             sw.Start();
-            while (--it >= 0) parse_test();
+            do parse_test(); while (--it > 0);
             sw.Stop();
 
             decimal duration = (sw.ElapsedTicks) * 100 / (decimal)iterations;
@@ -84,18 +90,18 @@ namespace Lang
             Console.WriteLine("  TotalTime: {0:#,#.####}, Individual Time: {1:0,0} ns", sec, duration);
         }
 
-        public static void Time2(int iterations, Action parse_test)
+        public static void Time2(long iterations, Action parse_test)
         {
             var sw = new Timer();
             Console.WriteLine("{0} iterations", iterations);
-            int it = iterations;
+            long it = iterations;
 
 
             sw.Start();
-            while (--it >= 0) parse_test();
+            do parse_test(); while (--it > 0);
             sw.Stop();
 
-            Console.WriteLine("  TotalTime: {0:#,#.####}, Individual Time: {1:0,0} ns", sw.DurationSeconds(), sw.Duration(iterations));
+            Console.WriteLine("  TotalTime: {0:#,#.####}, Individual Time: {1:0,0} ns", sw.DurationSeconds(), sw.Duration((long)iterations));
         }
 
         public void Start() => QueryPerformanceCounter(out _start);
@@ -103,7 +109,7 @@ namespace Lang
         public void Stop() => QueryPerformanceCounter(out _stop);
 
         public long Duration(long iterations = 1) => (_stop - _start) * _multiplier / _frequency / iterations;
-        public decimal DurationSeconds(long iterations = 1) => (decimal)(_stop - _start) / (decimal)_frequency / (decimal)iterations;
+        public decimal DurationSeconds(long iterations = 1) => (_stop - _start) / (decimal)_frequency / iterations;
 
         private long _start;
         private long _stop;

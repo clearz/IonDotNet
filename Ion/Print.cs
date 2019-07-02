@@ -11,11 +11,6 @@ namespace Lang
     using static TokenKind;
     using static CompoundFieldKind;
 
-#if X64
-    using size_t = Int64;
-#else
-    using size_t = Int32;
-#endif
     unsafe partial class Ion
     {
         int _indent;
@@ -31,7 +26,7 @@ namespace Lang
                 Console.Write(format, @params);
         }
 
-        void printf(string format, char* str) => printf(format, new String(str));
+        void printf(string format, char* str) => printf(format, new string(str));
 
         void flush_print_buf(StreamWriter file) {
             if (sb.Length > 0) {
@@ -237,12 +232,12 @@ namespace Lang
                     _indent++;
                     print_newline();
                     print_stmt_block(s->if_stmt.then_block);
-                    for (ElseIf* it = s->if_stmt.elseifs; it != s->if_stmt.elseifs + s->if_stmt.num_elseifs; it++) {
+                    for (ElseIf** it = s->if_stmt.elseifs; it != s->if_stmt.elseifs + s->if_stmt.num_elseifs; it++) {
                         print_newline();
                         printf("elseif ");
-                        print_expr(it->cond);
+                        print_expr((*it)->cond);
                         print_newline();
-                        print_stmt_block(it->block);
+                        print_stmt_block((*it)->block);
                     }
 
                     if (s->if_stmt.else_block.num_stmts != 0) {
@@ -309,7 +304,7 @@ namespace Lang
                     printf(")");
                     break;
                 case STMT_ASSIGN:
-                    printf("({0} ", token_kind_names[(int) s->assign.op]);
+                    printf("({0} ", token_kind_names[(long) s->assign.op]);
                     print_expr(s->assign.left);
                     if (s->assign.right != null) {
                         printf(" ");

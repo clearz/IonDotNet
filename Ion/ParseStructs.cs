@@ -7,16 +7,11 @@ using System.Threading.Tasks;
 
 namespace Lang
 {
-#if X64
-    using size_t = Int64;
-#else
-    using size_t = Int32;
-#endif
 
     unsafe struct StmtList
     {
         public Stmt** stmts;
-        public size_t num_stmts;
+        public int num_stmts;
     }
 
     [StructLayout(LayoutKind.Explicit)]
@@ -34,7 +29,7 @@ namespace Lang
         internal struct FuncTypespec
         {
             public Typespec** args;
-            public size_t num_args;
+            public int num_args;
             public Typespec* ret;
         }
 
@@ -70,14 +65,14 @@ namespace Lang
     unsafe struct AggregateItem
     {
         public char** names;
-        public size_t num_names;
+        public int num_names;
         public Typespec* type;
     }
 
 	unsafe struct DeclSet
 	{
 		public Decl** decls;
-		public size_t num_decls;
+		public int num_decls;
 	}
 
 
@@ -101,7 +96,7 @@ namespace Lang
         internal struct FuncDecl
         {
             public FuncParam* @params;
-            public size_t num_params;
+            public int num_params;
             public Typespec* ret_type;
             public StmtList block;
         }
@@ -110,13 +105,13 @@ namespace Lang
         internal struct EnumDecl
         {
             public EnumItem* items;
-            public size_t num_items;
+            public int num_items;
         }
 
         internal struct AggregateDecl
         {
             public AggregateItem* items;
-            public size_t num_items;
+            public int num_items;
         }
 
 
@@ -163,7 +158,7 @@ namespace Lang
         [FieldOffset(0)] public ExprKind kind;
         [FieldOffset(4)] public SrcLoc loc;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Type* type;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public size_t int_val;
+        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public long int_val;
         [FieldOffset(20 + 2*Ion.PTR_SIZE)] public double float_val;
         [FieldOffset(20 + 2*Ion.PTR_SIZE)] public char* str_val;
         [FieldOffset(20 + 2*Ion.PTR_SIZE)] public char* name;
@@ -183,7 +178,7 @@ namespace Lang
         {
             public Typespec* type;
             public CompoundField* fields;
-            public size_t num_fields;
+            public int num_fields;
         }
 
 
@@ -221,7 +216,7 @@ namespace Lang
         {
             public Expr* expr;
             public Expr** args;
-            public size_t num_args;
+            public int num_args;
         }
 
 
@@ -251,7 +246,7 @@ namespace Lang
     unsafe struct SwitchCase
     {
         public Expr** exprs;
-        public size_t num_exprs;
+        public int num_exprs;
         public bool is_default;
         public StmtList block;
     }
@@ -277,8 +272,8 @@ namespace Lang
         {
             public Expr* cond;
             public StmtList then_block;
-            public ElseIf* elseifs;
-            public size_t num_elseifs;
+            public ElseIf** elseifs;
+            public int num_elseifs;
             public StmtList else_block;
         }
 
@@ -303,7 +298,7 @@ namespace Lang
         {
             public Expr* expr;
             public SwitchCase* cases;
-            public size_t num_cases;
+            public int num_cases;
         }
 
 

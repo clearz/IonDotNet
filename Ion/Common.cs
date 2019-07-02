@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -11,60 +12,47 @@ using static System.Console;
 
 namespace Lang
 {
-    #region Typedefs
-#if X64
-    using size_t = Int64;
-    using uptr_t = UInt64;
-#else
-    using size_t = Int32;
-    using uptr_t = UInt32;
-#endif
-    #endregion
 
     unsafe partial class Ion
     {
         #region Macros*
 
-        public static ulong MAX(ulong a, ulong b) => a > b ? a : b;
-        public static size_t MAX(size_t a, size_t b) => a > b ? a : b;
-        public static size_t MIN(size_t a, size_t b) => a < b ? a : b;
-        public static size_t CLAMP_MIN(size_t x, size_t min) => MAX(x, min);
-        public static size_t CLAMP_MAX(size_t x, size_t max) => MIN(x, max);
-        public static bool IS_POW2(size_t x) => x != 0 && (x & x - 1) == 0;
-        public static bool IS_POW2(ulong x) => x != 0 && (x & x - 1) == 0;
-        public static size_t ALIGN_DOWN(size_t n, size_t a) => n & ~(a - 1);
-        public static size_t ALIGN_UP(size_t n, size_t a) => n + a - 1 & ~(a - 1);
-        public static unsafe void* ALIGN_DOWN_PTR(void* p, size_t a) => (void*)ALIGN_DOWN((size_t)p, a);
-        public static void* ALIGN_UP_PTR(void* p, size_t a) => (void*)ALIGN_UP((size_t)p, a);
+        public static long MAX(long a, long b) => a > b ? a : b;
+        public static long MIN(long a, long b) => a < b ? a : b;
+        public static long CLAMP_MIN(long x, long min) => MAX(x, min);
+        public static long CLAMP_MAX(long x, long max) => MIN(x, max);
+        public static bool IS_POW2(long x) => x != 0 && (x & x - 1) == 0;
+        public static long ALIGN_DOWN(long n, long a) => n & ~(a - 1);
+        public static long ALIGN_UP(long n, long a) => n + a - 1 & ~(a - 1);
+        public static unsafe void* ALIGN_DOWN_PTR(void* p, long a) => (void*)ALIGN_DOWN((long)p, a);
+        public static void* ALIGN_UP_PTR(void* p, long a) => (void*)ALIGN_UP((long)p, a);
 
         #endregion
 
         #region MemAlloc
 
-        internal static void memcpy(void* dst, void* src, size_t len) => Unsafe.CopyBlock(dst, src, (uint)len);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void* xcalloc(size_t num_elems, size_t elem_size)
+        internal static void memcpy(void* dst, void* src, int len) => Unsafe.CopyBlock(dst, src, (uint)len);
+         
+        internal static void* xcalloc(int num_elems, int elem_size)
         {
-            size_t size = num_elems * elem_size;
+            int size = num_elems * elem_size;
             void* v = xmalloc(size);
-            assert(size < uint.MaxValue);
+            assert(size < int.MaxValue);
             Unsafe.InitBlock(v, 0, (uint)size);
             return v;
         }
 
-        internal static T* xcalloc<T>(size_t num_elems = 1) where T : unmanaged => xcalloc<T>(num_elems, sizeof(T));
-        internal static T* xcalloc<T>(size_t num_elems, size_t elem_size) where T : unmanaged => (T*)xcalloc(num_elems, elem_size);
-        internal static void* xrealloc(void* ptr, size_t num_bytes) => (void*)Marshal.ReAllocHGlobal((IntPtr)ptr, (IntPtr)num_bytes); //realloc(ptr, num_bytes);
-        internal static T* xrealloc<T>(T* ptr, size_t num_bytes) where T : unmanaged => (T*)Marshal.ReAllocHGlobal((IntPtr)ptr, (IntPtr)num_bytes); //(T*)realloc(ptr, num_bytes);
-        internal static void* xmalloc(size_t num_bytes) => (void*)Marshal.AllocHGlobal((IntPtr)num_bytes); //malloc(num_bytes);
-        internal static ref T rmalloc<T>() where T : unmanaged => ref *xmalloc<T>(); // useful?
+        internal static T* xcalloc<T>(int num_elems = 1) where T : unmanaged => xcalloc<T>(num_elems, sizeof(T));
+        internal static T* xcalloc<T>(int num_elems, int elem_size) where T : unmanaged => (T*)xcalloc(num_elems, elem_size);
+        internal static void* xrealloc(void* ptr, int num_bytes) => (void*)Marshal.ReAllocHGlobal((IntPtr)ptr, (IntPtr)num_bytes); //realloc(ptr, num_bytes);
+        internal static T* xrealloc<T>(T* ptr, int num_bytes) where T : unmanaged => (T*)Marshal.ReAllocHGlobal((IntPtr)ptr, (IntPtr)num_bytes); //(T*)realloc(ptr, num_bytes);
+        internal static void* xmalloc(int num_bytes) => (void*)Marshal.AllocHGlobal((IntPtr)num_bytes); //malloc(num_bytes);
         internal static T* xmalloc<T>() where T : unmanaged => (T*)xmalloc(sizeof(T));
-        internal static T* xmalloc<T>(size_t num_bytes) where T : unmanaged => (T*)xmalloc(num_bytes);
+        internal static T* xmalloc<T>(int n) where T : unmanaged => (T*)xmalloc(n * sizeof(T));
 
         internal static void xfree(void* ptr) => Marshal.FreeHGlobal((IntPtr)ptr);
 
-        internal static void* memdup(void* src, size_t size)
+        internal static void* memdup(void* src, int size)
         {
             void* dest = xmalloc(size);
             Unsafe.CopyBlock(dest, src, (uint)size);
@@ -73,13 +61,13 @@ namespace Lang
 
         static char* read_file(string path)
         {
-            var buf = File.ReadAllText(path).ToPtr();
+            var buf = File.ReadAllText(path).ToPtr2();
             return buf;
         }
 
         static bool write_file(string path, char* buf)
         {
-            File.WriteAllText(path, new String(buf));
+            File.WriteAllText(path, new string(buf));
             return true;
         }
 
@@ -102,9 +90,9 @@ namespace Lang
             {
                 return null;
             }
-            size_t base_len = (size_t)(ext - path);
-            size_t new_ext_len = (size_t)strlen(new_ext);
-            size_t new_path_len = base_len + new_ext_len;
+            int base_len = (int)(ext - path);
+            int new_ext_len = strlen(new_ext);
+            int new_path_len = base_len + new_ext_len;
             char* new_path = xmalloc<char>(new_path_len + 1);
             memcpy(new_path, path, base_len * 2);
             memcpy(new_path + base_len, new_ext, new_ext_len * 2);
@@ -113,40 +101,7 @@ namespace Lang
         }
 
         #endregion
-        public unsafe delegate void MemcpyDelegate(void* dest, void* src, size_t len);
-        public unsafe delegate void InitBlockDelegate(void* dest, byte src, size_t len);
-        public unsafe static InitBlockDelegate InitBlock;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Memset(void* array, byte what, size_t length) { }
-        public static void Memcpy(void* array, void* what, size_t length) { }
-        public static readonly MemcpyDelegate CopyBlock;
-        static Ion()
-        {
-            var dynamicMethod = new DynamicMethod("Memset", MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard,
-                null, new[] { typeof(void*), typeof(byte), typeof(size_t) }, typeof(Ion), true);
-
-            var generator = dynamicMethod.GetILGenerator();
-            generator.Emit(OpCodes.Ldarg_0);
-            generator.Emit(OpCodes.Ldarg_1);
-            generator.Emit(OpCodes.Ldarg_2);
-            generator.Emit(OpCodes.Initblk);
-            generator.Emit(OpCodes.Ret);
-
-            InitBlock = (InitBlockDelegate)dynamicMethod.CreateDelegate(typeof(InitBlockDelegate));
-
-            dynamicMethod = new DynamicMethod("Memcpy", MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard,
-                null, new[] { typeof(void*), typeof(void*), typeof(size_t) }, typeof(Ion), true);
-            generator = dynamicMethod.GetILGenerator();
-            generator.Emit(OpCodes.Ldarg_0);
-            generator.Emit(OpCodes.Ldarg_1);
-            generator.Emit(OpCodes.Ldarg_2);
-            generator.Emit(OpCodes.Cpblk);
-            generator.Emit(OpCodes.Ret);
-
-            CopyBlock = (MemcpyDelegate)dynamicMethod.CreateDelegate(typeof(MemcpyDelegate));
-
-        }
         public unsafe static void Write<T>(void* p, ref T value) where T : unmanaged
         {
             *(T*)p = value;
@@ -166,27 +121,28 @@ namespace Lang
         #region Buffers
         internal struct Buffer<T> where T : unmanaged
         {
-            private const uint START_CAPACITY = 8,
+            internal T* _begin, _top;
+            private const int START_CAPACITY = 4,
                               MULTIPLIER = 2;
 
-            public uint count, buffer_size, item_size;
-            private uint _capacity, _multiplier;
+            public int count, buffer_size, item_size;
+            private int _capacity, _multiplier;
 
             public static implicit operator T*(Buffer<T> b) => b._begin;
 
-            public static Buffer<T> Create(uint capacity = START_CAPACITY, uint multiplier = MULTIPLIER)
+            public static Buffer<T> Create(int capacity = START_CAPACITY, int multiplier = MULTIPLIER)
             {
-                //assert(capacity >= START_CAPACITY);
+                assert(capacity >= START_CAPACITY);
                 assert(multiplier > 1);
                 var b = new Buffer<T>
                 {
-                    item_size = (uint)sizeof(T),
+                    item_size = sizeof(T),
                     _capacity = capacity,
                     _multiplier = multiplier,
                     count = 0
                 };
                 b.buffer_size = b._capacity * b.item_size;
-                b._begin = (T*)xmalloc((size_t)b.buffer_size);
+                b._begin = (T*)xmalloc(b.buffer_size);
                 b._top = b._begin;
                 return b;
             }
@@ -198,9 +154,8 @@ namespace Lang
                 if (++count == _capacity)
                 {
                     _capacity *= _multiplier;
-                    // Console.WriteLine("Size1: " + _capacity);
                     buffer_size = _capacity * item_size;
-                    _begin = (T*)xrealloc(_begin, (size_t)buffer_size);
+                    _begin = xrealloc(_begin, buffer_size);
                     _top = _begin + count;
                 }
                 else
@@ -210,60 +165,31 @@ namespace Lang
 
             }
 
-            public void Add(T* val)
+            public void Add(T* val, int len)
             {
-                Write(_top, ref *val);
-                if (++count == _capacity)
+                if ((count+len) >= _capacity)
                 {
                     _capacity *= _multiplier;
                     buffer_size = _capacity * item_size;
-                    _begin = (T*)xrealloc(_begin, (size_t)buffer_size);
+                    _begin = xrealloc(_begin, buffer_size);
                     _top = _begin + count;
                 }
-                else
-                {
-                    _top++;
-                }
-
-            }
-            internal void Add(T* c, uint len)
-            {
-                if ((count += len) >= _capacity)
-                {
-                    _capacity *= _multiplier;
-                    // Console.WriteLine("Size2: " + _capacity);
-                    assert(_capacity > count);
-                    buffer_size = _capacity * item_size;
-                    _begin = (T*)xrealloc(_begin, (size_t)buffer_size);
-                    _top = _begin + (_capacity >> 1);
-                }
-                Unsafe.CopyBlock(_top, c, len << 1);
+                Unsafe.CopyBlock(_top, val, (uint)len << 1);
+                count += len;
                 _top += len;
             }
+          
             public void free()
             {
                 xfree(_begin);
             }
-
-
-            public bool fits(size_t n) => n <= _capacity - count;
-
 
             public void clear()
             {
                 _top = _begin;
                 count = 0;
             }
-
-
-
-            internal T* _begin;
-            internal T* _top
-            {
-                get;
-                set;
-            }
-
+            
         }
 
 
@@ -276,7 +202,21 @@ namespace Lang
 
             public int count, buf_byte_size;
             private int _capacity, _multiplier;
+            internal static PtrBuffer* buffers = Create();
 
+            static PtrBuffer()
+            {
+
+            }
+            public static PtrBuffer* GetPooledBuffer()
+            {
+                if(buffers->count > 0)
+                {
+                    return (PtrBuffer*)buffers->Remove();
+                }
+                PtrBuffer* buf = Create();
+                return buf;
+            }
 
             public static PtrBuffer* Create(int capacity = START_CAPACITY, int multiplier = MULTIPLIER)
             {
@@ -294,6 +234,13 @@ namespace Lang
                 return b;
             }
 
+            public void* Remove()
+            {
+                assert(_top != _begin);
+                _top--;
+                count--;
+                return *_top;
+            }
 
             public void Add(void* val)
             {
@@ -311,15 +258,12 @@ namespace Lang
                     _top++;
             }
 
+            public T** Cast<T>() where T : unmanaged => (T**)_begin;
 
             public void free()
             {
-                Marshal.FreeHGlobal((IntPtr)_begin);
+                xfree(_begin);
             }
-
-
-            public bool fits(size_t n) => n <= _capacity - count;
-
 
             public void clear()
             {
@@ -327,16 +271,11 @@ namespace Lang
                 count = 0;
             }
 
-
-            public static void* Array(params void*[] ptrs)
+            public void Release()
             {
-                uptr_t* array = (uptr_t*)xmalloc(PTR_SIZE * ptrs.Length);
-                for (var i = 0; i < ptrs.Length; i++)
-                {
-                    array[i] = (uptr_t)ptrs[i];
-                }
-
-                return array;
+                clear();
+                fixed(void* v = &this)
+                    buffers->Add(v);
             }
         }
         #endregion
@@ -354,10 +293,10 @@ namespace Lang
             const int ARENA_BLOCK_SIZE = 1024 * 1024;
 
 
-            void arena_grow(size_t min_size)
+            void arena_grow(long min_size)
             {
-                // Console.WriteLine("Growing: " + arenas->count);
-                size_t size = ALIGN_UP(MAX(ARENA_BLOCK_SIZE, min_size), ARENA_ALIGNMENT);
+                //Console.WriteLine("Growing: " + arenas->count);
+                int size = (int)ALIGN_UP(MAX(ARENA_BLOCK_SIZE, min_size), ARENA_ALIGNMENT);
                 ptr = (byte*)xmalloc(size);
                 assert(ptr == ALIGN_DOWN_PTR(ptr, ARENA_ALIGNMENT));
                 end = ptr + size;
@@ -368,20 +307,20 @@ namespace Lang
             {
                 MemArena* arena = (MemArena*)xmalloc(sizeof(MemArena));
                 arena->arenas = PtrBuffer.Create();
-                arena->ptr = (byte*)xmalloc(ARENA_BLOCK_SIZE);
+                arena->ptr = (byte*)xmalloc((int)ARENA_BLOCK_SIZE);
                 assert(arena->ptr == ALIGN_DOWN_PTR(arena->ptr, ARENA_ALIGNMENT));
                 arena->end = arena->ptr + ARENA_BLOCK_SIZE;
                 arena->arenas->Add(arena->ptr);
                 return arena;
             }
 
-            public void* Alloc(size_t size)
+            public void* Alloc(int size)
             {
                 var left = end - ptr;
                 if (size > left)
                 {
                     arena_grow(size);
-                    assert(size <= (int)(end - ptr));
+                    assert(size <= (end - ptr));
                 }
 
                 void* new_ptr = ptr;
@@ -391,18 +330,20 @@ namespace Lang
                 return new_ptr;
             }
         }
+
+
         internal struct Intern
         {
-            int len;
+            long len;
             char* str;
             Intern* next;
 
 
             public static char* InternRange(char* start, char* end)
             {
-                var len = (int)(end - start);
-                ulong hash = Map.str_hash(start, (ulong)len) | 1;
-                Intern* intern = (Intern*)interns.map_get_hashed((void*)hash, hash);
+                int len = (int)(end - start);
+                ulong key = Map.str_hash(start, len) | 1;
+                Intern* intern = (Intern*)interns.map_get(key);
                 if (intern != null)
                     return intern->str;
 
@@ -410,11 +351,11 @@ namespace Lang
                 new_intern->len = len;
                 new_intern->next = intern;
 
-                size_t len_bytes = (len << 1);
+                int len_bytes = (len << 1);
                 new_intern->str = (char*)intern_arena->Alloc(len_bytes + 2);
                 Unsafe.CopyBlock(new_intern->str, start, (uint)len_bytes);
                 *(new_intern->str + len) = '\0';
-                interns.map_put_hashed((void*)hash, new_intern, hash);
+                interns.map_put(key, new_intern);
                 return new_intern->str;
             }
         }
@@ -427,25 +368,22 @@ namespace Lang
 
         }
 
-        [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
-        static extern void* calloc(int num, int size);
-
         struct MapEntry
         {
             public void* key;
             public void* val;
-            public ulong hash;
+            public long hash;
         }
         struct Map
         {
+            internal ulong* keys;
+            internal void** vals;
+            internal long len;
+            internal long cap;
 
-            public MapEntry* entries;
-            internal ulong len;
-            internal ulong cap;
 
 
-
-            public static ulong uint64_hash(ulong x)
+            public static ulong int64_hash(ulong x)
             {
                 x *= 0xff51afd7ed558ccd;
                 x ^= x >> 32;
@@ -456,24 +394,23 @@ namespace Lang
 
             public static ulong ptr_hash(void* ptr)
             {
-                return uint64_hash((ulong)ptr);
+                return int64_hash((ulong)ptr);
             }
 
 
-            public static ulong str_hash(char* str, ulong len)
+            public static ulong str_hash(char* str, long len)
             {
-                ulong fnv_init = 14695981039346656037ul;
-                ulong fnv_mul = 1099511628211ul;
-                ulong h = fnv_init;
-                for (ulong i = 0; i < len; i++)
+                ulong x = 0xcbf29ce484222325ul;
+                for (long i = 0; i < len; i++)
                 {
-                    h ^= str[i];
-                    h *= fnv_mul;
+                    x ^= str[i]; 
+                    x *= 0x100000001b3ul;
+                    x ^= x >> 32;
                 }
-                return h;
+                return x;
             }
 
-            public static ulong ptr_hash(void* ptr, ulong len)
+            public static ulong ptr_hash(void* ptr, long len)
             {
                 char* buf = (char*)ptr;
                 return str_hash(buf, len);
@@ -481,67 +418,57 @@ namespace Lang
 
 
 
-            public void* map_get_hashed(void* key, ulong hash)
+            void map_grow(long new_cap)
+            {
+                new_cap = MAX(new_cap, 16);
+                var new_map = new Map
+                {
+                    keys = (ulong*)xcalloc((int)new_cap, sizeof(ulong)),
+                    vals = (void**)xmalloc((int)new_cap * sizeof(void*)),
+                    cap = new_cap
+                };
+
+                for (long i = 0; i < cap; i++)
+                {
+                    if (keys[i] != 0)
+                    {
+                        new_map.map_put(keys[i], vals[i]);
+                    }
+                }
+                xfree(keys);
+                xfree(vals);
+                this = new_map;
+            }
+
+            public void* map_get(void* key) => map_get(ptr_hash(key));
+            public void* map_get(ulong key)
             {
                 if (len == 0)
                 {
                     return null;
                 }
                 assert(IS_POW2(cap));
-                ulong i = hash & (cap - 1);
+                ulong i = key;
                 assert(len < cap);
                 for (; ; )
                 {
-                    MapEntry* entry = entries + i;
-                    if (entry->key == key)
+                    i &= (ulong)cap - 1;
+                    if (keys[i] == key)
                     {
-                        return entry->val;
+                        return vals[i];
                     }
-                    else if (entry->key == null)
+                    else if (keys[i] == 0)
                     {
                         return null;
                     }
                     i++;
-                    if (i == cap)
-                    {
-                        i = 0;
-                    }
                 }
             }
 
-
-
-
-            void map_grow(ulong new_cap)
+            public void** map_put(void* key, void* val) => map_put(ptr_hash(key), val);
+            public void** map_put(ulong key, void* val)
             {
-                new_cap = MAX(new_cap, 16);
-                var cap_bytes = new_cap * (ulong)sizeof(MapEntry);
-                var new_map = new Map
-                {
-                    entries = (MapEntry*)xmalloc((size_t)cap_bytes),
-                    cap = new_cap
-                };
-
-                // _memset(new_map.entries, 0, (int)cap_bytes);
-                Unsafe.InitBlock(new_map.entries, 0, (uint)cap_bytes);
-                for (ulong i = 0; i < cap; i++)
-                {
-                    MapEntry* entry = entries + i;
-                    if (entry->key != null)
-                    {
-                        new_map.map_put_hashed(entry->key, entry->val, entry->hash);
-                    }
-                }
-                xfree(entries);
-                this = new_map;
-            }
-
-
-
-
-            public void** map_put_hashed(void* key, void* val, ulong hash)
-            {
-                assert(key != null);
+                assert(key != 0);
                 assert(val != null);
                 if (2 * len >= cap)
                 {
@@ -549,46 +476,28 @@ namespace Lang
                 }
                 assert(2 * len < cap);
                 assert(IS_POW2(cap));
-                ulong i = hash & (cap - 1);
+                ulong i = key;
 
                 for (; ; )
                 {
-                    MapEntry* entry = entries + i;
-                    if (entry->key == null)
+                    i &= (ulong)cap - 1;
+                    if (keys[i] == 0)
                     {
                         len++;
-                        entry->key = key;
-                        entry->val = val;
-                        entry->hash = hash;
-                        return &entry->val;
+                        keys[i] = key;
+                        vals[i] = val;
+                        return vals + i;
                     }
-                    else if (entry->key == key)
+                    else if (keys[i] == key)
                     {
-                        entry->val = val;
-                        return &entry->val;
+                        vals[i] = val;
+                        return vals + i;
                     }
                     i++;
-                    if (i == cap)
-                    {
-                        i = 0;
-                    }
                 }
             }
 
 
-            public void* map_get(void* key) => map_get_hashed(key, ptr_hash(key));
-
-
-
-            public void** map_put(void* key, void* val) => map_put_hashed(key, val, ptr_hash(key));
-
-
-
-            public void* map_get_from_uint64(ulong key) => map_get_hashed((void*)key, ptr_hash((void*)key));
-
-
-
-            public void** map_put_from_uint64(ulong key, void* val) => map_put_hashed((void*)key, val, uint64_hash(key));
         }
         #region Std Functions
 
@@ -613,14 +522,14 @@ namespace Lang
         public static int strcmp(char* c1, char* c2)
         {
             while (*c1++ == *c2++)
-                if (*c1 == '\0' || *c2 == '\0')
+                if (*c1 == '\0')
                     return 0;
 
             return 1;
         }
-        public static uint strlen(char* c)
+        public static int strlen(char* c)
         {
-            uint i = 0;
+            int i = 0;
             while (*c++ != '\0') i++;
 
             return i;

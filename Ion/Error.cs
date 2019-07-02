@@ -9,22 +9,14 @@ using System.Threading.Tasks;
 
 namespace Lang
 {
-    #region Typedefs
-#if X64
-    using size_t = Int64;
-#else
-	using size_t = Int32;
-#endif
-    #endregion
+
     public unsafe partial class Ion
     {
         [DebuggerHidden]
         static void fatal(string format, params object[] pmz)
         {
             Console.WriteLine("FATAL: " + format, pmz);
-#if DEBUG
             assert(false);
-#endif
             Console.WriteLine("Exiting...");
             Thread.Sleep(2000);
             Environment.Exit(1);
@@ -34,9 +26,7 @@ namespace Lang
         void error(SrcLoc loc, string format, params object[] pmz)
         {
             Console.Write("{0}({1}): ", new string(loc.name), loc.line);
-#if DEBUG
             assert(false);
-#endif
             Console.WriteLine(format, pmz);
         }
 
@@ -48,9 +38,7 @@ namespace Lang
         void fatal_syntax_error(string format, params object[] pmz)
         {
             syntax_error(format, pmz);
-#if DEBUG
             assert(false);
-#endif
             Console.WriteLine("Exiting...");
             Thread.Sleep(2000);
             Environment.Exit(1);
@@ -68,7 +56,7 @@ namespace Lang
     unsafe struct SrcLoc
     {
         public char* name;
-        public int line;
+        public long line;
     }
 
 

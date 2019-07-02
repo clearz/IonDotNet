@@ -1,29 +1,24 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
-using System.Text;
 
 namespace Lang
 {
     public unsafe partial class Ion
     {
-        string str = null;
         bool ion_compile_file(string spath)
         {
-            var str = File.OpenText(spath).ReadToEnd();
-            if (str == null)
-            {
-                return false;
-            }
             var path = spath.ToPtr();
-            init_stream(str, spath);
+            init_stream(read_file(spath), path);
             init_global_syms();
             DeclSet* ds = parse_file();
             sym_global_decls(ds);
             finalize_syms();
             _gen_all();
-            return false;
-            string c_path = replace_ext(path, "c".ToPtr());
+            //Console.WriteLine(new string(gen_buf));
+            //return false;
+            //Console.WriteLine("Path: " + new string(path));
+            string c_path = replace_ext(spath.ToPtr(), "c".ToPtr());
             if (c_path == null)
             {
                 return false;
@@ -35,14 +30,14 @@ namespace Lang
             return true;
         }
 
-        StringBuilder ion_compile_str(char* str)
+        char* ion_compile_str(char* str)
         {
             init_stream(str);
             init_global_syms();
             sym_global_decls(parse_file());
             finalize_syms();
-            gen_all();
-            return _gen_buf;
+            _gen_all();
+            return gen_buf;
         }
 
         void ion_test()
@@ -51,7 +46,7 @@ namespace Lang
             assert(b);
         }
 
-        int ion_main(String[] args)
+        long ion_main(string[] args)
         {
             if (args.Length == 0)
             {

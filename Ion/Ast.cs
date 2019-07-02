@@ -8,35 +8,26 @@ namespace Lang
     using static ExprKind;
     using static StmtKind;
 
-#if X64
-    using size_t = Int64;
-#else
-    using size_t = Int32;
-#endif
-
     public unsafe partial class Ion
     {
         private readonly MemArena* ast_arena = MemArena.Create();
-        void* ast_alloc(size_t size)
+        void* ast_alloc(int size)
         {
             assert(size != 0);
             void* ptr = ast_arena->Alloc(size);
-            //Unsafe.Unsafe.InitBlock(ptr, 0, (uint) size);
+            Unsafe.InitBlock(ptr, 0, (uint) size);
             return ptr;
         }
 
-        void* ast_dup(void* src, size_t size)
+        void* ast_dup(void* src, int size)
         {
-            if (size == 0)
-            {
-                return null;
-            }
-            return src;
+            if (size == 0) return null;
+
             void* ptr = ast_arena->Alloc(size);
             Unsafe.CopyBlock(ptr, src, (uint)size);
             return ptr;
         }
-        StmtList stmt_list(Stmt** stmts, size_t num_stmts)
+        StmtList stmt_list(Stmt** stmts, int num_stmts)
         {
             return new StmtList { stmts = (Stmt**)ast_dup(stmts, num_stmts * sizeof(Stmt*)), num_stmts = num_stmts };
         }
@@ -70,7 +61,7 @@ namespace Lang
             return t;
         }
 
-        Typespec* typespec_func(Typespec** args, size_t num_args, Typespec* ret)
+        Typespec* typespec_func(Typespec** args, int num_args, Typespec* ret)
         {
             Typespec* t = typespec_new(TYPESPEC_FUNC);
             t->func.args = (Typespec**)ast_dup(args, num_args * sizeof(Typespec*));
@@ -88,15 +79,15 @@ namespace Lang
 			return d;
 		}
 
-		DeclSet* declset_new(Decl** decls, size_t num_items)
+		DeclSet* declset_new(Decl** decls, int num_items)
 		{
 			DeclSet* d = (DeclSet*)ast_alloc(sizeof(DeclSet));
-			d->decls = decls;
+			d->decls = (Decl**)ast_dup(decls, num_items * sizeof(Decl*));
 			d->num_decls = num_items;
 			return d;
 		}
 
-		Decl* decl_enum(char* name, EnumItem* items, size_t num_items)
+		Decl* decl_enum(char* name, EnumItem* items, int num_items)
         {
             Decl* d = decl_new(DECL_ENUM, name);
             d->enum_decl.items = (EnumItem*)ast_dup(items, num_items * sizeof(EnumItem)); ;
@@ -104,7 +95,7 @@ namespace Lang
             return d;
         }
 
-        Decl* decl_aggregate(DeclKind kind, char* name, AggregateItem* items, size_t num_items)
+        Decl* decl_aggregate(DeclKind kind, char* name, AggregateItem* items, int num_items)
         {
             assert(kind == DECL_STRUCT || kind == DECL_UNION);
             Decl* d = decl_new(kind, name);
@@ -122,7 +113,7 @@ namespace Lang
             return d;
         }
 
-        Decl* decl_func(char* name, FuncParam* @params, size_t num_params, Typespec* ret_type, StmtList block)
+        Decl* decl_func(char* name, FuncParam* @params, int num_params, Typespec* ret_type, StmtList block)
         {
             Decl* d = decl_new(DECL_FUNC, name);
             d->func.@params = (FuncParam*)ast_dup(@params, num_params * sizeof(FuncParam));
@@ -168,7 +159,7 @@ namespace Lang
             return e;
         }
 
-        Expr* expr_int(size_t int_val )
+        Expr* expr_int(long int_val )
         {
             Expr* e = expr_new(EXPR_INT);
             e->int_val = int_val;
@@ -196,7 +187,7 @@ namespace Lang
             return e;
         }
 
-        Expr* expr_compound(Typespec* type, CompoundField* fields, size_t num_fields)
+        Expr* expr_compound(Typespec* type, CompoundField* fields, int num_fields)
         {
             Expr* e = expr_new(EXPR_COMPOUND);
             e->compound.type = type;
@@ -213,7 +204,7 @@ namespace Lang
             return e;
         }
 
-        Expr* expr_call(Expr* expr, Expr** args, size_t num_args)
+        Expr* expr_call(Expr* expr, Expr** args, int num_args)
         {
             Expr* e = expr_new(EXPR_CALL);
             e->call.expr = expr;
@@ -303,12 +294,12 @@ namespace Lang
             return s;
         }
 
-        Stmt* stmt_if(Expr* cond, StmtList then_block, ElseIf* elseifs, size_t num_elseifs, StmtList else_block)
+        Stmt* stmt_if(Expr* cond, StmtList then_block, ElseIf** elseifs, int num_elseifs, StmtList else_block)
         {
             Stmt* s = stmt_new(STMT_IF);
             s->if_stmt.cond = cond;
             s->if_stmt.then_block = then_block;
-            s->if_stmt.elseifs = (ElseIf*)ast_dup(elseifs, num_elseifs * sizeof(ElseIf));
+            s->if_stmt.elseifs = (ElseIf**)ast_dup(elseifs, num_elseifs * sizeof(ElseIf*));
             s->if_stmt.num_elseifs = num_elseifs;
             s->if_stmt.else_block = else_block;
             return s;
@@ -340,7 +331,7 @@ namespace Lang
             return s;
         }
 
-        Stmt* stmt_switch(Expr* expr, SwitchCase* cases, size_t num_cases)
+        Stmt* stmt_switch(Expr* expr, SwitchCase* cases, int num_cases)
         {
             Stmt* s = stmt_new(STMT_SWITCH);
             s->switch_stmt.expr = expr;

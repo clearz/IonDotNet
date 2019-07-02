@@ -18,44 +18,16 @@ namespace Lang
     using static StmtKind;
     using static CompoundFieldKind;
 
-    #region Typedefs
-
-#if X64
-    using size_t = Int64;
-#else
-    using size_t = System.Int32;
-#endif
-
-    #endregion
 
     unsafe partial class Ion
-	{
-        //Buffer<CachedPtrType> cached_ptr_types = Buffer<CachedPtrType>.Create();
+    {
+        public const int MAX_LOCAL_SYMS = 1024;
         Map cached_ptr_types;
+        Map global_syms;
+
         Buffer<CachedArrayType> cached_array_types = Buffer<CachedArrayType>.Create();
 		Buffer<CachedFuncType> cached_func_types = Buffer<CachedFuncType>.Create();
-		public const int MAX_LOCAL_SYMS = 1024;
-
-
-        int sym_count = 0;
-		//private readonly PtrBuffer* global_syms = PtrBuffer.Create();
-        Map global_syms;
-       // private PtrBuffer* local_syms = PtrBuffer.Create(MAX_LOCAL_SYMS);
-        private Buffer<Sym> local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
-        static Type* type_alloc(TypeKind kind)
-        {
-            Type* type = (Type*)xmalloc(sizeof(Type));// xmalloc(sizeof(Type)); //(1, sizeof(Type));
-            Unsafe.InitBlock(type, 0, (uint)sizeof(Type));
-            type->kind = kind;
-            return type;
-        }
-        static Type* basic_type_alloc(TypeKind kind, size_t size = 0, size_t align = 0)
-        {
-            Type* type = type_alloc(kind);
-            type->size = size;
-            type->align = align;
-            return type;
-        }
+        Buffer<Sym> local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
 
         private readonly Type* type_void = basic_type_alloc(TYPE_VOID, 0, 1);
         private readonly Type* type_int = basic_type_alloc(TYPE_INT, 4, 4);
@@ -64,18 +36,33 @@ namespace Lang
 #if X64
         internal const int PTR_SIZE = 8;
 #else
-        internal const int PTR_SIZE = 4;
+        internal const int PTR_SIZE = 8;
 #endif
-        const size_t PTR_ALIGN = 8;
-        Operand operand_null;
-        size_t type_sizeof(Type* type)
+        const long PTR_ALIGN = 8;
+
+        static Type* type_alloc(TypeKind kind)
+        {
+            Type* type = (Type*)xmalloc(sizeof(Type));
+            Unsafe.InitBlock(type, 0, (uint)sizeof(Type));
+            type->kind = kind;
+            return type;
+        }
+        static Type* basic_type_alloc(TypeKind kind, long size = 0, long align = 0)
+        {
+            Type* type = type_alloc(kind);
+            type->size = size;
+            type->align = align;
+            return type;
+        }
+
+        long type_sizeof(Type* type)
         {
             assert(type->kind > TYPE_COMPLETING);
             assert(type->size != 0);
             return type->size;
         }
 
-        size_t type_alignof(Type* type)
+        long type_alignof(Type* type)
         {
             assert(type->kind > TYPE_COMPLETING);
             assert(IS_POW2(type->align));
@@ -99,9 +86,9 @@ namespace Lang
         }
 
 
-		Type* type_array(Type* elem, size_t size)
+		Type* type_array(Type* elem, long size)
         {
-            for (CachedArrayType* it = (CachedArrayType*)cached_array_types._begin; it != cached_array_types._top; it++)
+            for (CachedArrayType* it = cached_array_types._begin; it != cached_array_types._top; it++)
             {
                 if (it->elem == elem && it->size == size)
                 {
@@ -126,7 +113,7 @@ namespace Lang
                 if (it->num_params == num_params && it->ret == ret)
                 {
                     bool match = true;
-                    for (size_t i = 0; i < num_params; i++)
+                    for (int i = 0; i < num_params; i++)
                     {
                         if (it->@params[i] != @params[i])
                         {
@@ -148,22 +135,10 @@ namespace Lang
             if (num_params > 0)
             {
                 type->func.@params = (Type**)xmalloc(sizeof(Type*) * num_params);
-                Unsafe.CopyBlock(type->func.@params, @params, (uint)(num_params *sizeof(Type*))); //memcpy(t->func.@params, @params, num_params * sizeof(Type*));
+                Unsafe.CopyBlock(type->func.@params, @params, (uint)(num_params * sizeof(Type*))); //memcpy(t->func.@params, @params, num_params * sizeof(Type*));
                 type->func.num_params = num_params;
             }
-            //if (num_params < 0)
-            //{
-            //    type->func.@params = (Type**)xcalloc(PTR_SIZE, num_params);
-            //    var param_block = (Type*)xmalloc(sizeof(Type) * num_params);
-            //    Unsafe.CopyBlock(param_block, *@params, (uint)(sizeof(Type) * num_params)); //memcpy(t->func.@params, @params, num_params * sizeof(Type*));
-            //    for (int i = 0; i < num_params; i++)
-            //        type->func.@params[i] = &param_block[i];
-            //    type->func.num_params = num_params;
-            //    cached_func_types.Add(new CachedFuncType { func = type, num_params = num_params, ret = ret, @params = type->func.@params });
-            //}
-            //else
-            //    cached_func_types.Add(new CachedFuncType { func = type, num_params = num_params, ret = ret, @params = @params });
-
+   
             type->func.ret = ret;
             cached_func_types.Add(new CachedFuncType { func = type, num_params = num_params, ret = ret, @params = type->func.@params });
             return type;
@@ -178,7 +153,7 @@ namespace Lang
                     if (it->num_params == num_params && it->ret == ret)
                     {
                         bool match = true;
-                        for (size_t i = 0; i < num_params; i++)
+                        for (int i = 0; i < num_params; i++)
                         {
                             if (it->@params[i] != @params[i])
                             {
@@ -201,7 +176,7 @@ namespace Lang
                 {
                     type->func.@params = (Type**)xmalloc(sizeof(Type*) * num_params);
                     Unsafe.CopyBlock(type->func.@params, @params,
-                       (uint)(num_params * sizeof(Type*))); //memcpy(t->func.@params, @params, num_params * sizeof(Type*));
+                       (uint)(num_params * (long)sizeof(Type*))); //memcpy(t->func.@params, @params, num_params * sizeof(Type*));
                     type->func.num_params = num_params;
                 }
 
@@ -213,16 +188,16 @@ namespace Lang
         }
 
         // TODO: This probably shouldn't use an O(n^2) algorithm
-        bool duplicate_fields(TypeField* fields, size_t num_fields)
+        bool duplicate_fields(TypeField* fields, long num_fields)
         {
-            for (size_t i = 0; i < num_fields; i++)
-                for (size_t j = i + 1; j < num_fields; j++)
+            for (int i = 0; i < num_fields; i++)
+                for (int j = i + 1; j < num_fields; j++)
                     if (fields[i].name == fields[j].name)
                         return true;
             return false;
         }
 
-        Type* type_complete_struct(Type* type, TypeField* fields, uint num_fields)
+        Type* type_complete_struct(Type* type, TypeField* fields, int num_fields)
         {
             assert(type->kind == TYPE_COMPLETING);
             type->kind = TYPE_STRUCT;
@@ -235,13 +210,13 @@ namespace Lang
                 type->size = type_sizeof(it->type) + ALIGN_UP(type->size, type_alignof(it->type));
                 type->align = MAX(type->align, type_alignof(it->type));
             }
-            type->aggregate.fields = (TypeField*)xmalloc((size_t)num_fields * sizeof(TypeField)); //(num_fields, sizeof(TypeField));
-            Unsafe.CopyBlock(type->func.@params, fields, (uint)(num_fields * sizeof(TypeField)));//mmemcpy(t->aggregate.fields, fields, num_fields * sizeof(TypeField));
-            type->aggregate.num_fields = (size_t)num_fields;
+            type->aggregate.fields = (TypeField*)xmalloc(num_fields * sizeof(TypeField)); //(num_fields, sizeof(TypeField));
+            Unsafe.CopyBlock(type->aggregate.fields, fields, (uint)(num_fields * sizeof(TypeField))); // memcpy(t->aggregate.fields, fields, num_fields * sizeof(TypeField));
+            type->aggregate.num_fields = num_fields;
             return type;
         }
 
-        Type* type_complete_union(Type* type, TypeField* fields, uint num_fields)
+        Type* type_complete_union(Type* type, TypeField* fields, int num_fields)
         {
             assert(type->kind == TYPE_COMPLETING);
             type->kind = TYPE_UNION;
@@ -252,9 +227,9 @@ namespace Lang
                 type->size = MAX(type->size, it->type->size);
                 type->align = MAX(type->align, type_alignof(it->type));
             }
-            type->aggregate.fields = (TypeField*)xmalloc(sizeof(TypeField) * (size_t)num_fields); //(num_fields, sizeof(TypeField));
+            type->aggregate.fields = (TypeField*)xmalloc(sizeof(TypeField) * num_fields); //(num_fields, sizeof(TypeField));
             Unsafe.CopyBlock(type->aggregate.fields, fields, (uint)(num_fields * sizeof(TypeField))); // memcpy(t->aggregate.fields, fields, num_fields * sizeof(TypeField));
-            type->aggregate.num_fields = (size_t)num_fields;
+            type->aggregate.num_fields = num_fields;
             return type;
         }
 
@@ -335,7 +310,7 @@ namespace Lang
             {
                 fatal("Too many local symbols");
             }
-            sym_count++;
+
             Sym* sym = xmalloc<Sym>();
             sym->name = name;
             sym->kind = SYM_VAR;
@@ -347,7 +322,7 @@ namespace Lang
 
         Sym* sym_enter()
         {
-            return (Sym*)local_syms._top;
+            return local_syms._top;
         }
 
         void sym_leave(Sym* sym)
@@ -358,17 +333,20 @@ namespace Lang
 
         void sym_global_put(Sym* sym)
         {
+            //ulong l = (ulong)sym->name << 32 | (ulong)sym->decl;
             global_syms.map_put(sym->name, sym);
+
         }
 
         Sym* sym_global_decl(Decl* decl)
         {
+
             Sym* sym = sym_decl(decl);
             sym_global_put(sym);
             decl->sym = sym;
             if (decl->kind == DECL_ENUM)
             {
-                for (size_t i = 0; i < decl->enum_decl.num_items; i++)
+                for (int i = 0; i < decl->enum_decl.num_items; i++)
                 {
                     sym_global_put(sym_enum_const(decl->enum_decl.items[i].name, decl));
                 }
@@ -385,9 +363,6 @@ namespace Lang
             return sym;
         }
 
-
-        private readonly Operand resolved_null;
-
         Operand operand_rvalue(Type* type)
         {
             return new Operand { type = type };
@@ -398,10 +373,11 @@ namespace Lang
             return new Operand { type = type, is_lvalue = true };
         }
 
-        Operand operand_const(size_t val )
+        Operand operand_const(long val )
         {
             return new Operand { type = type_int, is_const = true, val = val, };
         }
+
 
         Type* resolve_typespec(Typespec* typespec)
         {
@@ -414,6 +390,7 @@ namespace Lang
                 case TYPESPEC_NAME:
                     {
                         Sym* sym = resolve_name(typespec->name);
+
                         if (sym->kind != SYM_TYPE)
                         {
                             fatal("{0} must denote a type", new string(typespec->name));
@@ -426,7 +403,7 @@ namespace Lang
                     result = type_ptr(resolve_typespec(typespec->ptr.elem));
                     break;
                 case TYPESPEC_ARRAY:
-				size_t size = resolve_const_expr(typespec->array.size);
+				long size = resolve_const_expr(typespec->array.size);
                     if (size < 0)
                         fatal("Negative array size");
 
@@ -434,17 +411,24 @@ namespace Lang
                     break;
                 case TYPESPEC_FUNC:
                     {
-                        var args = PtrBuffer.Create();
-                        for (size_t i = 0; i < typespec->func.num_args; i++)
+                        var args = PtrBuffer.GetPooledBuffer();
+                        try
                         {
-                            args->Add(resolve_typespec(typespec->func.args[i]));
+                            for (int i = 0; i < typespec->func.num_args; i++)
+                            {
+                                args->Add(resolve_typespec(typespec->func.args[i]));
+                            }
+                            Type* ret = type_void;
+                            if (typespec->func.ret != null)
+                            {
+                                ret = resolve_typespec(typespec->func.ret);
+                            }
+                            result = type_func((Type**)args->_begin, args->count, ret);
                         }
-                        Type* ret = type_void;
-                        if (typespec->func.ret != null)
+                        finally
                         {
-                            ret = resolve_typespec(typespec->func.ret);
+                            args->Release();
                         }
-                        result = type_func((Type**)args->_begin, args->count, ret);
                     }
                     break;
                 default:
@@ -456,7 +440,8 @@ namespace Lang
             return result;
         }
 
-        private Buffer<Sym> ordered_syms = Buffer<Sym>.Create(16);
+       // private Buffer<Sym> ordered_syms = Buffer<Sym>.Create(16);
+        private PtrBuffer* ordered_syms = PtrBuffer.Create(1 << 16);
 
         void complete_type(Type* type)
         {
@@ -473,30 +458,30 @@ namespace Lang
             Decl* decl = type->sym->decl;
             assert(decl->kind == DECL_STRUCT || decl->kind == DECL_UNION);
             var fields = Buffer<TypeField>.Create();
-            for (size_t i = 0; i < decl->aggregate.num_items; i++)
+            for (int i = 0; i < decl->aggregate.num_items; i++)
             {
                 AggregateItem item = decl->aggregate.items[i];
                 Type* item_type = resolve_typespec(item.type);
                 complete_type(item_type);
-                for (size_t j = 0; j < item.num_names; j++)
+                for (int j = 0; j < item.num_names; j++)
                 {
                     fields.Add(new TypeField { name = item.names[j], type = item_type });
                 }
             }
             if (fields.count == 0)
                 fatal("No fields");
-            if (duplicate_fields((TypeField*)fields._begin, (size_t)fields.count))
+            if (duplicate_fields(fields._begin, fields.count))
                 fatal("Duplicate fields");
             if (decl->kind == DECL_STRUCT)
             {
-                type_complete_struct(type, (TypeField*)fields._begin, fields.count);
+                type_complete_struct(type, fields._begin, fields.count);
             }
             else
             {
                 assert(decl->kind == DECL_UNION);
-                type_complete_union(type, (TypeField*)fields._begin, fields.count);
+                type_complete_union(type, fields._begin, fields.count);
             }
-            ordered_syms.Add(type->sym);
+            ordered_syms->Add(type->sym);
         }
 
         Type* resolve_decl_type(Decl* decl)
@@ -526,7 +511,7 @@ namespace Lang
             return type;
         }
 
-        Type* resolve_decl_const(Decl* decl, size_t* val)
+        Type* resolve_decl_const(Decl* decl, long* val)
         {
             assert(decl->kind == DECL_CONST);
             Operand result = resolve_expr(decl->const_decl.expr);
@@ -539,14 +524,20 @@ namespace Lang
         Type* resolve_decl_func(Decl* decl)
         {
             assert(decl->kind == DECL_FUNC);
-            var @params = PtrBuffer.Create();
-            for (size_t i = 0; i < decl->func.num_params; i++)
-                @params->Add(resolve_typespec(decl->func.@params[i].type));
-            Type* ret_type = type_void;
-            if (decl->func.ret_type != null)
-                ret_type = resolve_typespec(decl->func.ret_type);
+            var @params = PtrBuffer.GetPooledBuffer();
+            try {
+                for (int i = 0; i < decl->func.num_params; i++)
+                    @params->Add(resolve_typespec(decl->func.@params[i].type));
+                Type* ret_type = type_void;
+                if (decl->func.ret_type != null)
+                    ret_type = resolve_typespec(decl->func.ret_type);
 
-            return type_func((Type**)@params->_begin, @params->count, ret_type);
+                return type_func((Type**)@params->_begin, @params->count, ret_type);
+            }
+            finally
+            {
+                @params->Release();
+            }
         }
 
 
@@ -555,14 +546,14 @@ namespace Lang
             Operand cond = resolve_expr(expr);
             if (cond.type != type_int)
             {
-                fatal("Conditional expression must have type int");
+                fatal("Conditional expression must have type long");
             }
         }
 
         void resolve_stmt_block(StmtList block, Type* ret_type)
         {
             Sym* start = sym_enter();
-            for (size_t i = 0; i < block.num_stmts; i++)
+            for (int i = 0; i < block.num_stmts; i++)
             {
                 resolve_stmt(block.stmts[i], ret_type);
             }
@@ -600,11 +591,11 @@ namespace Lang
                 case STMT_IF:
                     resolve_cond_expr(stmt->if_stmt.cond);
                     resolve_stmt_block(stmt->if_stmt.then_block, ret_type);
-                    for (size_t i = 0; i < stmt->if_stmt.num_elseifs; i++)
+                    for (int i = 0; i < stmt->if_stmt.num_elseifs; i++)
                     {
-                        ElseIf elseif = stmt->if_stmt.elseifs[i];
-                        resolve_cond_expr(elseif.cond);
-                        resolve_stmt_block(elseif.block, ret_type);
+                        ElseIf* elseif = stmt->if_stmt.elseifs[i];
+                        resolve_cond_expr(elseif->cond);
+                        resolve_stmt_block(elseif->block, ret_type);
                     }
                     if (stmt->if_stmt.else_block.stmts != null)
                     {
@@ -629,10 +620,10 @@ namespace Lang
                 case STMT_SWITCH:
                     {
                         Operand result = resolve_expr(stmt->switch_stmt.expr);
-                        for (size_t i = 0; i < stmt->switch_stmt.num_cases; i++)
+                        for (int i = 0; i < stmt->switch_stmt.num_cases; i++)
                         {
                             SwitchCase switch_case = stmt->switch_stmt.cases[i];
-                            for (size_t j = 0; j < switch_case.num_exprs; j++)
+                            for (int j = 0; j < switch_case.num_exprs; j++)
                             {
                                 Operand case_result = resolve_expr(switch_case.exprs[j]);
                                 if (case_result.type != result.type)
@@ -661,7 +652,7 @@ namespace Lang
                         }
                         if (stmt->assign.op != TOKEN_ASSIGN && left.type != type_int)
                         {
-                            fatal("Can only use assignment operators with type int");
+                            fatal("Can only use assignment operators with type long");
                         }
                         break;
                     }
@@ -679,7 +670,7 @@ namespace Lang
             assert(decl->kind == DECL_FUNC);
             assert(sym->state == SYM_RESOLVED);
             Sym *scope = sym_enter();
-            for (size_t i = 0; i < decl->func.num_params; i++) {
+            for (int i = 0; i < decl->func.num_params; i++) {
                 FuncParam param = decl->func.@params[i];
                 sym_push_var(param.name, resolve_typespec(param.type));
             }
@@ -719,7 +710,7 @@ namespace Lang
                     break;
             }
             sym->state = SYM_RESOLVED;
-            ordered_syms.Add(sym);
+            ordered_syms->Add(sym);
         }
 
         void finalize_sym(Sym* sym)
@@ -757,9 +748,9 @@ namespace Lang
             if (type->kind != TYPE_STRUCT && type->kind != TYPE_UNION)
             {
                 fatal("Can only access fields on aggregate types");
-                return resolved_null;
+                return default;
             }
-            for (size_t i = 0; i < type->aggregate.num_fields; i++)
+            for (int i = 0; i < type->aggregate.num_fields; i++)
             {
                 TypeField field = type->aggregate.fields[i];
                 if (field.name == expr->field.name)
@@ -767,8 +758,8 @@ namespace Lang
                     return left.is_lvalue ? operand_lvalue(field.type) : operand_rvalue(field.type);
                 }
             }
-            fatal("No field named '{0}'", new String(expr->field.name));
-            return resolved_null;
+            fatal("No field named '{0}'", new string(expr->field.name));
+            return default;
         }
 
         Operand ptr_decay(Operand expr)
@@ -784,7 +775,7 @@ namespace Lang
         }
 
 
-		size_t eval_int_unary(TokenKind op, size_t val )
+		long eval_int_unary(TokenKind op, long val )
         {
             switch (op)
             {
@@ -802,7 +793,7 @@ namespace Lang
             }
         }
 
-		size_t eval_int_binary(TokenKind op, size_t left, size_t right )
+		long eval_int_binary(TokenKind op, long left, long right )
         {
             switch (op)
             {
@@ -864,8 +855,8 @@ namespace Lang
             }
             else
             {
-                fatal("{0} must denote a var func or const", new String(expr->name));
-                return resolved_null;
+                fatal("{0} must denote a var func or const", new string(expr->name));
+                return default;
             }
         }
 
@@ -907,7 +898,7 @@ namespace Lang
             Operand right = resolve_expr(expr->binary.right);
             if (left.type != type_int)
             {
-                fatal("left operand of + must be int");
+                fatal("left operand of + must be long");
             }
             if (right.type != left.type)
             {
@@ -919,18 +910,18 @@ namespace Lang
             else
                 return operand_rvalue(left.type);
         }
-        size_t aggregate_field_index(Type* type, char* name)
+        int aggregate_field_index(Type* type, char* name)
         {
             assert(type->kind == TYPE_STRUCT || type->kind == TYPE_UNION);
-            for (size_t i = 0; i < type->aggregate.num_fields; i++)
+            for (int i = 0; i < type->aggregate.num_fields; i++)
             {
                 if (type->aggregate.fields[i].name == name)
                 {
                     return i;
                 }
             }
-            fatal("Field '{0}' in compound literal not found in struct/union", new String(name));
-            return size_t.MaxValue;
+            fatal("Field '{0}' in compound literal not found in struct/union", new string(name));
+            return int.MaxValue;
         }
 
         Operand resolve_expr_compound(Expr* expr, Type* expected_type)
@@ -957,8 +948,8 @@ namespace Lang
 
             if (type->kind == TYPE_STRUCT || type->kind == TYPE_UNION)
             {
-                size_t index = 0;
-                for (size_t i = 0; i < expr->compound.num_fields; i++)
+                int index = 0;
+                for (int i = 0; i < expr->compound.num_fields; i++)
                 {
                     CompoundField field = expr->compound.fields[i];
                     if (field.kind == FIELD_INDEX)
@@ -984,8 +975,8 @@ namespace Lang
             else
             {
                 assert(type->kind == TYPE_ARRAY);
-                size_t index = 0;
-                for (size_t i = 0; i < expr->compound.num_fields; i++)
+                long index = 0;
+                for (int i = 0; i < expr->compound.num_fields; i++)
                 {
                     CompoundField field = expr->compound.fields[i];
                     if (field.kind == FIELD_NAME)
@@ -994,7 +985,7 @@ namespace Lang
                     }
                     else if (field.kind == FIELD_INDEX)
                     {
-						size_t result = resolve_const_expr(field.index);
+						long result = resolve_const_expr(field.index);
                         if (result < 0)
                         {
                             fatal("Field initializer index cannot be negative");
@@ -1028,7 +1019,7 @@ namespace Lang
             {
                 fatal("Tried to call function with wrong number of arguments");
             }
-            for (size_t i = 0; i < expr->call.num_args; i++)
+            for (int i = 0; i < expr->call.num_args; i++)
             {
                 Type* param_type = func.type->func.@params[i];
                 Operand arg = resolve_expected_expr(expr->call.args[i], param_type);
@@ -1046,7 +1037,7 @@ namespace Lang
             Operand cond = ptr_decay(resolve_expr(expr->ternary.cond));
             if (cond.type->kind != TYPE_INT && cond.type->kind != TYPE_PTR)
             {
-                fatal("Ternary cond expression must have type int or ptr");
+                fatal("Ternary cond expression must have type long or ptr");
             }
             Operand then_expr = ptr_decay(resolve_expected_expr(expr->ternary.then_expr, expected_type));
             Operand else_expr = ptr_decay(resolve_expected_expr(expr->ternary.else_expr, expected_type));
@@ -1075,7 +1066,7 @@ namespace Lang
             Operand index = resolve_expr(expr->index.index);
             if (index.type->kind != TYPE_INT)
             {
-                fatal("Index expression must have type int");
+                fatal("Index expression must have type long");
             }
             return operand_lvalue(operand.type->ptr.elem);
         }
@@ -1096,7 +1087,7 @@ namespace Lang
             {
                 if (result.type->kind != TYPE_PTR && result.type->kind != TYPE_INT)
                 {
-                    fatal("Invalid cast to int type");
+                    fatal("Invalid cast to long type");
                 }
             }
             else
@@ -1163,7 +1154,7 @@ namespace Lang
                     }
                 default:
                     assert(false);
-                    result = resolved_null;
+                    result = default;
                     break;
             }
             if (result.type != null)
@@ -1179,7 +1170,7 @@ namespace Lang
             return resolve_expected_expr(expr, null);
         }
 
-        size_t resolve_const_expr(Expr* expr)
+        long resolve_const_expr(Expr* expr)
         {
             Operand result = resolve_expr(expr);
             if (!result.is_const)
@@ -1219,14 +1210,13 @@ namespace Lang
 
         void finalize_syms()
         {
-            for (ulong i = 0; i < global_syms.cap; i++)
+            for (int i = 0; i < global_syms.cap; i++)
             {
-                MapEntry* entry = global_syms.entries + i;
-                if (entry->key == null)
+                if (global_syms.keys[i] == 0)
                 {
                     continue;
                 }
-                Sym* sym = (Sym*)entry->val;
+                Sym* sym = (Sym*)global_syms.vals[i];
                 finalize_sym(sym);
             }
         }
@@ -1259,29 +1249,21 @@ namespace Lang
             }
 
             init_global_syms();
-
-
-
-            for (size_t i = 0; i < code.Length; i++)
+            for (int i = 0; i < code.Length; i++)
             {
                 init_stream(code[i].ToPtr(), null);
                 Decl* decl = parse_decl();
                 sym_global_decl(decl);
             }
 
-            //for (Sym** it = (Sym**)global_syms->_begin; it != global_syms->_top; it++)
-            //{
-            //    Sym* sym = *it;
-            //    complete_entity(sym);
-            //}
             finalize_syms();
             Console.WriteLine();
-            for (Sym* sym = ordered_syms._begin; sym != ordered_syms._top; sym++)
+            for (Sym** sym = (Sym**)ordered_syms->_begin; sym != ordered_syms->_top; sym++)
             {
-                if (sym->decl != null)
-                    print_decl(sym->decl);
+                if ((*sym)->decl != null)
+                    print_decl((*sym)->decl);
                 else
-                    printf("{0}", sym->name);
+                    printf("{0}", (*sym)->name);
 
                 printf("\n");
             }
@@ -1295,7 +1277,7 @@ namespace Lang
         public Type* type;
         public bool is_lvalue;
         public bool is_const;
-        public size_t val;
+        public long val;
     }
     unsafe struct CachedPtrType
     {
@@ -1306,14 +1288,14 @@ namespace Lang
     unsafe struct CachedArrayType
     {
         public Type* elem;
-        public size_t size;
+        public long size;
         public Type* array;
     }
 
     unsafe struct CachedFuncType
     {
         public Type** @params;
-        public size_t num_params;
+        public long num_params;
         public Type* ret;
         public Type* func;
     }
@@ -1322,7 +1304,7 @@ namespace Lang
     unsafe struct ConstEntity
     {
         [FieldOffset(0)] public Type* type;
-        [FieldOffset(Ion.PTR_SIZE)] public ulong int_val;
+        [FieldOffset(Ion.PTR_SIZE)] public long int_val;
         [FieldOffset(Ion.PTR_SIZE)] public double float_val;
     }
 
@@ -1351,7 +1333,7 @@ namespace Lang
         public SymState state;
         public Decl* decl;
         public Type* type;
-        public size_t val;
+        public long val;
     }
 
     enum TypeKind
@@ -1383,13 +1365,13 @@ namespace Lang
     unsafe struct Type
     {
         [FieldOffset(0)] public TypeKind kind;
-        [FieldOffset(4)] public size_t size;
-        [FieldOffset(Ion.PTR_SIZE + 4)] public size_t align;
-        [FieldOffset(Ion.PTR_SIZE * 2 + 4)] public Sym* sym;
-        [FieldOffset(Ion.PTR_SIZE * 3 + 4)] public _ptr ptr;
-        [FieldOffset(Ion.PTR_SIZE * 3 + 4)] public _array array;
-        [FieldOffset(Ion.PTR_SIZE * 3 + 4)] public _aggregate aggregate;
-        [FieldOffset(Ion.PTR_SIZE * 3 + 4)] public _func func;
+        [FieldOffset(4)] public long size;
+        [FieldOffset(12)] public long align;
+        [FieldOffset(20)] public Sym* sym;
+        [FieldOffset(Ion.PTR_SIZE + 20)] public _ptr ptr;
+        [FieldOffset(Ion.PTR_SIZE + 20)] public _array array;
+        [FieldOffset(Ion.PTR_SIZE + 20)] public _aggregate aggregate;
+        [FieldOffset(Ion.PTR_SIZE + 20)] public _func func;
 
 
         [StructLayout(LayoutKind.Sequential, Size = 8)]
@@ -1401,19 +1383,19 @@ namespace Lang
         internal struct _array
         {
             public Type* elem;
-            public size_t size;
+            public long size;
         }
 
         internal struct _aggregate
         {
             public TypeField* fields;
-            public size_t num_fields;
+            public long num_fields;
         }
 
         internal struct _func
         {
             public Type** @params;
-            public int num_params;
+            public long num_params;
             public Type* ret;
         }
 
