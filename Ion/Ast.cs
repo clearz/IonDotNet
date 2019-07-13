@@ -1,5 +1,5 @@
-﻿using System.Runtime.CompilerServices;
-using DotNetCross.Memory;
+﻿using DotNetCross.Memory;
+using System.Runtime.CompilerServices;
 
 namespace Lang
 {
@@ -38,7 +38,7 @@ namespace Lang
         private Typespec* typespec_new(SrcPos pos, TypespecKind kind)
         {
             var t = (Typespec*) ast_alloc(sizeof(Typespec));
-            t->Pos = pos;
+            t->pos = pos;
             t->kind = kind;
             return t;
         }
@@ -165,7 +165,7 @@ namespace Lang
             return e;
         }
 
-        private Expr* expr_int(SrcPos pos, long int_val)
+        private Expr* expr_int(SrcPos pos, int int_val)
         {
             var e = expr_new(EXPR_INT, pos);
             e->int_val = int_val;

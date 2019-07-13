@@ -10,12 +10,12 @@ namespace Lang
             lex_init();
             var path = spath.ToPtr();
             lex_init();
-            init_stream(read_file(spath), $"\"{spath}\"".ToPtr2());
+            init_stream(read_file(spath), $"\"{spath}\"".ToPtr());
             init_global_syms();
             var ds = parse_file();
             sym_global_decls(ds);
             finalize_syms();
-            _gen_all();
+            gen_all();
             //Console.WriteLine(new string(gen_buf));
             return false;
             //Console.WriteLine("Path: " + new string(path));
@@ -32,7 +32,7 @@ namespace Lang
             init_global_syms();
             sym_global_decls(parse_file());
             finalize_syms();
-            _gen_all();
+            gen_all();
             return gen_buf;
         }
 

@@ -249,7 +249,7 @@ namespace Lang
 
         private void scan_int()
         {
-            long @base = 10;
+            int @base = 10;
             if (*stream == '0')
             {
                 stream++;
@@ -272,10 +272,10 @@ namespace Lang
                 }
             }
 
-            long val = 0;
+            int val = 0;
             for (;;)
             {
-                long digit = char_to_digit[*stream];
+                int digit = char_to_digit[*stream];
                 if (digit == 0 && *stream != '0') break;
 
                 if (digit >= @base)
@@ -284,7 +284,7 @@ namespace Lang
                     digit = 0;
                 }
 
-                if (val > (long.MaxValue - digit) / @base)
+                if (val > (int.MaxValue - digit) / @base)
                 {
                     syntax_error("Integer literal overflow");
                     while (char.IsDigit(*stream)) stream++;
@@ -790,12 +790,12 @@ namespace Lang
 
         private void init_stream(string buf, string name = "<anonymous>")
         {
-            init_stream(buf.ToPtr(), $"\"{name}\"".ToPtr2());
+            init_stream(buf.ToPtr(), $"\"{name}\"".ToPtr());
         }
 
         private void init_stream(char* str, char* name = null)
         {
-            token.pos.name = name != null ? name : "<string>".ToPtr2();
+            token.pos.name = name != null ? name : "<string>".ToPtr();
             token.pos.line = 1;
             stream = str;
             next_token();
@@ -964,7 +964,7 @@ namespace Lang
         [StructLayout(LayoutKind.Explicit)]
         private struct Token
         {
-            [FieldOffset(0)] public long int_val;
+            [FieldOffset(0)] public int int_val;
             [FieldOffset(0)] public double float_val;
             [FieldOffset(0)] public char* str_val;
             [FieldOffset(0)] public char* name;

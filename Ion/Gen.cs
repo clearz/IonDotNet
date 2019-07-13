@@ -1,6 +1,6 @@
-﻿using System;
+﻿using DotNetCross.Memory;
+using System;
 using System.Runtime.CompilerServices;
-using DotNetCross.Memory;
 
 namespace Lang
 {
@@ -16,56 +16,22 @@ namespace Lang
     {
         private const int _1MB = 1024 * 1024;
 
-
         private static readonly char* line =
             "                                                                                         ".ToPtr();
-
         private readonly char* cdecl_buffer = xmalloc<char>(_1MB);
-        private readonly char* CHAR = "char".ToPtr();
+        private Buffer<char> gen_buf = Buffer<char>.Create(_1MB, 4);
         private readonly char[] char_to_escape = new char[256];
-        private readonly char* FLOAT = "float".ToPtr();
-        private readonly char* gen_preamble = "#include <stdio.h>\n\n".ToPtr();
-        private readonly char* INT = "int".ToPtr();
+        private readonly string preamble = "// Preamble\n#include <stdio.h>\n\n";
 
         private readonly char* lineStr = "#line ".ToPtr();
 
+        private readonly char* INT = "int".ToPtr();
         private readonly char* VOID = "void".ToPtr();
-        private SrcPos _genPos;
-        private int _pos, _gen_indent;
+        private readonly char* CHAR = "char".ToPtr();
+        private readonly char* FLOAT = "float".ToPtr();
 
-        private readonly string code5 = "struct Vector { x, y: int; }\n" +
-/*
-            "func example_test(): int { return fact_rec(10) == fact_iter(10); }\n" +
-        "union IntOrPtr { i: int; p: int*; }\n" +
-                "// func f() {\n"+
-        "//     u1 := IntOrPtr{i = 42};\n"+
-        "//     u2 := IntOrPtr{p = cast(int*, 42)};\n"+
-        "//     u2 := IntOrPtr{p = (:int*)42};\n"+
-        "//     u1.i = 0;\n"+
-        "//     u2.p = cast(int*, 0);\n"+
-        "//     u2.p = (:int*)0;\n"+
-        "// }\n" +
-        "var i: int\n" +
-        "struct Vector { x: int; y: int; }\n" +
-        "func fact_iter(n: int): int { r := 1; for (i := 2; i <= n; i++) { r *= i; } return r; }\n" +
-        "func fact_rec(n: int): int { if (n == 0) { return 1; } else { return n * fact_rec(n-1); } }\n" +
-          
-         "func f1() { v := Vector{1, 2}; j := i; i++; j++; v.x = 2*j; }\n"
-         "func f2(n: long): long { return 2*n; }\n"
-         "func f3(x: long): long { if (x) { return -x; } else if (x % 2 == 0) { return 42; } else { return -1; } }\n"
-         "func f4(n: long): long { for (i := 0; i < n; i++) { if (i % 3 == 0) { return n; } } return 0; }\n"
-         "func f5(x: long): long { switch(x) { case 0: case 1: return 42; case 3: default: return -1; } }\n"
-         "func f6(n: long): long { p := 1; while (n) { p *= 2; n--; } return p; }\n"
-         "func f7(n: long): long { p := 1; do { p *= 2; n--; } while (n); return p; }\n"
-        */
-                                        "const z = 1+sizeof(p)\n" +
-                                        "var p: Tso*\n" +
-                                        "struct Tso { a: int[z + 3]; }\n";
-
-
-        private readonly char* fd = "// Forward declarations".ToPtr();
-        private Buffer<char> gen_buf = Buffer<char>.Create(_1MB, 4);
-        private readonly char* od = "// Ordered declarations".ToPtr();
+        private SrcPos gen_pos;
+        private int _pos, gen_indent;
 
         private void reset_pos()
         {
@@ -85,12 +51,12 @@ namespace Lang
 
         private void indent()
         {
-            var size = _gen_indent * 4;
+            var size = gen_indent * 4;
 
             gen_buf.Add(line, size);
-            _genPos.line++;
-            // Unsafe.CopyBlock(gen_buf + _genPos, line, (uint)size << 1);
-            //_genPos += size;
+            gen_pos.line++;
+            // Unsafe.CopyBlock(gen_buf + gen_pos, line, (uint)size << 1);
+            //gen_pos += size;
         }
 
         private void writeln()
@@ -98,57 +64,63 @@ namespace Lang
             gen_buf.Add('\n');
         }
 
-        private void c_write(char c)
+        private void buf_write(char c)
         {
             *(cdecl_buffer + _pos++) = c;
         }
 
-        private void c_write(char* c)
+        private void buf_write(char* c)
         {
             var len = strlen(c);
             Unsafe.CopyBlock(cdecl_buffer + _pos, c, (uint) len << 1);
             _pos += len;
         }
 
-        private void c_write(char* c, int len)
+        private void buf_write(char* c, int len)
         {
             Unsafe.CopyBlock(cdecl_buffer + _pos, c, (uint) len << 1);
             _pos += len;
         }
 
-        private void buf_write(char c)
+        private void c_write(char c)
         {
             gen_buf.Add(c);
         }
 
-        private void buf_write(char* c)
+        private void c_write(char* c)
         {
             gen_buf.Add(c, strlen(c));
-            //while ((*(gen_buf + _genPos) = *(c++)) != 0) _genPos++;
+            //while ((*(gen_buf + gen_pos) = *(c++)) != 0) gen_pos++;
         }
 
-        private void buf_write(char* c, int len)
+        private void c_write(char* c, int len)
         {
             gen_buf.Add(c, len);
-            //Unsafe.CopyBlock(gen_buf + _genPos, c, (uint)len << 1);
-            //_genPos += len;
+            //Unsafe.CopyBlock(gen_buf + gen_pos, c, (uint)len << 1);
+            //gen_pos += len;
+        }
+        private void genlnf(char c) {
+            genln();
+            c_write(c);
+        }
+        private void genlnf(char* fmt) {
+            genln();
+            c_write(fmt);
+        }
+        private void genlnf(char* fmt, int len) {
+            genln();
+            c_write(fmt, len);
         }
 
-        private void _genlnf(char* fmt)
-        {
-            _genln();
-            buf_write(fmt);
-        }
-
-        private void _genln()
+        private void genln()
         {
             writeln();
             indent();
-            _genPos.line++;
+            gen_pos.line++;
         }
 
 
-        private char* _cdecl_name(Type* type)
+        private char* cdecl_name(Type* type)
         {
             switch (type->kind)
             {
@@ -169,7 +141,7 @@ namespace Lang
             }
         }
 
-        private void _type_to_cdecl(Type* type, char* str)
+        private void type_to_cdecl(Type* type, char* str)
         {
             switch (type->kind)
             {
@@ -181,52 +153,52 @@ namespace Lang
                 case TYPE_UNION:
                     if (str != null)
                     {
-                        c_write(_cdecl_name(type));
-                        c_write(' ');
-                        c_write(str);
+                        buf_write(cdecl_name(type));
+                        buf_write(' ');
+                        buf_write(str);
                     }
                     else
                     {
-                        c_write(_cdecl_name(type));
+                        buf_write(cdecl_name(type));
                     }
 
                     break;
                 case TYPE_PTR:
                     if (str != null)
                     {
-                        c_write('(');
-                        c_write('*');
-                        c_write(str);
-                        c_write(')');
-                        _type_to_cdecl(type->ptr.elem, copy_buf());
+                        buf_write('(');
+                        buf_write('*');
+                        buf_write(str);
+                        buf_write(')');
+                        type_to_cdecl(type->ptr.elem, copy_buf());
                     }
                     else
                     {
-                        //c_write(_cdecl_name(type->ptr.elem));
-                        _type_to_cdecl(type->ptr.elem, null);
-                        c_write(' ');
-                        c_write('*');
+                        //buf_write(cdecl_name(type->ptr.elem));
+                        type_to_cdecl(type->ptr.elem, null);
+                        buf_write(' ');
+                        buf_write('*');
                     }
 
                     break;
                 case TYPE_ARRAY:
                     if (str != null)
                     {
-                        c_write('(');
-                        c_write(str);
-                        c_write('[');
-                        c_write(type->array.size.ToString().ToPtr());
-                        c_write(']');
-                        c_write(')');
-                        _type_to_cdecl(type->array.elem, copy_buf());
+                        buf_write('(');
+                        buf_write(str);
+                        buf_write('[');
+                        buf_write(type->array.size.ToString().ToPtr());
+                        buf_write(']');
+                        buf_write(')');
+                        type_to_cdecl(type->array.elem, copy_buf());
                     }
                     else
                     {
-                        _type_to_cdecl(type->ptr.elem, null);
-                        c_write(' ');
-                        c_write('[');
-                        c_write(type->array.size.ToString().ToPtr());
-                        c_write(']');
+                        type_to_cdecl(type->ptr.elem, null);
+                        buf_write(' ');
+                        buf_write('[');
+                        buf_write(type->array.size.ToString().ToPtr());
+                        buf_write(']');
                     }
 
                     break;
@@ -234,29 +206,29 @@ namespace Lang
                 {
                     if (str != null)
                     {
-                        c_write('(');
-                        c_write('*');
-                        c_write(str);
-                        c_write(')');
+                        buf_write('(');
+                        buf_write('*');
+                        buf_write(str);
+                        buf_write(')');
                     }
 
-                    c_write('(');
+                    buf_write('(');
                     if (type->func.num_params == 0)
-                        c_write(VOID, 4);
+                        buf_write(VOID, 4);
                     else
                         for (var i = 0; i < type->func.num_params; i++)
                         {
                             if (i > 0)
                             {
-                                c_write(',');
-                                c_write(' ');
+                                buf_write(',');
+                                buf_write(' ');
                             }
 
-                            _type_to_cdecl(type->func.@params[i], null);
+                            type_to_cdecl(type->func.@params[i], null);
                         }
 
-                    c_write(')');
-                    _type_to_cdecl(type->func.ret, copy_buf());
+                    buf_write(')');
+                    type_to_cdecl(type->func.ret, copy_buf());
                 }
                     break;
                 default:
@@ -265,51 +237,53 @@ namespace Lang
             }
         }
 
-        private void _gen_str(char* str)
+        private void gen_str(char* str)
         {
-            buf_write('\"');
+            c_write('\"');
             while (*str != 0)
             {
                 var start = str;
                 while (*str != 0 && char_to_escape[*str] == 0) str++;
-                if (start != str) buf_write(start, (int) (str - start));
+                if (start != str) c_write(start, (int) (str - start));
                 if (*str != 0 && char_to_escape[*str] != 0)
                 {
-                    buf_write('\\');
-                    buf_write(char_to_escape[*str]);
+                    c_write('\\');
+                    c_write(char_to_escape[*str]);
                     str++;
                 }
             }
 
-            buf_write('\"');
+            c_write('\"');
         }
 
         private void gen_sync_pos(SrcPos pos)
         {
             assert(pos.name != null && pos.line != 0);
-            if (_genPos.line != pos.line || _genPos.name != pos.name)
+            if (gen_pos.line != pos.line || gen_pos.name != pos.name)
             {
-                _genln();
-                buf_write(lineStr, 6);
-                buf_write(pos.line.ToString().ToPtr());
-                buf_write(' ');
-                buf_write(pos.name);
-                _genPos = pos;
+                genln();
+                c_write(lineStr, 6);
+                c_write(pos.line.ToString().ToPtr());
+                if (gen_pos.name != pos.name) {
+                    c_write(' ');
+                    c_write(pos.name);
+                }
+                gen_pos = pos;
             }
         }
 
-        private void _gen_expr_str(Expr* expr)
+        private void gen_expr_str(Expr* expr)
         {
             var temp = gen_buf;
             var tPos = gen_buf.count;
             gen_buf = Buffer<char>.Create(1024);
-            _gen_expr(expr);
-            c_write(gen_buf._begin, gen_buf.count);
+            gen_expr(expr);
+            buf_write(gen_buf._begin, gen_buf.count);
             gen_buf = temp;
         }
 
 
-        private void _typespec_to_cdecl(Typespec* typespec, char* str)
+        private void typespec_to_cdecl(Typespec* typespec, char* str)
         {
             // TODO: Figure out how to handle type vs typespec in C gen for inferred types. How to prevent "flattened" values?
             switch (typespec->kind)
@@ -317,51 +291,51 @@ namespace Lang
                 case TYPESPEC_NAME:
                     if (str != null)
                     {
-                        c_write(typespec->name);
-                        c_write(' ');
-                        c_write(str);
+                        buf_write(typespec->name);
+                        buf_write(' ');
+                        buf_write(str);
                     }
                     else
                     {
-                        c_write(typespec->name);
+                        buf_write(typespec->name);
                     }
 
                     break;
                 case TYPESPEC_PTR:
                     if (str != null)
                     {
-                        c_write('(');
-                        c_write('*');
-                        c_write(str);
-                        c_write(')');
-                        _typespec_to_cdecl(typespec->ptr.elem, copy_buf());
+                        buf_write('(');
+                        buf_write('*');
+                        buf_write(str);
+                        buf_write(')');
+                        typespec_to_cdecl(typespec->ptr.elem, copy_buf());
                     }
                     else
                     {
-                        c_write(typespec->name);
-                        c_write(' ');
-                        c_write('*');
+                        buf_write(typespec->name);
+                        buf_write(' ');
+                        buf_write('*');
                     }
 
                     break;
                 case TYPESPEC_ARRAY:
                     if (str != null)
                     {
-                        c_write('(');
-                        c_write(str);
-                        c_write('[');
-                        _gen_expr_str(typespec->array.size);
-                        c_write(']');
-                        c_write(')');
-                        _typespec_to_cdecl(typespec->array.elem, copy_buf());
+                        buf_write('(');
+                        buf_write(str);
+                        buf_write('[');
+                        gen_expr_str(typespec->array.size);
+                        buf_write(']');
+                        buf_write(')');
+                        typespec_to_cdecl(typespec->array.elem, copy_buf());
                     }
                     else
                     {
-                        c_write(typespec->name);
-                        c_write(' ');
-                        c_write('[');
-                        _gen_expr_str(typespec->array.size);
-                        c_write(']');
+                        buf_write(typespec->name);
+                        buf_write(' ');
+                        buf_write('[');
+                        gen_expr_str(typespec->array.size);
+                        buf_write(']');
                     }
 
                     break;
@@ -369,16 +343,16 @@ namespace Lang
                 {
                     if (str != null)
                     {
-                        c_write('(');
-                        c_write('*');
-                        c_write(str);
-                        c_write(')');
+                        buf_write('(');
+                        buf_write('*');
+                        buf_write(str);
+                        buf_write(')');
                     }
 
-                    c_write('(');
+                    buf_write('(');
                     if (typespec->func.num_args == 0)
                     {
-                        c_write(VOID, 4);
+                        buf_write(VOID, 4);
                     }
                     else
                     {
@@ -386,15 +360,15 @@ namespace Lang
                         {
                             if (i > 0)
                             {
-                                c_write(',');
-                                c_write(' ');
+                                buf_write(',');
+                                buf_write(' ');
                             }
 
-                            _typespec_to_cdecl(typespec->func.args[i], null);
+                            typespec_to_cdecl(typespec->func.args[i], null);
                         }
 
-                        _typespec_to_cdecl(typespec->func.ret, copy_buf());
-                        c_write(')');
+                        typespec_to_cdecl(typespec->func.ret, copy_buf());
+                        buf_write(')');
                     }
 
                     break;
@@ -406,49 +380,65 @@ namespace Lang
             }
         }
 
-        private void _gen_func_decl(Decl* decl)
+        private void gen_func_defs()
+        {
+            for (Sym** it = (Sym**) global_syms_buf->_begin; it < global_syms_buf->_top; it++)
+            {
+                Sym* sym = *it;
+                Decl* decl = sym->decl;
+
+                if (decl != null && decl->kind == DECL_FUNC)
+                {
+                    gen_func_decl(decl);
+                    c_write(' ');
+                    gen_stmt_block(decl->func.block);
+                    genln();
+                }
+            }
+        }
+        void gen_func_decl(Decl* decl)
         {
             assert(decl->kind == DECL_FUNC);
 
             gen_sync_pos(decl->pos);
             if (decl->func.ret_type != null)
             {
-                _genln();
+                genln();
                 reset_pos();
-                _typespec_to_cdecl(decl->func.ret_type, decl->name);
-                buf_write(cdecl_buffer, _pos);
-                buf_write('(');
+                typespec_to_cdecl(decl->func.ret_type, decl->name);
+                c_write(cdecl_buffer, _pos);
+                c_write('(');
             }
             else
             {
-                _genln();
-                buf_write(VOID);
-                buf_write(' ');
-                buf_write(decl->name);
-                buf_write('(');
+                genln();
+                c_write(VOID);
+                c_write(' ');
+                c_write(decl->name);
+                c_write('(');
             }
 
             if (decl->func.num_params == 0)
-                buf_write(VOID);
+                c_write(VOID);
             else
                 for (var i = 0; i < decl->func.num_params; i++)
                 {
                     var param = decl->func.@params + i;
                     if (i != 0)
                     {
-                        buf_write(',');
-                        buf_write(' ');
+                        c_write(',');
+                        c_write(' ');
                     }
 
                     reset_pos();
-                    _typespec_to_cdecl(param->type, param->name);
-                    buf_write(cdecl_buffer, _pos);
+                    typespec_to_cdecl(param->type, param->name);
+                    c_write(cdecl_buffer, _pos);
                 }
 
-            buf_write(')');
+            c_write(')');
         }
 
-        private void _gen_forward_decls()
+        private void gen_forward_decls()
         {
             for (var it = (Sym**) global_syms_buf->_begin; it != global_syms_buf->_top; it++)
             {
@@ -460,217 +450,239 @@ namespace Lang
                 switch (decl->kind)
                 {
                     case DECL_STRUCT:
-                        _genln();
-                        buf_write(typedef_keyword);
-                        buf_write(' ');
-                        buf_write(struct_keyword);
-                        buf_write(' ');
-                        buf_write(name);
-                        buf_write(' ');
-                        buf_write(name);
-                        buf_write(';');
+                        genln();
+                        c_write(typedef_keyword);
+                        c_write(' ');
+                        c_write(struct_keyword);
+                        c_write(' ');
+                        c_write(name);
+                        c_write(' ');
+                        c_write(name);
+                        c_write(';');
                         break;
                     case DECL_UNION:
-                        _genln();
-                        buf_write(typedef_keyword);
-                        buf_write(' ');
-                        buf_write(union_keyword);
-                        buf_write(' ');
-                        buf_write(name);
-                        buf_write(' ');
-                        buf_write(name);
-                        buf_write(';');
-                        break;
-                    case DECL_FUNC:
-                        _gen_func_decl(sym->decl);
-                        buf_write(';');
+                        genln();
+                        c_write(typedef_keyword);
+                        c_write(' ');
+                        c_write(union_keyword);
+                        c_write(' ');
+                        c_write(name);
+                        c_write(' ');
+                        c_write(name);
+                        c_write(';');
                         break;
                 }
             }
         }
 
-        private void _gen_aggregate(Decl* decl)
+        private void gen_aggregate(Decl* decl)
         {
             assert(decl->kind == DECL_STRUCT || decl->kind == DECL_UNION);
-            _genln();
+            genln();
             if (decl->kind == DECL_STRUCT)
-                buf_write(struct_keyword);
-            else buf_write(union_keyword);
-            buf_write(' ');
-            buf_write(decl->name);
-            buf_write(' ');
-            buf_write('{');
+                c_write(struct_keyword);
+            else c_write(union_keyword);
+            c_write(' ');
+            c_write(decl->name);
+            c_write(' ');
+            c_write('{');
 
-            _gen_indent++;
+            gen_indent++;
             for (var i = 0; i < decl->aggregate.num_items; i++)
             {
                 var item = decl->aggregate.items[i];
-                gen_sync_pos(item.pos);
-                for (var j = 0; j < item.num_names; j++)
-                {
-                    _genln();
+                for (var j = 0; j < item.num_names; j++) {
+                    gen_sync_pos(item.pos);
+                    genln();
                     reset_pos();
-                    _typespec_to_cdecl(item.type, item.names[j]);
-                    buf_write(cdecl_buffer, _pos);
-                    buf_write(';');
+                    typespec_to_cdecl(item.type, item.names[j]);
+                    c_write(cdecl_buffer, _pos);
+                    c_write(';');
                 }
             }
 
-            _gen_indent--;
-            _genln();
-            buf_write('}');
-            buf_write(';');
+            gen_indent--;
+            genln();
+            c_write('}');
+            c_write(';');
         }
 
-
-        private void _gen_expr(Expr* expr)
+        void gen_expr_compound(Expr* expr, bool is_init) {
+            if (is_init) {
+                c_write('{');
+            }
+            else if (expr->compound.type != null) {
+                c_write('(');
+                reset_pos();
+                typespec_to_cdecl(expr->compound.type, null);
+                c_write(cdecl_buffer, _pos);
+                c_write(')');
+                c_write('{');
+            }
+            else {
+                c_write('(');
+                reset_pos();
+                type_to_cdecl(expr->type, null);
+                c_write(cdecl_buffer, _pos);
+                c_write(')');
+                c_write('{');
+            }
+            for (int i = 0; i < expr->compound.num_fields; i++) {
+                if (i != 0) {
+                    c_write(',');
+                    c_write(' ');
+                }
+                CompoundField field = expr->compound.fields[i];
+                if (field.kind == FIELD_NAME) {
+                    c_write('.');
+                    c_write(field.name);
+                    c_write(' ');
+                    c_write('=');
+                    c_write(' ');
+                }
+                else if (field.kind == FIELD_INDEX) {
+                    c_write('[');
+                    gen_expr(field.index);
+                    c_write(']');
+                    c_write(' ');
+                    c_write('=');
+                    c_write(' ');
+                }
+                gen_expr(field.init);
+            }
+            c_write('}');
+        }
+        private void gen_expr(Expr* expr)
         {
             switch (expr->kind)
             {
                 case EXPR_INT:
-                    buf_write(expr->int_val.ToString().ToPtr());
+                    c_write(expr->int_val.ToString().ToPtr());
                     break;
                 case EXPR_FLOAT:
-                    buf_write(expr->float_val.ToString().ToPtr());
+                    c_write(expr->float_val.ToString().ToPtr());
                     break;
                 case EXPR_STR:
-                    _gen_str(expr->str_val);
+                    gen_str(expr->str_val);
                     break;
                 case EXPR_NAME:
-                    buf_write(expr->name);
+                    c_write(expr->name);
                     break;
                 case EXPR_CAST:
-                    buf_write('(');
+                    c_write('(');
                     reset_pos();
-                    _type_to_cdecl(expr->cast.type->type, null);
-                    buf_write(cdecl_buffer, _pos);
-                    buf_write(')');
-                    buf_write('(');
-                    _gen_expr(expr->cast.expr);
-                    buf_write(')');
+                    type_to_cdecl(expr->cast.type->type, null);
+                    c_write(cdecl_buffer, _pos);
+                    c_write(')');
+                    c_write('(');
+                    gen_expr(expr->cast.expr);
+                    c_write(')');
                     break;
                 case EXPR_CALL:
-                    _gen_expr(expr->call.expr);
-                    buf_write('(');
+                    gen_expr(expr->call.expr);
+                    c_write('(');
                     for (var i = 0; i < expr->call.num_args; i++)
                     {
                         if (i != 0)
                         {
-                            buf_write(',');
-                            buf_write(' ');
+                            c_write(',');
+                            c_write(' ');
                         }
 
-                        _gen_expr(expr->call.args[i]);
+                        gen_expr(expr->call.args[i]);
                     }
 
-                    buf_write(')');
+                    c_write(')');
                     break;
                 case EXPR_INDEX:
-                    _gen_expr(expr->index.expr);
-                    buf_write('[');
-                    _gen_expr(expr->index.index);
-                    buf_write(']');
+                    gen_expr(expr->index.expr);
+                    c_write('[');
+                    gen_expr(expr->index.index);
+                    c_write(']');
                     break;
                 case EXPR_FIELD:
-                    _gen_expr(expr->field.expr);
-                    buf_write('.');
-                    buf_write(expr->field.name);
+                    gen_expr(expr->field.expr);
+                    c_write('.');
+                    c_write(expr->field.name);
                     break;
                 case EXPR_COMPOUND:
-                    if (expr->compound.type != null)
-                    {
-                        buf_write('(');
-                        reset_pos();
-                        _typespec_to_cdecl(expr->compound.type, null);
-                        buf_write(cdecl_buffer, _pos);
-                        buf_write(')');
-                        buf_write('{');
-                    }
-                    else
-                    {
-                        buf_write('(');
-                        reset_pos();
-                        _type_to_cdecl(expr->type, null);
-                        buf_write(cdecl_buffer, _pos);
-                        buf_write(')');
-                        buf_write('{');
-                    }
-
-                    for (var i = 0; i < expr->compound.num_fields; i++)
+                    gen_expr_compound(expr, false);
+                break;
+                for (var i = 0; i < expr->compound.num_fields; i++)
                     {
                         if (i != 0)
                         {
-                            buf_write(',');
-                            buf_write(' ');
+                            c_write(',');
+                            c_write(' ');
                         }
 
                         var field = expr->compound.fields + i;
                         if (field->kind == FIELD_NAME)
                         {
-                            buf_write('.');
-                            buf_write(field->name);
-                            buf_write(' ');
-                            buf_write('=');
-                            buf_write(' ');
+                            c_write('.');
+                            c_write(field->name);
+                            c_write(' ');
+                            c_write('=');
+                            c_write(' ');
                         }
                         else if (field->kind == FIELD_INDEX)
                         {
-                            buf_write('[');
-                            _gen_expr(field->index);
-                            buf_write(']');
-                            buf_write(' ');
-                            buf_write('=');
-                            buf_write(' ');
+                            c_write('[');
+                            gen_expr(field->index);
+                            c_write(']');
+                            c_write(' ');
+                            c_write('=');
+                            c_write(' ');
                         }
 
-                        _gen_expr(field->init);
+                        gen_expr(field->init);
                     }
 
-                    buf_write('}');
+                    c_write('}');
                     break;
                 case EXPR_UNARY:
-                    buf_write(_token_kind_name(expr->unary.op));
-                    buf_write('(');
-                    _gen_expr(expr->unary.expr);
-                    buf_write(')');
+                    c_write(_token_kind_name(expr->unary.op));
+                    c_write('(');
+                    gen_expr(expr->unary.expr);
+                    c_write(')');
                     break;
                 case EXPR_BINARY:
-                    buf_write('(');
-                    _gen_expr(expr->binary.left);
-                    buf_write(')');
-                    buf_write(' ');
-                    buf_write(_token_kind_name(expr->binary.op));
-                    buf_write(' ');
-                    buf_write('(');
-                    _gen_expr(expr->binary.right);
-                    buf_write(')');
+                    c_write('(');
+                    gen_expr(expr->binary.left);
+                    c_write(')');
+                    c_write(' ');
+                    c_write(_token_kind_name(expr->binary.op));
+                    c_write(' ');
+                    c_write('(');
+                    gen_expr(expr->binary.right);
+                    c_write(')');
                     break;
                 case EXPR_TERNARY:
-                    buf_write('(');
-                    _gen_expr(expr->ternary.cond);
-                    buf_write(' ');
-                    buf_write('?');
-                    buf_write(' ');
-                    _gen_expr(expr->ternary.then_expr);
-                    buf_write(' ');
-                    buf_write(':');
-                    buf_write(' ');
-                    _gen_expr(expr->ternary.else_expr);
-                    buf_write(')');
+                    c_write('(');
+                    gen_expr(expr->ternary.cond);
+                    c_write(' ');
+                    c_write('?');
+                    c_write(' ');
+                    gen_expr(expr->ternary.then_expr);
+                    c_write(' ');
+                    c_write(':');
+                    c_write(' ');
+                    gen_expr(expr->ternary.else_expr);
+                    c_write(')');
                     break;
                 case EXPR_SIZEOF_EXPR:
-                    buf_write(sizeof_keyword);
-                    buf_write('(');
-                    _gen_expr(expr->sizeof_expr);
-                    buf_write(')');
+                    c_write(sizeof_keyword);
+                    c_write('(');
+                    gen_expr(expr->sizeof_expr);
+                    c_write(')');
                     break;
                 case EXPR_SIZEOF_TYPE:
-                    buf_write(sizeof_keyword);
-                    buf_write('(');
+                    c_write(sizeof_keyword);
+                    c_write('(');
                     reset_pos();
-                    _type_to_cdecl(expr->sizeof_type->type, null);
-                    buf_write(cdecl_buffer, _pos);
-                    buf_write(')');
+                    type_to_cdecl(expr->sizeof_type->type, null);
+                    c_write(cdecl_buffer, _pos);
+                    c_write(')');
                     break;
                 default:
                     assert(false);
@@ -678,45 +690,56 @@ namespace Lang
             }
         }
 
-
-        private void _gen_stmt_block(StmtList block)
-        {
-            buf_write('{');
-            _gen_indent++;
-            for (var i = 0; i < block.num_stmts; i++) _gen_stmt(block.stmts[i]);
-            _gen_indent--;
-            _genln();
-            buf_write('}');
+        void gen_init_expr(Expr* expr) {
+            if (expr->kind == EXPR_COMPOUND) {
+                gen_expr_compound(expr, true);
+            }
+            else {
+                gen_expr(expr);
+            }
+        }
+        bool is_incomplete_array_type(Typespec* typespec) {
+            return typespec->kind == TYPESPEC_ARRAY && typespec->array.size == null;
         }
 
-        private void _gen_simple_stmt(Stmt* stmt)
+        private void gen_stmt_block(StmtList block)
+        {
+            c_write('{');
+            gen_indent++;
+            for (var i = 0; i < block.num_stmts; i++) gen_stmt(block.stmts[i]);
+            gen_indent--;
+            genln();
+            c_write('}');
+        }
+
+        private void gen_simple_stmt(Stmt* stmt)
         {
             switch (stmt->kind)
             {
                 case STMT_EXPR:
-                    _gen_expr(stmt->expr);
+                    gen_expr(stmt->expr);
                     break;
                 case STMT_INIT:
                     reset_pos();
-                    _type_to_cdecl(stmt->init.expr->type, stmt->init.name);
-                    buf_write(cdecl_buffer, _pos);
-                    buf_write(' ');
-                    buf_write('=');
-                    buf_write(' ');
-                    _gen_expr(stmt->init.expr);
+                    type_to_cdecl(stmt->init.expr->type, stmt->init.name);
+                    c_write(cdecl_buffer, _pos);
+                    c_write(' ');
+                    c_write('=');
+                    c_write(' ');
+                    gen_init_expr(stmt->init.expr);
                     break;
                 case STMT_ASSIGN:
-                    _gen_expr(stmt->assign.left);
+                    gen_expr(stmt->assign.left);
                     if (stmt->assign.right != null)
                     {
-                        buf_write(' ');
-                        buf_write(_token_kind_name(stmt->assign.op));
-                        buf_write(' ');
-                        _gen_expr(stmt->assign.right);
+                        c_write(' ');
+                        c_write(_token_kind_name(stmt->assign.op));
+                        c_write(' ');
+                        gen_expr(stmt->assign.right);
                     }
                     else
                     {
-                        buf_write(_token_kind_name(stmt->assign.op));
+                        c_write(_token_kind_name(stmt->assign.op));
                     }
 
                     break;
@@ -726,158 +749,165 @@ namespace Lang
             }
         }
 
-        private void _gen_stmt(Stmt* stmt)
+        private void gen_stmt(Stmt* stmt)
         {
             gen_sync_pos(stmt->pos);
             switch (stmt->kind)
             {
                 case STMT_RETURN:
-                    _genlnf(return_keyword);
+                    genlnf(return_keyword);
                     if (stmt->expr != null)
                     {
-                        buf_write(' ');
-                        _gen_expr(stmt->expr);
+                        c_write(' ');
+                        gen_expr(stmt->expr);
                     }
 
-                    buf_write(';');
+                    c_write(';');
                     break;
                 case STMT_BREAK:
-                    _genlnf(break_keyword);
-                    buf_write(';');
+                    genlnf(break_keyword);
+                    c_write(';');
                     break;
                 case STMT_CONTINUE:
-                    _genlnf(continue_keyword);
-                    buf_write(';');
+                    genlnf(continue_keyword);
+                    c_write(';');
                     break;
                 case STMT_BLOCK:
-                    _genln();
-                    _gen_stmt_block(stmt->block);
+                    genln();
+                    gen_stmt_block(stmt->block);
                     break;
                 case STMT_IF:
-                    _genlnf(if_keyword);
-                    buf_write(' ');
-                    buf_write('(');
-                    _gen_expr(stmt->if_stmt.cond);
-                    buf_write(')');
-                    buf_write(' ');
-                    _gen_stmt_block(stmt->if_stmt.then_block);
+                    genlnf(if_keyword);
+                    c_write(' ');
+                    c_write('(');
+                    gen_expr(stmt->if_stmt.cond);
+                    c_write(')');
+                    c_write(' ');
+                    gen_stmt_block(stmt->if_stmt.then_block);
                     for (var i = 0; i < stmt->if_stmt.num_elseifs; i++)
                     {
                         var elseif = stmt->if_stmt.elseifs[i];
-                        buf_write(' ');
-                        buf_write(else_keyword);
-                        buf_write(' ');
-                        buf_write(if_keyword);
-                        buf_write(' ');
-                        buf_write('(');
-                        _gen_expr(elseif->cond);
-                        buf_write(')');
-                        buf_write(' ');
-                        _gen_stmt_block(elseif->block);
+                        c_write(' ');
+                        c_write(else_keyword);
+                        c_write(' ');
+                        c_write(if_keyword);
+                        c_write(' ');
+                        c_write('(');
+                        gen_expr(elseif->cond);
+                        c_write(')');
+                        c_write(' ');
+                        gen_stmt_block(elseif->block);
                     }
 
                     if (stmt->if_stmt.else_block.stmts != null)
                     {
-                        buf_write(' ');
-                        buf_write(else_keyword);
-                        buf_write(' ');
-                        _gen_stmt_block(stmt->if_stmt.else_block);
+                        c_write(' ');
+                        c_write(else_keyword);
+                        c_write(' ');
+                        gen_stmt_block(stmt->if_stmt.else_block);
                     }
 
                     break;
                 case STMT_WHILE:
-                    buf_write(while_keyword);
-                    buf_write(' ');
-                    buf_write('(');
-                    _gen_expr(stmt->while_stmt.cond);
-                    buf_write(')');
-                    buf_write(' ');
-                    _gen_stmt_block(stmt->while_stmt.block);
+                    c_write(while_keyword);
+                    c_write(' ');
+                    c_write('(');
+                    gen_expr(stmt->while_stmt.cond);
+                    c_write(')');
+                    c_write(' ');
+                    gen_stmt_block(stmt->while_stmt.block);
                     break;
                 case STMT_DO_WHILE:
-                    buf_write(do_keyword);
-                    buf_write(' ');
-                    _gen_stmt_block(stmt->while_stmt.block);
-                    buf_write(' ');
-                    buf_write(while_keyword);
-                    buf_write(' ');
-                    buf_write('(');
-                    _gen_expr(stmt->while_stmt.cond);
-                    buf_write(')');
-                    buf_write(';');
+                    c_write(do_keyword);
+                    c_write(' ');
+                    gen_stmt_block(stmt->while_stmt.block);
+                    c_write(' ');
+                    c_write(while_keyword);
+                    c_write(' ');
+                    c_write('(');
+                    gen_expr(stmt->while_stmt.cond);
+                    c_write(')');
+                    c_write(';');
                     break;
                 case STMT_FOR:
-                    _genlnf(for_keyword);
-                    buf_write(' ');
-                    buf_write('(');
-                    if (stmt->for_stmt.init != null) _gen_simple_stmt(stmt->for_stmt.init);
-                    buf_write(';');
+                    genlnf(for_keyword);
+                    c_write(' ');
+                    c_write('(');
+                    if (stmt->for_stmt.init != null) gen_simple_stmt(stmt->for_stmt.init);
+                    c_write(';');
                     if (stmt->for_stmt.cond != null)
                     {
-                        buf_write(' ');
-                        _gen_expr(stmt->for_stmt.cond);
+                        c_write(' ');
+                        gen_expr(stmt->for_stmt.cond);
                     }
 
-                    buf_write(';');
+                    c_write(';');
                     if (stmt->for_stmt.next != null)
                     {
-                        buf_write(' ');
-                        _gen_simple_stmt(stmt->for_stmt.next);
+                        c_write(' ');
+                        gen_simple_stmt(stmt->for_stmt.next);
                     }
 
-                    buf_write(')');
-                    buf_write(' ');
-                    _gen_stmt_block(stmt->for_stmt.block);
+                    c_write(')');
+                    c_write(' ');
+                    gen_stmt_block(stmt->for_stmt.block);
                     break;
                 case STMT_SWITCH:
-                    _genlnf(switch_keyword);
-                    buf_write(' ');
-                    buf_write('(');
-                    _gen_expr(stmt->switch_stmt.expr);
-                    buf_write(')');
-                    buf_write(' ');
-                    buf_write(';');
-                    for (var i = 0; i < stmt->switch_stmt.num_cases; i++)
+                    genlnf(switch_keyword);
+                    c_write(' ');
+                    c_write('(');
+                    gen_expr(stmt->switch_stmt.expr);
+                    c_write(')');
+                    c_write(' ');
+                    c_write('{');
+
+                    gen_indent++;
+                for (var i = 0; i < stmt->switch_stmt.num_cases; i++)
                     {
                         var switch_case = stmt->switch_stmt.cases[i];
                         for (var j = 0; j < switch_case.num_exprs; j++)
                         {
-                            _genlnf(case_keyword);
-                            buf_write(' ');
-                            _gen_expr(switch_case.exprs[j]);
-                            buf_write(':');
+                            genlnf(case_keyword);
+                            c_write(' ');
+                            gen_expr(switch_case.exprs[j]);
+                            c_write(':');
                         }
 
                         if (switch_case.is_default)
                         {
-                            buf_write(default_keyword);
-                            buf_write(':');
+                            c_write(default_keyword);
+                            c_write(':');
                         }
 
-                        buf_write(' ');
-                        _gen_stmt_block(switch_case.block);
+                        c_write(' ');
+                        c_write('{');
+                        gen_indent++;
+                        StmtList block = switch_case.block;
+                        for (int j = 0; j < block.num_stmts; j++)
+                        {
+                            gen_stmt(block.stmts[j]);
+                        }
+                        genlnf(break_keyword, 5);
+                        c_write(';');
+                        gen_indent--;
+                        genlnf('}');
                     }
 
-                    _genln();
-                    buf_write('}');
+                    gen_indent--;
+                genln();
+                    c_write('}');
                     break;
                 default:
-                    _genln();
-                    _gen_simple_stmt(stmt);
-                    buf_write(';');
+                    genln();
+                    gen_simple_stmt(stmt);
+                    c_write(';');
                     break;
             }
         }
 
-        private void _gen_func(Decl* decl)
-        {
-            assert(decl->kind == DECL_FUNC);
-            _gen_func_decl(decl);
-            buf_write(' ');
-            _gen_stmt_block(decl->func.block);
-        }
+ 
 
-        private void _gen_sym(Sym* sym)
+        private void gen_decl(Sym* sym)
         {
             var decl = sym->decl;
             if (decl == null) return;
@@ -885,90 +915,97 @@ namespace Lang
             switch (decl->kind)
             {
                 case DECL_CONST:
-                    _genln();
-                    buf_write(enum_keyword);
-                    buf_write(' ');
-                    buf_write('{');
-                    buf_write(' ');
-                    buf_write(sym->name);
-                    buf_write(' ');
-                    buf_write('=');
-                    buf_write(' ');
-                    _gen_expr(decl->const_decl.expr);
-                    buf_write(' ');
-                    buf_write('}');
-                    buf_write(';');
+                    genln();
+                    c_write(enum_keyword);
+                    c_write(' ');
+                    c_write('{');
+                    c_write(' ');
+                    c_write(sym->name);
+                    c_write(' ');
+                    c_write('=');
+                    c_write(' ');
+                    gen_expr(decl->const_decl.expr);
+                    c_write(' ');
+                    c_write('}');
+                    c_write(';');
                     break;
                 case DECL_VAR:
-                    if (decl->var.type != null)
+                    if (decl->var.type != null && !is_incomplete_array_type(decl->var.type))
                     {
-                        _genln();
+                        genln();
                         reset_pos();
-                        _typespec_to_cdecl(decl->var.type, sym->name);
-                        buf_write(cdecl_buffer, _pos);
+                        typespec_to_cdecl(decl->var.type, sym->name);
+                        c_write(cdecl_buffer, _pos);
                     }
                     else
                     {
-                        _genln();
+                        genln();
                         reset_pos();
-                        _type_to_cdecl(sym->type, sym->name);
-                        buf_write(cdecl_buffer, _pos);
+                        type_to_cdecl(sym->type, sym->name);
+                        c_write(cdecl_buffer, _pos);
                     }
 
                     if (decl->var.expr != null)
                     {
-                        buf_write(' ');
-                        buf_write('=');
-                        buf_write(' ');
-                        _gen_expr(decl->var.expr);
+                        c_write(' ');
+                        c_write('=');
+                        c_write(' ');
+                        gen_init_expr(decl->var.expr);
                     }
 
-                    buf_write(';');
+                    c_write(';');
                     break;
                 case DECL_FUNC:
-                    _gen_func(sym->decl);
+                    gen_func_decl(decl);
+                    c_write(';');
                     break;
                 case DECL_STRUCT:
                 case DECL_UNION:
-                    _gen_aggregate(sym->decl);
+                    gen_aggregate(decl);
                     break;
                 case DECL_TYPEDEF:
-                    _genln();
-                    buf_write(typedef_keyword);
-                    buf_write(' ');
-                    buf_write(' ');
+                    genln();
+                    c_write(typedef_keyword);
+                    c_write(' ');
+                    c_write(' ');
                     reset_pos();
-                    _type_to_cdecl(sym->type, sym->name);
-                    buf_write(cdecl_buffer, _pos);
-                    buf_write(';');
+                    typespec_to_cdecl(decl->typedef_decl.type, sym->name);
+                    c_write(cdecl_buffer, _pos);
+                    c_write(';');
                     break;
                 default:
                     assert(false);
                     break;
             }
+            genln();
         }
 
-        private void _gen_ordered_decls()
+        private void gen_sorted_decls()
         {
-            var sym_cnt = ordered_syms->count;
+            var sym_cnt = sorted_syms->count;
 
             for (var i = 0; i < sym_cnt; i++)
             {
                 //Console.Write($"\r{i} of {sym_cnt}    ");
-                var sym = (Sym**) (ordered_syms->_begin + i);
-                _gen_sym(*sym);
+                var sym = (Sym**) (sorted_syms->_begin + i);
+                gen_decl(*sym);
             }
         }
 
-        private void _gen_all()
-        {
-            buf_write(gen_preamble);
-            buf_write(fd);
-            _gen_forward_decls();
-            _genln();
-            _genln();
-            buf_write(od);
-            _gen_ordered_decls();
+        private readonly char* forward_declarations = "// Forward declarations".ToPtr();
+        private readonly char* sorted_declarations = "// Sorted declarations".ToPtr();
+        private readonly char* function_declarations = "// Function declarations".ToPtr();
+
+        private void gen_all()  
+        {                                   
+            c_write(preamble.ToPtr(), preamble.Length);
+            c_write(forward_declarations);
+            gen_forward_decls();
+            genln();
+            genlnf(sorted_declarations);
+            gen_sorted_decls();
+            genlnf(function_declarations);
+            gen_func_defs();
         }
 
 
@@ -976,48 +1013,33 @@ namespace Lang
         {
             var c = 'x';
             _pos = 0;
-            _type_to_cdecl(type_int, &c);
+            type_to_cdecl(type_int, &c);
             Console.WriteLine(new string(cdecl_buffer));
             _pos = 0;
-            _type_to_cdecl(type_ptr(type_int), &c);
+            type_to_cdecl(type_ptr(type_int), &c);
             Console.WriteLine(new string(cdecl_buffer));
             _pos = 0;
-            _type_to_cdecl(type_array(type_int, 10), &c);
+            type_to_cdecl(type_array(type_int, 10), &c);
             Console.WriteLine(new string(cdecl_buffer));
             _pos = 0;
-            _type_to_cdecl(type_func(new[] {type_int}, 1, type_int), &c);
+            type_to_cdecl(type_func(new[] {type_int}, 1, type_int), &c);
             Console.WriteLine(new string(cdecl_buffer));
             _pos = 0;
-            _type_to_cdecl(type_array(type_func(new[] {type_int}, 1, type_int), 10), &c);
+            type_to_cdecl(type_array(type_func(new[] {type_int}, 1, type_int), 10), &c);
             Console.WriteLine(new string(cdecl_buffer));
             _pos = 0;
-            _type_to_cdecl(type_func(new[] {type_ptr(type_int)}, 1, type_int), &c);
+            type_to_cdecl(type_func(new[] {type_ptr(type_int)}, 1, type_int), &c);
             Console.WriteLine(new string(cdecl_buffer));
             _pos = 0;
             var type1 = type_func(new[] {type_array(type_int, 10)}, 1, type_int);
-            _type_to_cdecl(type1, &c);
+            type_to_cdecl(type1, &c);
             Console.WriteLine(new string(cdecl_buffer));
             _pos = 0;
-            _type_to_cdecl(type_func((Type**) null, 0, type1), &c);
+            type_to_cdecl(type_func((Type**) null, 0, type1), &c);
             Console.WriteLine(new string(cdecl_buffer));
             _pos = 0;
-            _type_to_cdecl(type_func((Type**) null, 0, type_array(type_func((Type**) null, 0, type_int), 10)), &c);
+            type_to_cdecl(type_func((Type**) null, 0, type_array(type_func((Type**) null, 0, type_int), 10)), &c);
             Console.WriteLine(new string(copy_buf()));
-        }
-
-        internal void gen_test()
-        {
-            //cdecl_test();
-
-            local_syms.clear();
-            init_stream(code5, null);
-            init_global_syms();
-            var f = parse_file();
-            sym_global_decls(f);
-            finalize_syms();
-
-            _gen_all();
-            Console.WriteLine(new string(gen_buf));
         }
     }
 }

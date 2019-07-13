@@ -115,7 +115,6 @@
     <Compile Include="Resolve.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="app.config" />
     <None Include="test1.ion">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

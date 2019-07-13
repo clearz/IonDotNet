@@ -161,10 +161,13 @@ namespace Lang
             expect_token(TOKEN_LBRACE);
             var buf = Buffer<CompoundField>.Create();
             ; // Expr**
-            if (!is_token(TOKEN_RBRACE))
+            while (!is_token(TOKEN_RBRACE))
             {
                 buf.Add(parse_expr_compound_field());
-                while (match_token(TOKEN_COMMA)) buf.Add(parse_expr_compound_field());
+                if (!match_token(TOKEN_COMMA))
+                {
+                    break;
+                }
             }
 
             expect_token(TOKEN_RBRACE);
@@ -229,7 +232,7 @@ namespace Lang
                     expect_token(TOKEN_RPAREN);
                     if (is_token(TOKEN_LBRACE))
                         return parse_expr_compound(type);
-                    return expr_cast(pos, type, parse_expr());
+                    return expr_cast(pos, type, parse_expr_unary());
                 }
 
                 var expr = parse_expr();
@@ -249,7 +252,7 @@ namespace Lang
                 if (match_token(TOKEN_LPAREN))
                 {
                     var buf = PtrBuffer.GetPooledBuffer();
-                    ;
+                    
                     try
                     {
                         if (!is_token(TOKEN_RPAREN))
@@ -552,6 +555,9 @@ namespace Lang
                     if (match_keyword(case_keyword))
                     {
                         buf->Add(parse_expr());
+                        while (match_token(TOKEN_COMMA)) {
+                            buf->Add(parse_expr());
+                        }
                     }
                     else
                     {
@@ -581,7 +587,7 @@ namespace Lang
                 };
                 return new SwitchCase
                 {
-                    exprs = (Expr**) buf->_begin,
+                    exprs = (Expr**) ast_dup(buf->_begin, buf->buf_byte_size),
                     num_exprs = buf->count,
                     is_default = is_default,
                     block = block
@@ -672,10 +678,10 @@ namespace Lang
             expect_token(TOKEN_LBRACE);
             EnumItem* items = null;
             var buf = Buffer<EnumItem>.Create();
-            if (!is_token(TOKEN_RBRACE))
+            while (!is_token(TOKEN_RBRACE))
             {
                 buf.Add(parse_decl_enum_item());
-                while (match_token(TOKEN_COMMA)) buf.Add(parse_decl_enum_item());
+                if (!match_token(TOKEN_COMMA)) break;
             }
 
             expect_token(TOKEN_RBRACE);

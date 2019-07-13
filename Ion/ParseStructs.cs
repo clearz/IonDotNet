@@ -13,7 +13,7 @@ namespace Lang
     internal unsafe struct Typespec
     {
         [FieldOffset(0)] public TypespecKind kind;
-        [FieldOffset(4)] public SrcPos Pos;
+        [FieldOffset(4)] public SrcPos pos;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Type* type;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* name;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public PtrTypespec ptr;
@@ -153,7 +153,7 @@ namespace Lang
         [FieldOffset(0)] public ExprKind kind;
         [FieldOffset(4)] public SrcPos Pos;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Type* type;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public long int_val;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public int int_val;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public double float_val;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* str_val;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* name;

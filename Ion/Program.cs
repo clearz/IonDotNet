@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using static System.Console;
+﻿using static System.Console;
 
 namespace Lang
 {
@@ -16,13 +13,9 @@ namespace Lang
 #else
             var ion = new Ion();
             if (args.Length > 0)
-            {
                 ion.ion_main(args);
-            }
             else
-            {
                 Timer.Time(1, () => { ion.ion_compile_file("test3.ion"); });
-            }
 #endif
             ReadKey();
         }
