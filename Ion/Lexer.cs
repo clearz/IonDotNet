@@ -1,46 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using DotNetCross.Memory;
 
 namespace Lang
 {
     using static TokenKind;
     using static TokenMod;
 
-	public unsafe partial class Ion
+    public unsafe partial class Ion
     {
-        char* typedef_keyword;
-        char* enum_keyword;
-        char* struct_keyword;
-        char* union_keyword;
-        char* var_keyword;
-        char* const_keyword;
-        char* func_keyword;
-        char* sizeof_keyword;
-        char* cast_keyword;
-        char* break_keyword;
-        char* continue_keyword;
-        char* return_keyword;
-        char* if_keyword;
-        char* else_keyword;
-        char* while_keyword;
-        char* do_keyword;
-        char* for_keyword;
-        char* switch_keyword;
-        char* case_keyword;
-        char* default_keyword;
-
-        char* first_keyword;
-        char* last_keyword;
-        static PtrBuffer* keywords;
+        private static PtrBuffer* keywords;
 
 
-        static bool inited = false;
+        private static bool inited;
 
-        private char** token_kind_names;
-        readonly Dictionary<TokenKind, string> tokenKindNames = new Dictionary<TokenKind, string> {
+        private readonly byte[] char_to_digit = new byte[256];
+        private readonly char[] escape_to_char = new char[256];
+
+        private readonly Dictionary<TokenKind, string> tokenKindNames = new Dictionary<TokenKind, string>
+        {
             [TOKEN_EOF] = string.Intern("EOF"),
             [TOKEN_COLON] = string.Intern(":"),
             [TOKEN_LPAREN] = string.Intern("("),
@@ -91,31 +68,56 @@ namespace Lang
             [TOKEN_RSHIFT_ASSIGN] = string.Intern(">>="),
             [TOKEN_INC] = string.Intern("++"),
             [TOKEN_DEC] = string.Intern("--"),
-            [TOKEN_COLON_ASSIGN] = string.Intern(":="),
+            [TOKEN_COLON_ASSIGN] = string.Intern(":=")
         };
 
-        private readonly byte[] char_to_digit = new byte[256];
-        private readonly char[] escape_to_char = new char[256];
+        private char* break_keyword;
+        private char* case_keyword;
+        private char* const_keyword;
+        private char* continue_keyword;
+        private char* default_keyword;
+        private char* do_keyword;
+        private char* else_keyword;
+        private char* enum_keyword;
 
-        Token token;
-        char* stream;
-        char* line_start;
+        private char* first_keyword;
+        private char* for_keyword;
+        private char* func_keyword;
+        private char* if_keyword;
+        private char* last_keyword;
+        private char* line_start;
+        private char* return_keyword;
+        private char* sizeof_keyword;
 
-        long src_line;
-        char* src_name;
+        private Buffer<char> str_buf = Buffer<char>.Create(256);
+        private char* stream;
+        private char* struct_keyword;
+        private char* switch_keyword;
+
+        private Token token;
+
+        private char** token_kind_names;
+        private char* typedef_keyword;
+        private char* union_keyword;
+        private char* var_keyword;
+        private char* while_keyword;
 
         public void lex_init()
         {
-            
             if (inited)
                 return;
             keywords = PtrBuffer.Create();
             fixed (char*** clPtr = &token_kind_names)
+            {
                 tokenKindNames.ToCharArrayPointer(clPtr);
-
-            src_line = 1;
+            }
 
             init_keywords();
+
+            char_to_escape['\n'] = 'n';
+            char_to_escape['\\'] = '\\';
+            char_to_escape['"'] = '"';
+            char_to_escape['\''] = '\'';
 
             char_to_digit['0'] = 0;
             char_to_digit['1'] = 1;
@@ -153,11 +155,10 @@ namespace Lang
 
         private void init_keywords()
         {
-
             typedef_keyword = _I("typedef");
             keywords->Add(typedef_keyword);
 
-            byte* arena_end = intern_arena->end;
+            var arena_end = intern_arena->end;
 
             enum_keyword = _I("enum");
             keywords->Add(enum_keyword);
@@ -179,9 +180,6 @@ namespace Lang
 
             sizeof_keyword = _I("sizeof");
             keywords->Add(sizeof_keyword);
-
-            cast_keyword = _I("cast");
-            keywords->Add(cast_keyword);
 
             break_keyword = _I("break");
             keywords->Add(break_keyword);
@@ -222,32 +220,26 @@ namespace Lang
             last_keyword = default_keyword;
         }
 
-        bool is_keyword_name(char* name) => first_keyword <= name && name <= last_keyword;
+        private bool is_keyword_name(char* name)
+        {
+            return first_keyword <= name && name <= last_keyword;
+        }
 
-        string token_kind_name(TokenKind kind)
+        private string token_kind_name(TokenKind kind)
         {
             if (kind < TOKEN_SIZE)
-            {
                 return tokenKindNames[kind];
-            }
-            else
-            {
-                return "<unknown>";
-            }
-        }
-        char* _token_kind_name(TokenKind kind)
-        {
-            if (kind < TOKEN_SIZE)
-            {
-                return *(token_kind_names + (long)kind);
-            }
-            else
-            {
-                return "<unknown>".ToPtr();
-            }
+            return "<unknown>";
         }
 
-        string token_info()
+        private char* _token_kind_name(TokenKind kind)
+        {
+            if (kind < TOKEN_SIZE)
+                return *(token_kind_names + (long) kind);
+            return "<unknown>".ToPtr();
+        }
+
+        private string token_info()
         {
             if (token.kind == TOKEN_NAME || token.kind == TOKEN_KEYWORD)
                 return new string(token.name);
@@ -255,7 +247,7 @@ namespace Lang
             return token_kind_name(token.kind);
         }
 
-        void scan_int()
+        private void scan_int()
         {
             long @base = 10;
             if (*stream == '0')
@@ -281,13 +273,10 @@ namespace Lang
             }
 
             long val = 0;
-            for (; ; )
+            for (;;)
             {
                 long digit = char_to_digit[*stream];
-                if (digit == 0 && *stream != '0')
-                {
-                    break;
-                }
+                if (digit == 0 && *stream != '0') break;
 
                 if (digit >= @base)
                 {
@@ -298,10 +287,7 @@ namespace Lang
                 if (val > (long.MaxValue - digit) / @base)
                 {
                     syntax_error("Integer literal overflow");
-                    while (char.IsDigit(*stream))
-                    {
-                        stream++;
-                    }
+                    while (char.IsDigit(*stream)) stream++;
 
                     val = 0;
                     break;
@@ -315,58 +301,38 @@ namespace Lang
             token.int_val = val;
         }
 
-        void scan_float()
+        private void scan_float()
         {
-            char* start = stream;
-            while (char.IsDigit(*stream))
-            {
-                stream++;
-            }
+            var start = stream;
+            while (char.IsDigit(*stream)) stream++;
 
-            if (*stream == '.')
-            {
-                stream++;
-            }
+            if (*stream == '.') stream++;
 
-            while (char.IsDigit(*stream))
-            {
-                stream++;
-            }
+            while (char.IsDigit(*stream)) stream++;
 
             if (char.ToLower(*stream) == 'e')
             {
                 stream++;
-                if (*stream == '+' || *stream == '-')
-                {
-                    stream++;
-                }
+                if (*stream == '+' || *stream == '-') stream++;
 
                 if (!char.IsDigit(*stream))
-                {
                     syntax_error("Expected digit after float literal exponent, found '%c'.", *stream);
-                }
 
-                while (char.IsDigit(*stream))
-                {
-                    stream++;
-                }
+                while (char.IsDigit(*stream)) stream++;
             }
 
-            double val = double.Parse(new string(start, 0, (int)(stream - start)));
-            if (double.IsPositiveInfinity(val))
-            {
-                syntax_error("Float literal overflow");
-            }
+            var val = double.Parse(new string(start, 0, (int) (stream - start)));
+            if (double.IsPositiveInfinity(val)) syntax_error("Float literal overflow");
 
             token.kind = TOKEN_FLOAT;
             token.float_val = val;
         }
 
-        void scan_char()
+        private void scan_char()
         {
             assert(*stream == '\'');
             stream++;
-            char val = '\0';
+            var val = '\0';
             if (*stream == '\'')
             {
                 syntax_error("Char literal cannot be empty");
@@ -380,10 +346,7 @@ namespace Lang
             {
                 stream++;
                 val = escape_to_char[*stream];
-                if (val == 0 && *stream != '0')
-                {
-                    syntax_error("Invalid char literal escape '\\%c'", *stream);
-                }
+                if (val == 0 && *stream != '0') syntax_error("Invalid char literal escape '\\%c'", *stream);
 
                 stream++;
             }
@@ -394,43 +357,35 @@ namespace Lang
             }
 
             if (*stream != '\'')
-            {
                 syntax_error("Expected closing char quote, got '%c'", *stream);
-            }
             else
-            {
                 stream++;
-            }
 
             token.kind = TOKEN_INT;
             token.int_val = val;
             token.mod = TOKENMOD_CHAR;
         }
 
-        Buffer<char> str_buf = Buffer<char>.Create();
-
-        void scan_str()
+        private void scan_str()
         {
             assert(*stream == '"');
             stream++;
-            char* start = stream;
+            var start = stream;
             str_buf.clear();
             while (*stream != 0 && *stream != '"')
             {
-                char val = *stream;
+                var val = *stream;
                 if (val == '\n')
                 {
                     syntax_error("String literal cannot contain newline");
                     break;
                 }
-                else if (val == '\\')
+
+                if (val == '\\')
                 {
                     stream++;
                     val = escape_to_char[*stream];
-                    if (val == 0 && *stream != '0')
-                    {
-                        syntax_error("Invalid string literal escape '\\%c'", *stream);
-                    }
+                    if (val == 0 && *stream != '0') syntax_error("Invalid string literal escape '\\%c'", *stream);
                 }
 
                 str_buf.Add(val);
@@ -453,7 +408,7 @@ namespace Lang
             token.str_val = str_buf._begin;
         }
 
-        void next_token()
+        private void next_token()
         {
             repeat:
             token.start = stream;
@@ -466,13 +421,12 @@ namespace Lang
                 case '\t':
                 case '\v':
                     while (char.IsWhiteSpace(*stream))
-                    {
                         if (*stream++ == '\n')
                         {
                             line_start = stream;
-                            src_line++;
+                            token.pos.line++;
                         }
-                    }
+
                     goto repeat;
                 case '\'':
                     scan_char();
@@ -502,21 +456,14 @@ namespace Lang
                 case '7':
                 case '8':
                 case '9':
-                    while (char.IsDigit(*stream))
-                    {
-                        stream++;
-                    }
+                    while (char.IsDigit(*stream)) stream++;
 
-                    char c = *stream;
+                    var c = *stream;
                     stream = token.start;
                     if (c == '.' || char.ToLower(c) == 'e')
-                    {
                         scan_float();
-                    }
                     else
-                    {
                         scan_int();
-                    }
 
                     break;
 
@@ -573,10 +520,7 @@ namespace Lang
                 case 'Y':
                 case 'Z':
                 case '_':
-                    while (char.IsLetterOrDigit(*stream) || *stream == '_')
-                    {
-                        stream++;
-                    }
+                    while (char.IsLetterOrDigit(*stream) || *stream == '_') stream++;
 
                     token.name = Intern.InternRange(token.start, stream);
                     token.kind = is_keyword_name(token.name) ? TOKEN_KEYWORD : TOKEN_NAME;
@@ -599,7 +543,9 @@ namespace Lang
                         stream++;
                     }
                     else
+                    {
                         token.kind = TOKEN_LT;
+                    }
 
                     break;
                 case '>':
@@ -620,7 +566,9 @@ namespace Lang
                         stream++;
                     }
                     else
+                    {
                         token.kind = TOKEN_GT;
+                    }
 
                     break;
                 case '\0':
@@ -682,7 +630,9 @@ namespace Lang
                         stream++;
                     }
                     else
+                    {
                         token.kind = TOKEN_COLON;
+                    }
 
                     break;
                 case '=':
@@ -693,7 +643,9 @@ namespace Lang
                         stream++;
                     }
                     else
+                    {
                         token.kind = TOKEN_ASSIGN;
+                    }
 
                     break;
                 case '^':
@@ -704,7 +656,10 @@ namespace Lang
                         stream++;
                     }
                     else
+                    {
                         token.kind = TOKEN_XOR;
+                    }
+
                     break;
                 case '*':
                     stream++;
@@ -714,7 +669,9 @@ namespace Lang
                         stream++;
                     }
                     else
+                    {
                         token.kind = TOKEN_MUL;
+                    }
 
                     break;
                 case '/':
@@ -726,14 +683,14 @@ namespace Lang
                     else if (*stream == '/')
                     {
                         stream++;
-                        while (*stream != 0 && *stream != '\n')
-                        {
-                            stream++;
-                        }
+                        while (*stream != 0 && *stream != '\n') stream++;
                         goto repeat;
                     }
                     else
+                    {
                         token.kind = TOKEN_DIV;
+                    }
+
                     break;
                 case '%':
                     stream++;
@@ -743,7 +700,9 @@ namespace Lang
                         stream++;
                     }
                     else
+                    {
                         token.kind = TOKEN_MOD;
+                    }
 
                     break;
 
@@ -761,7 +720,9 @@ namespace Lang
                         stream++;
                     }
                     else
+                    {
                         token.kind = TOKEN_ADD;
+                    }
 
                     break;
                 case '-':
@@ -777,7 +738,9 @@ namespace Lang
                         stream++;
                     }
                     else
+                    {
                         token.kind = TOKEN_SUB;
+                    }
 
                     break;
                 case '&':
@@ -793,7 +756,9 @@ namespace Lang
                         stream++;
                     }
                     else
+                    {
                         token.kind = TOKEN_AND;
+                    }
 
                     break;
                 case '|':
@@ -809,7 +774,9 @@ namespace Lang
                         stream++;
                     }
                     else
+                    {
                         token.kind = TOKEN_OR;
+                    }
 
                     break;
                 default:
@@ -821,105 +788,113 @@ namespace Lang
             token.end = stream;
         }
 
-        void init_stream(string buf, string name = "<anonymous>") => init_stream(buf.ToPtr(), name.ToPtr());
-        void init_stream(char* str, char* name = null)
+        private void init_stream(string buf, string name = "<anonymous>")
         {
-            src_name = name != null ? name : "<anonymous>".ToPtr();
+            init_stream(buf.ToPtr(), $"\"{name}\"".ToPtr2());
+        }
+
+        private void init_stream(char* str, char* name = null)
+        {
+            token.pos.name = name != null ? name : "<string>".ToPtr2();
+            token.pos.line = 1;
             stream = str;
             next_token();
         }
-        string str;
-        void init_fstream(string path)
-        {
 
-            str = File.OpenText(path).ReadToEnd();
-            GC.KeepAlive(str);
-            fixed(char* c = str)
-                stream = c;
-            next_token();
-        }
-
-        bool is_token(TokenKind kind)
+        private bool is_token(TokenKind kind)
         {
             return token.kind == kind;
         }
 
 
-        bool is_token_eof()
+        private bool is_token_eof()
         {
             return token.kind == TOKEN_EOF;
         }
 
-        bool is_token_name(char* name)
+        private bool is_token_name(char* name)
         {
             return token.kind == TOKEN_NAME && token.name == name;
         }
 
-        bool is_keyword(char* name)
+        private bool is_keyword(char* name)
         {
             return is_token(TOKEN_KEYWORD) && token.name == name;
         }
 
-        bool match_keyword(char* name)
+        private bool match_keyword(char* name)
         {
             if (is_keyword(name))
             {
                 next_token();
                 return true;
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
-        bool match_token(TokenKind kind)
+        private bool match_token(TokenKind kind)
         {
             if (is_token(kind))
             {
                 next_token();
                 return true;
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
-        bool expect_token(TokenKind kind)
+        private bool expect_token(TokenKind kind)
         {
             if (is_token(kind))
             {
                 next_token();
                 return true;
             }
-            else
-            {
-                fatal("expected token {0}, got {1}", tokenKindNames[kind], token_info());
-                return false;
-            }
+
+            fatal_syntax_error("expected token {0}, got {1}", tokenKindNames[kind], token_info());
+            return false;
         }
 
-        void keyword_test()
+        private void keyword_test()
         {
             lex_init();
             assert(is_keyword_name(first_keyword));
             assert(is_keyword_name(last_keyword));
-            for (char** it = (char**)keywords->_begin; it != keywords->_top; it++)
-            {
-                assert(is_keyword_name(*it));
-            }
+            for (var it = (char**) keywords->_begin; it != keywords->_top; it++) assert(is_keyword_name(*it));
 
             assert(!is_keyword_name(_I("foo")));
         }
 
-        private void assert_token(TokenKind x) => assert(match_token(x));
-        private void assert_token_name(string x) => assert(token.name == _I(x) && match_token(TOKEN_NAME));
-        private void assert_token_int(ulong x) => assert((ulong)token.int_val == x && match_token(TOKEN_INT));
-        private void assert_token_float(double x) => assert(token.float_val == x && match_token(TOKEN_FLOAT));
+        private void assert_token(TokenKind x)
+        {
+            assert(match_token(x));
+        }
 
-        private void assert_token_str(char* x) => assert(strcmp(token.str_val, x) == 0 && match_token(TOKEN_STR));
-        private void assert_token_eof() => assert(is_token(0));
+        private void assert_token_name(string x)
+        {
+            assert(token.name == _I(x) && match_token(TOKEN_NAME));
+        }
+
+        private void assert_token_int(ulong x)
+        {
+            assert((ulong) token.int_val == x && match_token(TOKEN_INT));
+        }
+
+        private void assert_token_float(double x)
+        {
+            assert(token.float_val == x && match_token(TOKEN_FLOAT));
+        }
+
+        private void assert_token_str(char* x)
+        {
+            assert(strcmp(token.str_val, x) == 0 && match_token(TOKEN_STR));
+        }
+
+        private void assert_token_eof()
+        {
+            assert(is_token(0));
+        }
 
         public void lex_test()
         {
@@ -986,10 +961,8 @@ namespace Lang
         }
 
 
-
-
         [StructLayout(LayoutKind.Explicit)]
-        unsafe struct Token
+        private struct Token
         {
             [FieldOffset(0)] public long int_val;
             [FieldOffset(0)] public double float_val;
@@ -1000,10 +973,11 @@ namespace Lang
             [FieldOffset(9)] public TokenMod mod;
             [FieldOffset(10)] public char* start;
             [FieldOffset(12 + PTR_SIZE)] public char* end;
+            [FieldOffset(12 + 2 * PTR_SIZE)] public SrcPos pos;
         }
     }
 
-    enum TokenKind : byte
+    internal enum TokenKind : byte
     {
         TOKEN_EOF,
         TOKEN_COLON,
@@ -1075,14 +1049,12 @@ namespace Lang
         TOKEN_SIZE
     }
 
-    enum TokenMod : byte
+    internal enum TokenMod : byte
     {
         TOKENMOD_NONE,
         TOKENMOD_HEX,
         TOKENMOD_BIN,
         TOKENMOD_OCT,
-        TOKENMOD_CHAR,
+        TOKENMOD_CHAR
     }
 }
-
-

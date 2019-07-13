@@ -1,10 +1,13 @@
-﻿using static System.Console;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using static System.Console;
 
 namespace Lang
-{ 
-    unsafe partial class Ion
+{
+    partial class Ion
     {
-        static void Main()
+        private static void Main(string[] args)
         {
 #if DEBUG2
             var ion = new Ion();
@@ -12,16 +15,17 @@ namespace Lang
             ion.gen_test();
 #else
             var ion = new Ion();
-            ion.lex_init();
-            Timer.Time(1, () =>
+            if (args.Length > 0)
             {
-                ion.ion_compile_file("test3.ion");
-            });
+                ion.ion_main(args);
+            }
+            else
+            {
+                Timer.Time(1, () => { ion.ion_compile_file("test3.ion"); });
+            }
 #endif
-
             ReadKey();
-
         }
-    }
 
+    }
 }

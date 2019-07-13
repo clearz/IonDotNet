@@ -8,49 +8,59 @@ namespace Lang
     using static DeclKind;
     using static ExprKind;
     using static StmtKind;
-    using static TokenKind;
     using static CompoundFieldKind;
 
     unsafe partial class Ion
     {
-        int _indent;
+        private int _indent;
 
         //char* print_buf;
-        private StringBuilder sb = new StringBuilder(256);
-        bool use_print_buf;
+        private readonly StringBuilder sb = new StringBuilder(256);
+        private bool use_print_buf;
 
-        void printf(string format, params object[] @params) {
+        private void printf(string format, params object[] @params)
+        {
             if (use_print_buf)
                 sb.AppendFormat(format, @params);
             else
                 Console.Write(format, @params);
         }
 
-        void printf(string format, char* str) => printf(format, new string(str));
+        private void printf(string format, char* str)
+        {
+            printf(format, new string(str));
+        }
 
-        void flush_print_buf(StreamWriter file) {
-            if (sb.Length > 0) {
+        private void flush_print_buf(StreamWriter file)
+        {
+            if (sb.Length > 0)
+            {
                 file?.Write(sb.ToString());
                 file?.Flush();
             }
         }
 
-        void print_newline() {
+        private void print_newline()
+        {
             printf("\n{0}", "".PadLeft(2 * _indent));
         }
 
-        void print_typespec(Typespec* type) {
-            Typespec* t = type;
-            switch (t->kind) {
+        private void print_typespec(Typespec* type)
+        {
+            var t = type;
+            switch (t->kind)
+            {
                 case TYPESPEC_NAME:
                     printf("{0}", t->name);
                     break;
                 case TYPESPEC_FUNC:
                     printf("(func (");
-                    for (Typespec** it = t->func.args; it != t->func.args + t->func.num_args; it++) {
+                    for (var it = t->func.args; it != t->func.args + t->func.num_args; it++)
+                    {
                         printf(" ");
                         print_typespec(*it);
                     }
+
                     printf(" ) ");
                     if (t->func.ret != null)
                         print_typespec(t->func.ret);
@@ -76,9 +86,11 @@ namespace Lang
             }
         }
 
-        void print_expr(Expr* expr) {
-            Expr* e = expr;
-            switch (e->kind) {
+        private void print_expr(Expr* expr)
+        {
+            var e = expr;
+            switch (e->kind)
+            {
                 case EXPR_INT:
                     printf("{0}", e->int_val);
                     break;
@@ -111,7 +123,8 @@ namespace Lang
                 case EXPR_CALL:
                     printf("(");
                     print_expr(e->call.expr);
-                    for (Expr** it = e->call.args; it != e->call.args + e->call.num_args; it++) {
+                    for (var it = e->call.args; it != e->call.args + e->call.num_args; it++)
+                    {
                         printf(" ");
                         print_expr(*it);
                     }
@@ -132,14 +145,12 @@ namespace Lang
                     break;
                 case EXPR_COMPOUND:
                     printf("(compound ");
-                    if (e->compound.type != null) {
+                    if (e->compound.type != null)
                         print_typespec(e->compound.type);
-                    }
-                    else {
+                    else
                         printf("nil");
-                    }
 
-                    for (CompoundField* it = e->compound.fields; it != e->compound.fields + e->compound.num_fields; it++)
+                    for (var it = e->compound.fields; it != e->compound.fields + e->compound.num_fields; it++)
                     {
                         printf(" ");
                         if (it->kind == FIELD_DEFAULT)
@@ -157,6 +168,7 @@ namespace Lang
                             print_expr(it->index);
                             printf(" ");
                         }
+
                         print_expr(it->init);
                         printf(")");
                     }
@@ -190,10 +202,12 @@ namespace Lang
             }
         }
 
-        void print_stmt_block(StmtList block) {
+        private void print_stmt_block(StmtList block)
+        {
             printf("(block");
             _indent++;
-            for (Stmt** it = block.stmts; it != block.stmts + block.num_stmts; it++) {
+            for (var it = block.stmts; it != block.stmts + block.num_stmts; it++)
+            {
                 print_newline();
                 print_stmt(*it);
             }
@@ -202,15 +216,18 @@ namespace Lang
             printf(")");
         }
 
-        void print_stmt(Stmt* stmt) {
-            Stmt* s = stmt;
-            switch (s->kind) {
+        private void print_stmt(Stmt* stmt)
+        {
+            var s = stmt;
+            switch (s->kind)
+            {
                 case STMT_DECL:
                     print_decl(s->decl);
                     break;
                 case STMT_RETURN:
                     printf("(return");
-                    if (s->expr != null) {
+                    if (s->expr != null)
+                    {
                         printf(" ");
                         print_expr(s->expr);
                     }
@@ -232,7 +249,8 @@ namespace Lang
                     _indent++;
                     print_newline();
                     print_stmt_block(s->if_stmt.then_block);
-                    for (ElseIf** it = s->if_stmt.elseifs; it != s->if_stmt.elseifs + s->if_stmt.num_elseifs; it++) {
+                    for (var it = s->if_stmt.elseifs; it != s->if_stmt.elseifs + s->if_stmt.num_elseifs; it++)
+                    {
                         print_newline();
                         printf("elseif ");
                         print_expr((*it)->cond);
@@ -240,7 +258,8 @@ namespace Lang
                         print_stmt_block((*it)->block);
                     }
 
-                    if (s->if_stmt.else_block.num_stmts != 0) {
+                    if (s->if_stmt.else_block.num_stmts != 0)
+                    {
                         print_newline();
                         printf("else ");
                         print_newline();
@@ -283,12 +302,14 @@ namespace Lang
                     printf("(switch ");
                     print_expr(s->switch_stmt.expr);
                     _indent++;
-                    for (SwitchCase* it = s->switch_stmt.cases;
+                    for (var it = s->switch_stmt.cases;
                         it != s->switch_stmt.cases + s->switch_stmt.num_cases;
-                        it++) {
+                        it++)
+                    {
                         print_newline();
                         printf("(case ({0}", it->is_default ? " default" : "");
-                        for (Expr** expr = it->exprs; expr != it->exprs + it->num_exprs; expr++) {
+                        for (var expr = it->exprs; expr != it->exprs + it->num_exprs; expr++)
+                        {
                             printf(" ");
                             print_expr(*expr);
                         }
@@ -306,7 +327,8 @@ namespace Lang
                 case STMT_ASSIGN:
                     printf("({0} ", token_kind_names[(long) s->assign.op]);
                     print_expr(s->assign.left);
-                    if (s->assign.right != null) {
+                    if (s->assign.right != null)
+                    {
                         printf(" ");
                         print_expr(s->assign.right);
                     }
@@ -327,35 +349,35 @@ namespace Lang
             }
         }
 
-        void print_aggregate_decl(Decl* decl) {
-            Decl* d = decl;
-            for (AggregateItem* it = d->aggregate.items; it != d->aggregate.items + d->aggregate.num_items; it++) {
+        private void print_aggregate_decl(Decl* decl)
+        {
+            var d = decl;
+            for (var it = d->aggregate.items; it != d->aggregate.items + d->aggregate.num_items; it++)
+            {
                 print_newline();
                 printf("(");
-                for (char** name = it->names; name != it->names + it->num_names; name++) {
-                    printf("{0} ", *name);
-                }
+                for (var name = it->names; name != it->names + it->num_names; name++) printf("{0} ", *name);
                 print_typespec(it->type);
                 printf(")");
             }
         }
 
-        void print_decl(Decl* decl) {
-            
-            Decl* d = decl;
-            switch (d->kind) {
+        private void print_decl(Decl* decl)
+        {
+            var d = decl;
+            switch (d->kind)
+            {
                 case DECL_ENUM:
                     printf("(enum {0}", d->name);
                     _indent++;
-                    for (EnumItem* it = d->enum_decl.items; it != d->enum_decl.items + d->enum_decl.num_items; it++) {
+                    for (var it = d->enum_decl.items; it != d->enum_decl.items + d->enum_decl.num_items; it++)
+                    {
                         print_newline();
                         printf("({0} ", it->name);
-                        if (it->init != null) {
+                        if (it->init != null)
                             print_expr(it->init);
-                        }
-                        else {
+                        else
                             printf("nil");
-                        }
 
                         printf(")");
                     }
@@ -379,19 +401,17 @@ namespace Lang
                     break;
                 case DECL_VAR:
                     printf("(var {0} ", d->name);
-                    if (d->var.type != null) {
+                    if (d->var.type != null)
                         print_typespec(d->var.type);
-                    }
-                    else {
+                    else
                         printf("nil");
-                    }
 
                     printf(" ");
                     if (d->var.expr != null)
                         print_expr(d->var.expr);
                     else
                         printf("nil");
-                    
+
                     printf(")");
                     break;
                 case DECL_CONST:
@@ -407,18 +427,17 @@ namespace Lang
                 case DECL_FUNC:
                     printf("(func {0} ", d->name);
                     printf("(");
-                    for (FuncParam* it = d->func.@params; it != d->func.@params + d->func.num_params; it++) {
+                    for (var it = d->func.@params; it != d->func.@params + d->func.num_params; it++)
+                    {
                         printf(" {0} ", it->name);
                         print_typespec(it->type);
                     }
 
                     printf(" ) ");
-                    if (d->func.ret_type != null) {
+                    if (d->func.ret_type != null)
                         print_typespec(d->func.ret_type);
-                    }
-                    else {
+                    else
                         printf("nil");
-                    }
 
                     _indent++;
                     print_newline();
@@ -539,6 +558,5 @@ namespace Lang
         //    flush_print_buf(new StreamWriter(Console.OpenStandardOutput()));
         //    use_print_buf = false;
         //}
-
     }
 }

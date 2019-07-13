@@ -1,25 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.InteropServices;
 
 namespace Lang
 {
-
-    unsafe struct StmtList
+    internal unsafe struct StmtList
     {
         public Stmt** stmts;
         public int num_stmts;
+        public SrcPos pos;
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    unsafe struct Typespec
+    internal unsafe struct Typespec
     {
         [FieldOffset(0)] public TypespecKind kind;
-        [FieldOffset(4)] public SrcLoc loc;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public Type *type;
+        [FieldOffset(4)] public SrcPos Pos;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public Type* type;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* name;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public PtrTypespec ptr;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public FuncTypespec func;
@@ -45,52 +40,52 @@ namespace Lang
             public Typespec* elem;
             public Expr* size;
         }
-
     }
 
 
-    unsafe struct FuncParam
+    internal unsafe struct FuncParam
     {
         public char* name;
         public Typespec* type;
+        public SrcPos pos;
     }
 
 
-    unsafe struct EnumItem
+    internal unsafe struct EnumItem
     {
         public char* name;
         public Expr* init;
+        public SrcPos pos;
     }
 
-    unsafe struct AggregateItem
+    internal unsafe struct AggregateItem
     {
         public char** names;
         public int num_names;
         public Typespec* type;
+        public SrcPos pos;
     }
 
-	unsafe struct DeclSet
-	{
-		public Decl** decls;
-		public int num_decls;
-	}
-
+    internal unsafe struct DeclSet
+    {
+        public Decl** decls;
+        public int num_decls;
+    }
 
 
     [StructLayout(LayoutKind.Explicit)]
-    unsafe struct Decl
+    internal unsafe struct Decl
     {
         [FieldOffset(0)] public DeclKind kind;
         [FieldOffset(4)] public char* name;
-        [FieldOffset(4 + Ion.PTR_SIZE)] public SrcLoc loc;
+        [FieldOffset(4 + Ion.PTR_SIZE)] public SrcPos pos;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Sym* sym;
-        [FieldOffset(20 + 3*Ion.PTR_SIZE)] public EnumDecl enum_decl;
-        [FieldOffset(20 + 3*Ion.PTR_SIZE)] public AggregateDecl aggregate;
-        [FieldOffset(20 + 3*Ion.PTR_SIZE)] public FuncDecl func;
-        [FieldOffset(20 + 3*Ion.PTR_SIZE)] public TypedefDecl typedef_decl;
-        [FieldOffset(20 + 3*Ion.PTR_SIZE)] public VarDecl var;
-        [FieldOffset(20 + 3*Ion.PTR_SIZE)] public ConstDecl const_decl;
-
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public EnumDecl enum_decl;
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public AggregateDecl aggregate;
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public FuncDecl func;
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public TypedefDecl typedef_decl;
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public VarDecl var;
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public ConstDecl const_decl;
 
 
         internal struct FuncDecl
@@ -132,45 +127,45 @@ namespace Lang
         {
             public Expr* expr;
         }
-
     }
-    enum CompoundFieldKind
+
+    internal enum CompoundFieldKind
     {
         FIELD_DEFAULT,
         FIELD_NAME,
-        FIELD_INDEX,
+        FIELD_INDEX
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    unsafe struct CompoundField
+    internal unsafe struct CompoundField
     {
         [FieldOffset(0)] public CompoundFieldKind kind;
-        [FieldOffset(4)] public Expr* init;
-        [FieldOffset(Ion.PTR_SIZE + 4)] public char* name;
-        [FieldOffset(Ion.PTR_SIZE + 4)] public Expr* index;
+        [FieldOffset(4)] public SrcPos pos;
+        [FieldOffset(20)] public Expr* init;
+        [FieldOffset(Ion.PTR_SIZE + 20)] public char* name;
+        [FieldOffset(Ion.PTR_SIZE + 20)] public Expr* index;
     }
-    
+
 
     [StructLayout(LayoutKind.Explicit)]
-    unsafe struct Expr
+    internal unsafe struct Expr
     {
-
         [FieldOffset(0)] public ExprKind kind;
-        [FieldOffset(4)] public SrcLoc loc;
+        [FieldOffset(4)] public SrcPos Pos;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Type* type;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public long int_val;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public double float_val;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public char* str_val;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public char* name;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public Expr* sizeof_expr;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public Typespec* sizeof_type;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public CompoundExpr compound;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public CastExpr cast;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public UnaryExpr unary;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public BinaryExpr binary;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public TernaryExpr ternary;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public CallExpr call;
-        [FieldOffset(20 + 2*Ion.PTR_SIZE)] public IndexExpr index;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public long int_val;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public double float_val;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* str_val;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* name;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Expr* sizeof_expr;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Typespec* sizeof_type;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public CompoundExpr compound;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public CastExpr cast;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public UnaryExpr unary;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public BinaryExpr binary;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public TernaryExpr ternary;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public CallExpr call;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public IndexExpr index;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public FieldExpr field;
 
 
@@ -232,18 +227,17 @@ namespace Lang
             public Expr* expr;
             public char* name;
         }
-
     }
 
 
-    unsafe struct ElseIf
+    internal unsafe struct ElseIf
     {
         public Expr* cond;
         public StmtList block;
     }
 
 
-    unsafe struct SwitchCase
+    internal unsafe struct SwitchCase
     {
         public Expr** exprs;
         public int num_exprs;
@@ -253,10 +247,10 @@ namespace Lang
 
 
     [StructLayout(LayoutKind.Explicit)]
-    unsafe struct Stmt
+    internal unsafe struct Stmt
     {
         [FieldOffset(0)] public StmtKind kind;
-        [FieldOffset(4)] public SrcLoc loc;
+        [FieldOffset(4)] public SrcPos pos;
         [FieldOffset(20)] public IfStmt if_stmt;
         [FieldOffset(20)] public WhileStmt while_stmt;
         [FieldOffset(20)] public ForStmt for_stmt;
@@ -315,21 +309,19 @@ namespace Lang
             public char* name;
             public Expr* expr;
         }
-
     }
 
 
-
-    enum TypespecKind
+    internal enum TypespecKind
     {
         TYPESPEC_NONE,
         TYPESPEC_NAME,
         TYPESPEC_FUNC,
         TYPESPEC_ARRAY,
-        TYPESPEC_PTR,
+        TYPESPEC_PTR
     }
 
-    enum DeclKind
+    internal enum DeclKind
     {
         DECL_NONE,
         DECL_ENUM,
@@ -338,10 +330,10 @@ namespace Lang
         DECL_VAR,
         DECL_CONST,
         DECL_TYPEDEF,
-        DECL_FUNC,
+        DECL_FUNC
     }
 
-    enum ExprKind
+    internal enum ExprKind
     {
         EXPR_NONE,
         EXPR_INT,
@@ -357,11 +349,11 @@ namespace Lang
         EXPR_BINARY,
         EXPR_TERNARY,
         EXPR_SIZEOF_EXPR,
-        EXPR_SIZEOF_TYPE,
+        EXPR_SIZEOF_TYPE
     }
 
 
-    enum StmtKind
+    internal enum StmtKind
     {
         STMT_NONE,
         STMT_DECL,
@@ -376,6 +368,6 @@ namespace Lang
         STMT_SWITCH,
         STMT_ASSIGN,
         STMT_INIT,
-        STMT_EXPR,
+        STMT_EXPR
     }
 }
