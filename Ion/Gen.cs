@@ -343,10 +343,12 @@ namespace Lang
                 Decl* decl = sym->decl;
 
                 if (decl != null && decl->kind == DECL_FUNC) {
-                    gen_func_decl(decl);
-                    c_write(' ');
-                    gen_stmt_block(decl->func.block);
-                    genln();
+                    if (!is_decl_foreign(decl)) {
+                        gen_func_decl(decl);
+                        c_write(' ');
+                        gen_stmt_block(decl->func.block);
+                        genln();
+                    }
                 }
             }
         }
@@ -816,68 +818,72 @@ namespace Lang
             var decl = sym->decl;
             if (decl == null)
                 return;
-            gen_sync_pos(decl->pos);
+            if (decl->kind != DECL_FUNC || !is_decl_foreign(decl))
+                gen_sync_pos(decl->pos);
             switch (decl->kind) {
                 case DECL_CONST:
-                genln();
-                c_write(enum_keyword);
-                c_write(' ');
-                c_write('{');
-                c_write(' ');
-                c_write(sym->name);
-                c_write(' ');
-                c_write('=');
-                c_write(' ');
-                gen_expr(decl->const_decl.expr);
-                c_write(' ');
-                c_write('}');
-                c_write(';');
-                break;
-                case DECL_VAR:
-                if (decl->var.type != null && !is_incomplete_array_type(decl->var.type)) {
                     genln();
-                    reset_pos();
-                    typespec_to_cdecl(decl->var.type, sym->name);
-                    c_write(cdecl_buffer, _pos);
-                }
-                else {
-                    genln();
-                    reset_pos();
-                    type_to_cdecl(sym->type, sym->name);
-                    c_write(cdecl_buffer, _pos);
-                }
-
-                if (decl->var.expr != null) {
+                    c_write(enum_keyword);
+                    c_write(' ');
+                    c_write('{');
+                    c_write(' ');
+                    c_write(sym->name);
                     c_write(' ');
                     c_write('=');
                     c_write(' ');
-                    gen_init_expr(decl->var.expr);
-                }
+                    gen_expr(decl->const_decl.expr);
+                    c_write(' ');
+                    c_write('}');
+                    c_write(';');
+                    break;
+                case DECL_VAR:
+                    if (decl->var.type != null && !is_incomplete_array_type(decl->var.type)) {
+                        genln();
+                        reset_pos();
+                        typespec_to_cdecl(decl->var.type, sym->name);
+                        c_write(cdecl_buffer, _pos);
+                    }
+                    else {
+                        genln();
+                        reset_pos();
+                        type_to_cdecl(sym->type, sym->name);
+                        c_write(cdecl_buffer, _pos);
+                    }
 
-                c_write(';');
-                break;
+                    if (decl->var.expr != null) {
+                        c_write(' ');
+                        c_write('=');
+                        c_write(' ');
+                        gen_init_expr(decl->var.expr);
+                    }
+
+                    c_write(';');
+                    break;
                 case DECL_FUNC:
-                gen_func_decl(decl);
-                c_write(';');
-                break;
+                    if (!is_decl_foreign(decl)) {
+                        gen_func_decl(decl);
+                        c_write(';');
+                    }
+                    break;
                 case DECL_STRUCT:
                 case DECL_UNION:
-                gen_aggregate(decl);
-                break;
+                    gen_aggregate(decl);
+                    break;
                 case DECL_TYPEDEF:
-                genln();
-                c_write(typedef_keyword);
-                c_write(' ');
-                reset_pos();
-                typespec_to_cdecl(decl->typedef_decl.type, sym->name);
-                c_write(cdecl_buffer, _pos);
-                c_write(';');
-                break;
+                    genln();
+                    c_write(typedef_keyword);
+                    c_write(' ');
+                    reset_pos();
+                    typespec_to_cdecl(decl->typedef_decl.type, sym->name);
+                    c_write(cdecl_buffer, _pos);
+                    c_write(';');
+                    break;
                 default:
-                assert(false);
-                break;
+                    assert(false);
+                    break;
             }
-            genln();
+            if (decl->kind != DECL_FUNC || !is_decl_foreign(decl))
+                genln();
         }
 
         private void gen_sorted_decls() {

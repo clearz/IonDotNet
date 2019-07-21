@@ -40,6 +40,8 @@ namespace Lang
         private static readonly Type* type_float = basic_type_alloc(TYPE_FLOAT, 4, 4);
         private static readonly Type* type_double =basic_type_alloc(TYPE_DOUBLE, 8, 8);
         private static readonly Type* type_usize = type_ullong;
+        private static readonly Type* type_ssize = type_llong;
+
 #if X64
         internal const int PTR_SIZE = 8;
 #else
@@ -59,6 +61,10 @@ namespace Lang
 
         bool is_arithmetic_type(Type* type) {
             return TYPE_CHAR <= type->kind && type->kind <= TYPE_DOUBLE;
+        }
+
+        bool is_scalar_type(Type* type) {
+            return TYPE_CHAR <= type->kind && type->kind <= TYPE_FUNC;
         }
 
         bool is_signed_type(Type* type) {
@@ -1037,6 +1043,8 @@ namespace Lang
                 convert_operand(left, type_float);
             }
             else {
+                assert(is_integer_type(left->type));
+                assert(is_integer_type(right->type));
                 promote_operand(left);
                 promote_operand(right);
                 if (left->type != right->type) {
@@ -1252,46 +1260,59 @@ namespace Lang
                 resolve_stmt(block.stmts[i], ret_type);
             sym_leave(start);
         }
+        void resolve_stmt_assign(Stmt* stmt) {
+            assert(stmt->kind == STMT_ASSIGN);
+            Operand left = resolve_expr(stmt->assign.left);
+            if (!left.is_lvalue) {
+                fatal_error(stmt->pos, "Cannot assign to non-lvalue");
+            }
+            if (stmt->assign.right != null) {
+                Operand right = resolve_expected_expr(stmt->assign.right, left.type);
+                if (!convert_operand(&right, left.type)) {
+                    fatal_error(stmt->pos, "Illegal conversion in assignment statement");
+                }
+            }
+        }
 
         private void resolve_stmt(Stmt* stmt, Type* ret_type) {
             switch (stmt->kind) {
                 case STMT_RETURN:
-                if (stmt->expr != null) {
-                    Operand operand = resolve_expected_expr(stmt->expr, ret_type);
-                    if (!convert_operand(&operand, ret_type)) {
-                        fatal_error(stmt->pos, "Illegal conversion in return expression");
+                    if (stmt->expr != null) {
+                        Operand operand = resolve_expected_expr(stmt->expr, ret_type);
+                        if (!convert_operand(&operand, ret_type)) {
+                            fatal_error(stmt->pos, "Illegal conversion in return expression");
+                        }
                     }
-                }
-                else {
-                    if (ret_type != type_void)
-                        fatal_error(stmt->pos, "Empty return expression for function with non-void return type");
-                }
+                    else {
+                        if (ret_type != type_void)
+                            fatal_error(stmt->pos, "Empty return expression for function with non-void return type");
+                    }
 
-                break;
+                    break;
                 case STMT_BREAK:
                 case STMT_CONTINUE:
-                // Do nothing
-                break;
+                    // Do nothing
+                    break;
                 case STMT_BLOCK:
-                resolve_stmt_block(stmt->block, ret_type);
-                break;
+                    resolve_stmt_block(stmt->block, ret_type);
+                    break;
                 case STMT_IF:
-                resolve_cond_expr(stmt->if_stmt.cond);
-                resolve_stmt_block(stmt->if_stmt.then_block, ret_type);
-                for (var i = 0; i < stmt->if_stmt.num_elseifs; i++) {
-                    var elseif = stmt->if_stmt.elseifs[i];
-                    resolve_cond_expr(elseif->cond);
-                    resolve_stmt_block(elseif->block, ret_type);
-                }
+                    resolve_cond_expr(stmt->if_stmt.cond);
+                    resolve_stmt_block(stmt->if_stmt.then_block, ret_type);
+                    for (var i = 0; i < stmt->if_stmt.num_elseifs; i++) {
+                        var elseif = stmt->if_stmt.elseifs[i];
+                        resolve_cond_expr(elseif->cond);
+                        resolve_stmt_block(elseif->block, ret_type);
+                    }
 
-                if (stmt->if_stmt.else_block.stmts != null)
-                    resolve_stmt_block(stmt->if_stmt.else_block, ret_type);
-                break;
+                    if (stmt->if_stmt.else_block.stmts != null)
+                        resolve_stmt_block(stmt->if_stmt.else_block, ret_type);
+                    break;
                 case STMT_WHILE:
                 case STMT_DO_WHILE:
-                resolve_cond_expr(stmt->while_stmt.cond);
-                resolve_stmt_block(stmt->while_stmt.block, ret_type);
-                break;
+                    resolve_cond_expr(stmt->while_stmt.cond);
+                    resolve_stmt_block(stmt->while_stmt.block, ret_type);
+                    break;
                 case STMT_FOR: {
                     var sym = sym_enter();
                     resolve_stmt(stmt->for_stmt.init, ret_type);
@@ -1319,29 +1340,19 @@ namespace Lang
                     break;
                 }
 
-                case STMT_ASSIGN: {
-                    var left = resolve_expr(stmt->assign.left);
-
-                    if (!left.is_lvalue)
-                        fatal_error(stmt->pos, "Cannot assign to non-lvalue");
-                    if (stmt->assign.right != null) {
-                        Operand right = resolve_expected_expr(stmt->assign.right, left.type);
-                        if (!convert_operand(&right, left.type)) {
-                            fatal_error(stmt->pos, "Illegal conversion in assignment statement");
-                        }
-                    }
+                case STMT_ASSIGN:
+                    resolve_stmt_assign(stmt);
                     break;
-                }
 
                 case STMT_INIT:
-                sym_push_var(stmt->init.name, resolve_expr(stmt->init.expr).type);
-                break;
+                    sym_push_var(stmt->init.name, resolve_expr(stmt->init.expr).type);
+                    break;
                 case STMT_EXPR:
-                resolve_expr(stmt->expr);
-                break;
+                    resolve_expr(stmt->expr);
+                    break;
                 default:
-                assert(false);
-                break;
+                    assert(false);
+                    break;
             }
         }
 
@@ -1607,6 +1618,15 @@ namespace Lang
             return default;
         }
 
+        Operand resolve_unary_op(TokenKind op, Operand operand) {
+            promote_operand(&operand);
+            if (operand.is_const) {
+                return operand_const(operand.type, eval_unary_op(op, operand.type, operand.val));
+            }
+            else {
+                return operand;
+            }
+        }
         private Operand resolve_expr_unary(Expr* expr) {
             assert(expr->kind == EXPR_UNARY);
             var operand = resolve_expr(expr->unary.expr);
@@ -1623,27 +1643,164 @@ namespace Lang
                         fatal_error(expr->pos, "Cannot take address of non-lvalue");
 
                     return operand_rvalue(type_ptr(type));
-                default:
-                    if (!is_integer_type(type)) {
-                        fatal_error(expr->pos, "Can only use unary %s with integer types", token_kind_name(expr->unary.op));
+                case TOKEN_ADD:
+                case TOKEN_SUB:
+                    if (!is_arithmetic_type(type)) {
+                        fatal_error(expr->pos, "Can only use unary %s with arithmetic types", token_kind_name(expr->unary.op));
                     }
-                    if (operand.is_const)
-                        return operand_const(operand.type, eval_unary_op(expr->unary.op, operand.type, operand.val));
-                    else
-                        return operand;
+                    return resolve_unary_op(expr->unary.op, operand);
+                case TOKEN_NEG:
+                    if (!is_integer_type(type)) {
+                        fatal_error(expr->pos, "Can only use ~ with integer types", token_kind_name(expr->unary.op));
+                    }
+                    return resolve_unary_op(expr->unary.op, operand);
+                default:
+                    assert(false);
+                    break;
             }
+            return default;
+        }
+        Operand resolve_binary_op(TokenKind op, Operand left, Operand right) {
+            if (left.is_const && right.is_const) {
+                return operand_const(left.type, eval_binary_op(op, left.type, left.val, right.val));
+            }
+            else {
+                return operand_rvalue(left.type);
+            }
+        }
+
+        Operand resolve_binary_arithmetic_op(TokenKind op, Operand left, Operand right) {
+            unify_arithmetic_operands(&left, &right);
+            return resolve_binary_op(op, left, right);
         }
 
         private Operand resolve_expr_binary(Expr* expr) {
             assert(expr->kind == EXPR_BINARY);
             var left = resolve_expr(expr->binary.left);
             var right = resolve_expr(expr->binary.right);
-            unify_arithmetic_operands(&left, &right);
-            if (left.is_const && right.is_const)
-                return operand_const(left.type, eval_binary_op(expr->binary.op, left.type, left.val, right.val));
-            return operand_rvalue(left.type);
-        }
+            TokenKind op = expr->binary.op;
+            var op_name = token_kind_name(op);
+            switch (op) {
+                case TOKEN_MUL:
+                case TOKEN_DIV:
+                    if (!is_arithmetic_type(left.type)) {
+                        fatal_error(expr->binary.left->pos, "Left operand of {0} must have arithmetic type", op_name);
+                    }
+                    if (!is_arithmetic_type(right.type)) {
+                        fatal_error(expr->binary.right->pos, "Right operand of {0} must have arithmetic type", op_name);
+                    }
+                    return resolve_binary_arithmetic_op(op, left, right);
+                case TOKEN_MOD:
+                    if (!is_integer_type(left.type)) {
+                        fatal_error(expr->binary.left->pos, "Left operand of %% must have integer type");
+                    }
+                    if (!is_integer_type(right.type)) {
+                        fatal_error(expr->binary.right->pos, "Right operand of %% must have integer type");
+                    }
+                    return resolve_binary_arithmetic_op(op, left, right);
+                case TOKEN_ADD:
+                    if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
+                        return resolve_binary_arithmetic_op(op, left, right);
+                    }
+                    else if (left.type->kind == TYPE_PTR && is_integer_type(right.type)) {
+                        return operand_rvalue(left.type);
+                    }
+                    else if (right.type->kind == TYPE_PTR && is_integer_type(left.type)) {
+                        return operand_rvalue(right.type);
+                    }
+                    else {
+                        fatal_error(expr->pos, "Operands of + must both have arithmetic type, or pointer and integer type");
+                    }
+                    break;
+                case TOKEN_SUB:
+                    if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
+                        return resolve_binary_arithmetic_op(op, left, right);
+                    }
+                    else if (left.type->kind == TYPE_PTR && is_integer_type(right.type)) {
+                        return operand_rvalue(left.type);
+                    }
+                    else if (left.type->kind == TYPE_PTR && right.type->kind == TYPE_PTR) {
+                        if (left.type->ptr.elem != right.type->ptr.elem) {
+                            fatal_error(expr->pos, "Cannot subtract pointers to different types");
+                        }
+                        return operand_rvalue(type_ssize);
+                    }
+                    else {
+                        fatal_error(expr->pos, "Operands of - must both have arithmetic type, pointer and integer type, or compatible pointer types");
+                    }
+                    break;
+                case TOKEN_LSHIFT:
+                case TOKEN_RSHIFT:
+                    if (is_integer_type(left.type) && is_integer_type(right.type)) {
+                        promote_operand(&left);
+                        promote_operand(&right);
+                        Type *result_type = left.type;
+                        Operand result;
+                        if (is_signed_type(left.type)) {
+                            convert_operand(&left, type_llong);
+                            convert_operand(&right, type_llong);
+                        }
+                        else {
+                            convert_operand(&left, type_ullong);
+                            convert_operand(&right, type_ullong);
+                        }
+                        result = resolve_binary_op(op, left, right);
+                        convert_operand(&result, result_type);
+                        return result;
+                    }
+                    else {
+                        fatal_error(expr->pos, "Operands of {0} must both have integer type", op_name);
+                    }
+                    break;
+                case TOKEN_LT:
+                case TOKEN_LTEQ:
+                case TOKEN_GT:
+                case TOKEN_GTEQ:
+                case TOKEN_EQ:
+                case TOKEN_NOTEQ:
+                    if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
+                        Operand result = resolve_binary_arithmetic_op(op, left, right);
+                        convert_operand(&result, type_int);
+                        return result;
+                    }
+                    else if (left.type->kind == TYPE_PTR && right.type->kind == TYPE_PTR) {
+                        if (left.type->ptr.elem != right.type->ptr.elem) {
+                            fatal_error(expr->pos, "Cannot compare pointers to different types");
+                        }
+                        return operand_rvalue(type_int);
+                    }
+                    else {
+                        // TODO: handle null pointer constants
+                        fatal_error(expr->pos, "Operands of {0} must be arithmetic types or compatible pointer types", op_name);
+                    }
+                    break;
+                case TOKEN_AND:
+                case TOKEN_XOR:
+                case TOKEN_OR:
+                    if (is_integer_type(left.type) && is_integer_type(right.type)) {
+                        return resolve_binary_arithmetic_op(op, left, right);
+                    }
+                    else {
+                        fatal_error(expr->pos, "Operands of {0} must have arithmetic types", op_name);
+                    }
+                    break;
+                case TOKEN_AND_AND:
+                case TOKEN_OR_OR:
+                    // TODO: const expr evaluation
+                    if (is_scalar_type(left.type) && is_scalar_type(right.type)) {
+                        return operand_rvalue(type_int);
+                    }
+                    else {
+                        fatal_error(expr->pos, "Operands of {0} must have scalar types", op_name);
+                    }
+                    break;
+                default:
+                    assert(false);
+                    break;
+            }
 
+            return default;
+        }
         private int aggregate_field_index(Type* type, char* name) {
             assert(type->kind == TYPE_STRUCT || type->kind == TYPE_UNION);
             for (var i = 0; i < type->aggregate.num_fields; i++)
@@ -1766,15 +1923,25 @@ namespace Lang
         private Operand resolve_expr_ternary(Expr* expr, Type* expected_type) {
             assert(expr->kind == EXPR_TERNARY);
             var cond = ptr_decay(resolve_expr(expr->ternary.cond));
-            if (cond.type->kind != TYPE_INT && cond.type->kind != TYPE_PTR)
-                fatal_error(expr->pos, "Ternary cond expression must have type long or ptr");
-            var then_expr = ptr_decay(resolve_expected_expr(expr->ternary.then_expr, expected_type));
-            var else_expr = ptr_decay(resolve_expected_expr(expr->ternary.else_expr, expected_type));
-            if (then_expr.type != else_expr.type)
-                fatal_error(expr->pos, "Ternary then/else expressions must have matching types");
-            if (cond.is_const && then_expr.is_const && else_expr.is_const)
-                return operand_const(then_expr.type, cond.val.i != 0 ? then_expr.val : else_expr.val);
-            return operand_rvalue(then_expr.type);
+            if (!is_scalar_type(cond.type)) {
+                fatal_error(expr->pos, "Ternary conditional must have scalar type");
+            }
+            Operand left = ptr_decay(resolve_expected_expr(expr->ternary.then_expr, expected_type));
+            Operand right = ptr_decay(resolve_expected_expr(expr->ternary.else_expr, expected_type));
+            if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
+                unify_arithmetic_operands(&left, &right);
+                if (cond.is_const && left.is_const && right.is_const) {
+                    return operand_const(left.type, cond.val.i != 0 ? left.val : right.val);
+                }
+                else {
+                    return operand_rvalue(left.type);
+                }
+            }
+            else if (left.type == right.type)
+                return operand_rvalue(left.type);
+
+            fatal_error(expr->pos, "Left and right operands of ternary expression must have arithmetic types or identical types");
+            return default;
         }
 
         private Operand resolve_expr_index(Expr* expr) {
@@ -1942,9 +2109,6 @@ namespace Lang
             sym_global_type("llong".ToPtr(), type_llong);
             sym_global_type("ullong".ToPtr(), type_ullong);
             sym_global_type("float".ToPtr(), type_float);
-            sym_global_func("puts".ToPtr(), type_func(new Type*[]{ type_ptr(type_char)}, 1, type_int));
-            sym_global_func("printf".ToPtr(), type_func(new Type*[]{ type_ptr(type_char)}, 1, type_int, true));
-            sym_global_func("getchar".ToPtr(), type_func((Type*[])null, 0, type_int));
         }
 
         private void finalize_syms() {
@@ -2104,11 +2268,11 @@ namespace Lang
         TYPE_DOUBLE,
 
         TYPE_PTR,
+        TYPE_FUNC,
         TYPE_ARRAY,
         TYPE_STRUCT,
         TYPE_UNION,
         TYPE_ENUM,
-        TYPE_FUNC,
 
         NUM_TYPE_KINDS,
     }

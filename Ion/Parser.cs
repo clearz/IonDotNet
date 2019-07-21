@@ -737,8 +737,20 @@ namespace Lang
             if (match_token(TOKEN_COLON))
                 ret_type = parse_type();
 
+            //if (match_token(TOKEN_SEMICOLON)) {
+            //    return decl_func(pos, name, buf, buf.count, ret_type, variadic, default);
+            //}
+
             var block = parse_stmt_block();
             return decl_func(pos, name, buf, buf.count, ret_type, variadic, block);
+        }
+
+        NoteList parse_note_list() {
+            var buf = Buffer<Note>.Create();
+            while (match_token(TOKEN_AT)) {
+                buf.Add( new Note{pos = token.pos, name = parse_name()});
+            }
+            return note_list(buf, buf.count);
         }
 
         private Decl* parse_decl_opt() {
@@ -761,10 +773,12 @@ namespace Lang
         }
 
         private Decl* parse_decl() {
+            NoteList notes = parse_note_list();
             var decl = parse_decl_opt();
             if (decl == null)
                 fatal_syntax_error("Expected declaration keyword, got {0}", token_info());
 
+            decl->notes = notes;
             return decl;
         }
 

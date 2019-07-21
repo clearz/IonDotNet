@@ -81,12 +81,13 @@ namespace Lang
         [FieldOffset(4)] public char* name;
         [FieldOffset(4 + Ion.PTR_SIZE)] public SrcPos pos;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Sym* sym;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public EnumDecl enum_decl;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public AggregateDecl aggregate;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public FuncDecl func;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public TypedefDecl typedef_decl;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public VarDecl var;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public ConstDecl const_decl;
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public NoteList notes;
+        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public EnumDecl enum_decl;
+        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public AggregateDecl aggregate;
+        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public FuncDecl func;
+        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public TypedefDecl typedef_decl;
+        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public VarDecl var;
+        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public ConstDecl const_decl;
 
 
         internal struct FuncDecl
@@ -131,6 +132,18 @@ namespace Lang
         }
     }
 
+    unsafe struct Note
+    {
+        public SrcPos pos;
+        public char *name;
+    }
+
+    unsafe struct NoteList
+    {
+        public Note *notes;
+        public int num_notes;
+    }
+    
     internal enum CompoundFieldKind
     {
         FIELD_DEFAULT,
@@ -253,15 +266,16 @@ namespace Lang
     {
         [FieldOffset(0)] public StmtKind kind;
         [FieldOffset(4)] public SrcPos pos;
-        [FieldOffset(20)] public IfStmt if_stmt;
-        [FieldOffset(20)] public WhileStmt while_stmt;
-        [FieldOffset(20)] public ForStmt for_stmt;
-        [FieldOffset(20)] public SwitchStmt switch_stmt;
-        [FieldOffset(20)] public StmtList block;
-        [FieldOffset(20)] public AssignStmt assign;
-        [FieldOffset(20)] public InitStmt init;
-        [FieldOffset(20)] public Expr* expr;
-        [FieldOffset(20)] public Decl* decl;
+        [FieldOffset(20)] public NoteList notes;
+        [FieldOffset(36)] public IfStmt if_stmt;
+        [FieldOffset(36)] public WhileStmt while_stmt;
+        [FieldOffset(36)] public ForStmt for_stmt;
+        [FieldOffset(36)] public SwitchStmt switch_stmt;
+        [FieldOffset(36)] public StmtList block;
+        [FieldOffset(36)] public AssignStmt assign;
+        [FieldOffset(36)] public InitStmt init;
+        [FieldOffset(36)] public Expr* expr;
+        [FieldOffset(36)] public Decl* decl;
 
 
         internal struct IfStmt

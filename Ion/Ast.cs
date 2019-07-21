@@ -29,6 +29,23 @@ namespace Lang
             return ptr;
         }
 
+        NoteList note_list(Note* notes, int num_notes) {
+            return new NoteList {notes = (Note*)ast_dup(notes, num_notes * sizeof(Note)), num_notes = num_notes};
+        }
+
+        Note* get_decl_note(Decl* decl, char* name) {
+            for (int i = 0; i < decl->notes.num_notes; i++) {
+                Note *note = decl->notes.notes + i;
+                if (note->name == name) {
+                    return note;
+                }
+            }
+            return null;
+        }
+
+        bool is_decl_foreign(Decl* decl) {
+            return get_decl_note(decl, foreign_name) != null;
+        }
         private StmtList stmt_list(SrcPos pos, Stmt** stmts, int num_stmts)
         {
             return new StmtList
