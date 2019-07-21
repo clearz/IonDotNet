@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Lang
@@ -29,6 +30,7 @@ namespace Lang
             [TOKEN_COMMA] = string.Intern("),"),
             [TOKEN_DOT] = string.Intern("."),
             [TOKEN_QUESTION] = string.Intern("?"),
+            [TOKEN_ELLIPSIS] = string.Intern("..."),
             [TOKEN_SEMICOLON] = string.Intern(";"),
             [TOKEN_NEG] = string.Intern("~"),
             [TOKEN_NOT] = string.Intern("!"),
@@ -89,7 +91,7 @@ namespace Lang
         private char* return_keyword;
         private char* sizeof_keyword;
 
-        private Buffer<char> str_buf = Buffer<char>.Create(256);
+        private Buffer<char> str_buf;
         private char* stream;
         private char* struct_keyword;
         private char* switch_keyword;
@@ -371,7 +373,7 @@ namespace Lang
             assert(*stream == '"');
             stream++;
             var start = stream;
-            str_buf.clear();
+            str_buf = Buffer<char>.Create(256);
             while (*stream != 0 && *stream != '"')
             {
                 var val = *stream;
@@ -405,7 +407,8 @@ namespace Lang
             str_buf.Add('\0');
 
             token.kind = TOKEN_STR;
-            token.str_val = str_buf._begin;
+            token.str_val = str_buf._begin; // xmalloc<char>(str_buf.count);
+           // Unsafe.CopyBlock(token.str_val, , (uint)str_buf.count);
         }
 
         private void next_token()
@@ -435,12 +438,14 @@ namespace Lang
                     scan_str();
                     break;
                 case '.':
-                    if (char.IsDigit(stream[1]))
-                    {
+                    if (char.IsDigit(stream[1])) {
                         scan_float();
                     }
-                    else
-                    {
+                    else if (stream[1] == '.' && stream[2] == '.') {
+                        token.kind = TOKEN_ELLIPSIS;
+                        stream += 3;
+                    }
+                    else {
                         token.kind = TOKEN_DOT;
                         stream++;
                     }
@@ -615,10 +620,6 @@ namespace Lang
                     token.kind = TOKEN_NEG;
                     stream++;
                     break;
-                case '!':
-                    token.kind = TOKEN_NOT;
-                    stream++;
-                    break;
 
 
                 // CASE2
@@ -632,6 +633,19 @@ namespace Lang
                     else
                     {
                         token.kind = TOKEN_COLON;
+                    }
+
+                    break;
+                case '!':
+                    stream++;
+                    if (*stream == '=')
+                    {
+                        token.kind = TOKEN_NOTEQ;
+                        stream++;
+                    }
+                    else
+                    {
+                        token.kind = TOKEN_NOT;
                     }
 
                     break;
@@ -852,7 +866,7 @@ namespace Lang
                 return true;
             }
 
-            fatal_syntax_error("expected token {0}, got {1}", tokenKindNames[kind], token_info());
+            fatal_syntax_error("Expected token {0}, got {1}", tokenKindNames[kind], token_info());
             return false;
         }
 
@@ -989,6 +1003,7 @@ namespace Lang
         TOKEN_RBRACKET,
         TOKEN_COMMA,
         TOKEN_DOT,
+        TOKEN_ELLIPSIS,
         TOKEN_QUESTION,
         TOKEN_SEMICOLON,
         TOKEN_KEYWORD,

@@ -8,21 +8,20 @@ namespace Lang
     public unsafe partial class Ion
     {
         [DebuggerHidden]
-        private static void fatal(string format, params object[] pmz)
-        {
+        private static void fatal(string format, params object[] pmz) {
             Console.WriteLine("FATAL: " + format, pmz);
-            assert(false);
-            Console.WriteLine("Exiting...");
-            Thread.Sleep(2000);
-            Environment.Exit(1);
+            Exit();
+        }
+        [DebuggerHidden]
+        private static void error(SrcPos pos, string format, params object[] pmz) {
+            Console.Write("{0}({1}): error: ", new string(pos.name), pos.line);
+            Console.WriteLine(format, pmz);
         }
 
         [DebuggerHidden]
-        private void error(SrcPos pos, string format, params object[] pmz)
-        {
-            Console.Write("{0}({1}): ", new string(pos.name), pos.line);
-            assert(false);
-            Console.WriteLine(format, pmz);
+        private static void fatal_error(SrcPos pos, string format, params object[] pmz) {
+            error(pos, format, pmz);
+            Exit();
         }
 
         [DebuggerHidden]
@@ -36,18 +35,20 @@ namespace Lang
         private void fatal_syntax_error(string format, params object[] pmz)
         {
             syntax_error(format, pmz);
-            assert(false);
-            Console.WriteLine("Exiting...");
-            Thread.Sleep(2000);
-            Environment.Exit(1);
+            Exit();
         }
 
 
         [Conditional("DEBUG")]
         [DebuggerHidden]
-        private static void assert(bool b)
-        {
-            Debug.Assert(b);
+        private static void assert(bool b) => Debug.Assert(b);
+
+        [DebuggerHidden]
+        private static void Exit(int wait_ms = 2000, int rtn_code = 1) {
+            assert(false);
+            Console.WriteLine("Exiting...");
+            Thread.Sleep(wait_ms);
+            Environment.Exit(rtn_code);
         }
     }
 

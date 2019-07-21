@@ -41,66 +41,70 @@ namespace Lang
         private char* _p2;
         private char** _ptr;
 
-        internal DeclSet* parse_file()
-        {
+        internal DeclSet* parse_file() {
             var buf = PtrBuffer.GetPooledBuffer();
-            try
-            {
-                while (!is_token(TOKEN_EOF))
-                {
+            try {
+                while (!is_token(TOKEN_EOF)) {
                     var decl = parse_decl();
                     assert(decl != null);
                     buf->Add(decl);
                 }
 
-                return declset_new((Decl**) buf->_begin, buf->count);
+                return declset_new((Decl**)buf->_begin, buf->count);
             }
-            finally
-            {
+            finally {
                 buf->Release();
             }
         }
 
-        private Typespec* parse_type_func()
-        {
+        private Typespec* parse_type_func() {
             var buf = PtrBuffer.GetPooledBuffer();
             var pos = token.pos;
-            try
-            {
+            bool variadic = false;
+            try {
                 expect_token(TOKEN_LPAREN);
-                if (!is_token(TOKEN_RPAREN))
-                {
+                if (!is_token(TOKEN_RPAREN)) {
                     buf->Add(parse_type());
-                    while (match_token(TOKEN_COMMA)) buf->Add(parse_type());
+                    while (match_token(TOKEN_COMMA)) {
+                        if (match_token(TOKEN_ELLIPSIS)) {
+                            if (variadic) {
+                                syntax_error("Multiple ellipsis instances in function type");
+                            }
+                            variadic = true;
+                        }
+                        else {
+                            if (variadic) {
+                                syntax_error("Ellipsis must be last parameter in function type");
+                            }
+                            buf->Add(parse_type());
+                        }
+                    }
                 }
 
                 expect_token(TOKEN_RPAREN);
                 Typespec* ret = null;
-                if (match_token(TOKEN_COLON)) ret = parse_type();
+                if (match_token(TOKEN_COLON))
+                    ret = parse_type();
 
-                return typespec_func(pos, (Typespec**) buf->_begin, buf->count,
-                    ret); // ast_dup(buf, buf->count * PTR_SIZE)
+                return typespec_func(pos, (Typespec**)buf->_begin, buf->count, ret, variadic);
             }
-            finally
-            {
+            finally {
                 buf->Release();
             }
         }
 
-        private Typespec* parse_type_base()
-        {
+        private Typespec* parse_type_base() {
             var pos = token.pos;
-            if (is_token(TOKEN_NAME))
-            {
+            if (is_token(TOKEN_NAME)) {
                 var name = token.name;
                 next_token();
                 return typespec_name(pos, name);
             }
 
-            if (match_keyword(func_keyword)) return parse_type_func();
+            if (match_keyword(func_keyword))
+                return parse_type_func();
 
-            if (match_token(TOKEN_LPAREN))
-            {
+            if (match_token(TOKEN_LPAREN)) {
                 var type = parse_type();
                 expect_token(TOKEN_RPAREN);
                 return type;
@@ -110,21 +114,19 @@ namespace Lang
             return null;
         }
 
-        private Typespec* parse_type()
-        {
+        private Typespec* parse_type() {
             var pos = token.pos;
             var type = parse_type_base();
             while (is_token(TOKEN_LBRACKET) || is_token(TOKEN_MUL))
-                if (match_token(TOKEN_LBRACKET))
-                {
+                if (match_token(TOKEN_LBRACKET)) {
                     Expr* expr = null;
-                    if (!is_token(TOKEN_RBRACKET)) expr = parse_expr();
+                    if (!is_token(TOKEN_RBRACKET))
+                        expr = parse_expr();
 
                     expect_token(TOKEN_RBRACKET);
                     type = typespec_array(pos, type, expr);
                 }
-                else
-                {
+                else {
                     assert(is_token(TOKEN_MUL));
                     next_token();
                     type = typespec_ptr(pos, type);
@@ -133,39 +135,33 @@ namespace Lang
             return type;
         }
 
-        private CompoundField parse_expr_compound_field()
-        {
+        private CompoundField parse_expr_compound_field() {
             var pos = token.pos;
-            if (match_token(TOKEN_LBRACKET))
-            {
+            if (match_token(TOKEN_LBRACKET)) {
                 var index = parse_expr();
                 expect_token(TOKEN_RBRACKET);
                 expect_token(TOKEN_ASSIGN);
-                return new CompoundField {pos = pos, kind = FIELD_INDEX, init = parse_expr(), index = index};
+                return new CompoundField { pos = pos, kind = FIELD_INDEX, init = parse_expr(), index = index };
             }
 
             var expr = parse_expr();
-            if (match_token(TOKEN_ASSIGN))
-            {
+            if (match_token(TOKEN_ASSIGN)) {
                 if (expr->kind != EXPR_NAME)
                     fatal_syntax_error("Named initializer in compound literal must be preceded by field name");
-                return new CompoundField {pos = pos, kind = FIELD_NAME, init = parse_expr(), name = expr->name};
+                return new CompoundField { pos = pos, kind = FIELD_NAME, init = parse_expr(), name = expr->name };
             }
 
-            return new CompoundField {pos = pos, kind = FIELD_DEFAULT, init = expr};
+            return new CompoundField { pos = pos, kind = FIELD_DEFAULT, init = expr };
         }
 
-        private Expr* parse_expr_compound(Typespec* type)
-        {
+        private Expr* parse_expr_compound(Typespec* type) {
             var pos = token.pos;
             expect_token(TOKEN_LBRACE);
             var buf = Buffer<CompoundField>.Create();
             ; // Expr**
-            while (!is_token(TOKEN_RBRACE))
-            {
+            while (!is_token(TOKEN_RBRACE)) {
                 buf.Add(parse_expr_compound_field());
-                if (!match_token(TOKEN_COMMA))
-                {
+                if (!match_token(TOKEN_COMMA)) {
                     break;
                 }
             }
@@ -174,32 +170,27 @@ namespace Lang
             return expr_compound(pos, type, buf, buf.count);
         }
 
-        private Expr* parse_expr_operand()
-        {
+        private Expr* parse_expr_operand() {
             var pos = token.pos;
-            if (is_token(TOKEN_INT))
-            {
+            if (is_token(TOKEN_INT)) {
                 var val = token.int_val;
                 next_token();
                 return expr_int(pos, val);
             }
 
-            if (is_token(TOKEN_FLOAT))
-            {
+            if (is_token(TOKEN_FLOAT)) {
                 var val = token.float_val;
                 next_token();
                 return expr_float(pos, val);
             }
 
-            if (is_token(TOKEN_STR))
-            {
+            if (is_token(TOKEN_STR)) {
                 var val = token.str_val;
                 next_token();
                 return expr_str(pos, val);
             }
 
-            if (is_token(TOKEN_NAME))
-            {
+            if (is_token(TOKEN_NAME)) {
                 var name = token.name;
                 next_token();
                 if (is_token(TOKEN_LBRACE))
@@ -207,11 +198,9 @@ namespace Lang
                 return expr_name(pos, name);
             }
 
-            if (match_keyword(sizeof_keyword))
-            {
+            if (match_keyword(sizeof_keyword)) {
                 expect_token(TOKEN_LPAREN);
-                if (match_token(TOKEN_COLON))
-                {
+                if (match_token(TOKEN_COLON)) {
                     var type = parse_type();
                     expect_token(TOKEN_RPAREN);
                     return expr_sizeof_type(pos, type);
@@ -222,12 +211,11 @@ namespace Lang
                 return expr_sizeof_expr(pos, expr);
             }
 
-            if (is_token(TOKEN_LBRACE)) return parse_expr_compound(null);
+            if (is_token(TOKEN_LBRACE))
+                return parse_expr_compound(null);
 
-            if (match_token(TOKEN_LPAREN))
-            {
-                if (match_token(TOKEN_COLON))
-                {
+            if (match_token(TOKEN_LPAREN)) {
+                if (match_token(TOKEN_COLON)) {
                     var type = parse_type();
                     expect_token(TOKEN_RPAREN);
                     if (is_token(TOKEN_LBRACE))
@@ -244,39 +232,33 @@ namespace Lang
             return null;
         }
 
-        private Expr* parse_expr_base()
-        {
+        private Expr* parse_expr_base() {
             var pos = token.pos;
             var expr = parse_expr_operand();
             while (is_token(TOKEN_LPAREN) || is_token(TOKEN_LBRACKET) || is_token(TOKEN_DOT))
-                if (match_token(TOKEN_LPAREN))
-                {
+                if (match_token(TOKEN_LPAREN)) {
                     var buf = PtrBuffer.GetPooledBuffer();
-                    
-                    try
-                    {
-                        if (!is_token(TOKEN_RPAREN))
-                        {
+
+                    try {
+                        if (!is_token(TOKEN_RPAREN)) {
                             buf->Add(parse_expr());
-                            while (match_token(TOKEN_COMMA)) buf->Add(parse_expr());
+                            while (match_token(TOKEN_COMMA))
+                                buf->Add(parse_expr());
                         }
 
                         expect_token(TOKEN_RPAREN);
-                        expr = expr_call(pos, expr, (Expr**) buf->_begin, buf->count);
+                        expr = expr_call(pos, expr, (Expr**)buf->_begin, buf->count);
                     }
-                    finally
-                    {
+                    finally {
                         buf->Release();
                     }
                 }
-                else if (match_token(TOKEN_LBRACKET))
-                {
+                else if (match_token(TOKEN_LBRACKET)) {
                     var index = parse_expr();
                     expect_token(TOKEN_RBRACKET);
                     expr = expr_index(pos, expr, index);
                 }
-                else
-                {
+                else {
                     assert(is_token(TOKEN_DOT));
                     next_token();
                     var field = token.name;
@@ -287,17 +269,14 @@ namespace Lang
             return expr;
         }
 
-        private bool is_unary_op()
-        {
+        private bool is_unary_op() {
             return is_token(TOKEN_ADD) || is_token(TOKEN_SUB) || is_token(TOKEN_MUL) || is_token(TOKEN_AND) ||
                    is_token(TOKEN_NEG) || is_token(TOKEN_NOT);
         }
 
-        private Expr* parse_expr_unary()
-        {
+        private Expr* parse_expr_unary() {
             var pos = token.pos;
-            if (is_unary_op())
-            {
+            if (is_unary_op()) {
                 var op = token.kind;
                 next_token();
                 return expr_unary(pos, op, parse_expr_unary());
@@ -306,17 +285,14 @@ namespace Lang
             return parse_expr_base();
         }
 
-        private bool is_mul_op()
-        {
+        private bool is_mul_op() {
             return TOKEN_FIRST_MUL <= token.kind && token.kind <= TOKEN_LAST_MUL;
         }
 
-        private Expr* parse_expr_mul()
-        {
+        private Expr* parse_expr_mul() {
             var pos = token.pos;
             var expr = parse_expr_unary();
-            while (is_mul_op())
-            {
+            while (is_mul_op()) {
                 var op = token.kind;
                 next_token();
                 expr = expr_binary(pos, op, expr, parse_expr_unary());
@@ -325,17 +301,14 @@ namespace Lang
             return expr;
         }
 
-        private bool is_add_op()
-        {
+        private bool is_add_op() {
             return TOKEN_FIRST_ADD <= token.kind && token.kind <= TOKEN_LAST_ADD;
         }
 
-        private Expr* parse_expr_add()
-        {
+        private Expr* parse_expr_add() {
             var pos = token.pos;
             var expr = parse_expr_mul();
-            while (is_add_op())
-            {
+            while (is_add_op()) {
                 var op = token.kind;
                 next_token();
                 expr = expr_binary(pos, op, expr, parse_expr_mul());
@@ -344,17 +317,14 @@ namespace Lang
             return expr;
         }
 
-        private bool is_cmp_op()
-        {
+        private bool is_cmp_op() {
             return TOKEN_FIRST_CMP <= token.kind && token.kind <= TOKEN_LAST_CMP;
         }
 
-        private Expr* parse_expr_cmp()
-        {
+        private Expr* parse_expr_cmp() {
             var pos = token.pos;
             var expr = parse_expr_add();
-            while (is_cmp_op())
-            {
+            while (is_cmp_op()) {
                 var op = token.kind;
                 next_token();
                 expr = expr_binary(pos, op, expr, parse_expr_add());
@@ -363,30 +333,28 @@ namespace Lang
             return expr;
         }
 
-        private Expr* parse_expr_and()
-        {
+        private Expr* parse_expr_and() {
             var pos = token.pos;
             var expr = parse_expr_cmp();
-            while (match_token(TOKEN_AND_AND)) expr = expr_binary(pos, TOKEN_AND_AND, expr, parse_expr_cmp());
+            while (match_token(TOKEN_AND_AND))
+                expr = expr_binary(pos, TOKEN_AND_AND, expr, parse_expr_cmp());
 
             return expr;
         }
 
-        private Expr* parse_expr_or()
-        {
+        private Expr* parse_expr_or() {
             var pos = token.pos;
             var expr = parse_expr_and();
-            while (match_token(TOKEN_OR_OR)) expr = expr_binary(pos, TOKEN_OR_OR, expr, parse_expr_and());
+            while (match_token(TOKEN_OR_OR))
+                expr = expr_binary(pos, TOKEN_OR_OR, expr, parse_expr_and());
 
             return expr;
         }
 
-        private Expr* parse_expr_ternary()
-        {
+        private Expr* parse_expr_ternary() {
             var pos = token.pos;
             var expr = parse_expr_or();
-            if (match_token(TOKEN_QUESTION))
-            {
+            if (match_token(TOKEN_QUESTION)) {
                 var then_expr = parse_expr_ternary();
                 expect_token(TOKEN_COLON);
                 var else_expr = parse_expr_ternary();
@@ -396,51 +364,43 @@ namespace Lang
             return expr;
         }
 
-        private Expr* parse_expr()
-        {
+        private Expr* parse_expr() {
             return parse_expr_ternary();
         }
 
-        private Expr* parse_paren_expr()
-        {
+        private Expr* parse_paren_expr() {
             expect_token(TOKEN_LPAREN);
             var expr = parse_expr();
             expect_token(TOKEN_RPAREN);
             return expr;
         }
 
-        private StmtList parse_stmt_block()
-        {
+        private StmtList parse_stmt_block() {
             expect_token(TOKEN_LBRACE);
             var pos = token.pos;
 
             var buf = PtrBuffer.GetPooledBuffer();
-            try
-            {
-                while (!is_token_eof() && !is_token(TOKEN_RBRACE)) buf->Add(parse_stmt());
+            try {
+                while (!is_token_eof() && !is_token(TOKEN_RBRACE))
+                    buf->Add(parse_stmt());
 
                 expect_token(TOKEN_RBRACE);
-                return stmt_list(pos, (Stmt**) buf->_begin, buf->count);
+                return stmt_list(pos, (Stmt**)buf->_begin, buf->count);
             }
-            finally
-            {
+            finally {
                 buf->Release();
             }
         }
 
-        private Stmt* parse_stmt_if(SrcPos pos)
-        {
+        private Stmt* parse_stmt_if(SrcPos pos) {
             var cond = parse_paren_expr();
             var then_block = parse_stmt_block();
             var else_block = default(StmtList);
 
             var buf = PtrBuffer.GetPooledBuffer();
-            try
-            {
-                while (match_keyword(else_keyword))
-                {
-                    if (!match_keyword(if_keyword))
-                    {
+            try {
+                while (match_keyword(else_keyword)) {
+                    if (!match_keyword(if_keyword)) {
                         else_block = parse_stmt_block();
                         break;
                     }
@@ -453,26 +413,22 @@ namespace Lang
                     buf->Add(elif);
                 }
 
-                return stmt_if(pos, cond, then_block, (ElseIf**) buf->_begin, buf->count,
+                return stmt_if(pos, cond, then_block, (ElseIf**)buf->_begin, buf->count,
                     else_block);
             }
-            finally
-            {
+            finally {
                 buf->Release();
             }
         }
 
-        private Stmt* parse_stmt_while(SrcPos pos)
-        {
+        private Stmt* parse_stmt_while(SrcPos pos) {
             var cond = parse_paren_expr();
             return stmt_while(pos, cond, parse_stmt_block());
         }
 
-        private Stmt* parse_stmt_do_while(SrcPos pos)
-        {
+        private Stmt* parse_stmt_do_while(SrcPos pos) {
             var block = parse_stmt_block();
-            if (!match_keyword(while_keyword))
-            {
+            if (!match_keyword(while_keyword)) {
                 fatal_syntax_error("Expected 'while' after 'do' block");
                 return null;
             }
@@ -482,88 +438,78 @@ namespace Lang
             return stmt;
         }
 
-        private bool is_assign_op()
-        {
+        private bool is_assign_op() {
             return TOKEN_FIRST_ASSIGN <= token.kind && token.kind <= TOKEN_LAST_ASSIGN;
         }
 
-        private Stmt* parse_simple_stmt()
-        {
+        private Stmt* parse_simple_stmt() {
             var pos = token.pos;
             var expr = parse_expr();
             Stmt* stmt;
-            if (match_token(TOKEN_COLON_ASSIGN))
-            {
-                if (expr->kind != EXPR_NAME)
-                {
+            if (match_token(TOKEN_COLON_ASSIGN)) {
+                if (expr->kind != EXPR_NAME) {
                     fatal_syntax_error(":= must be preceded by a name");
                     return null;
                 }
 
                 stmt = stmt_init(pos, expr->name, parse_expr());
             }
-            else if (is_assign_op())
-            {
+            else if (is_assign_op()) {
                 var op = token.kind;
                 next_token();
                 stmt = stmt_assign(pos, op, expr, parse_expr());
             }
-            else if (is_token(TOKEN_INC) || is_token(TOKEN_DEC))
-            {
+            else if (is_token(TOKEN_INC) || is_token(TOKEN_DEC)) {
                 var op = token.kind;
                 next_token();
                 stmt = stmt_assign(pos, op, expr, null);
             }
-            else
-            {
+            else {
                 stmt = stmt_expr(pos, expr);
             }
 
             return stmt;
         }
 
-        private Stmt* parse_stmt_for(SrcPos pos)
-        {
+        private Stmt* parse_stmt_for(SrcPos pos) {
             expect_token(TOKEN_LPAREN);
             Stmt* init = null;
-            if (!is_token(TOKEN_SEMICOLON)) init = parse_simple_stmt();
+            if (!is_token(TOKEN_SEMICOLON))
+                init = parse_simple_stmt();
 
             expect_token(TOKEN_SEMICOLON);
             Expr* cond = null;
-            if (!is_token(TOKEN_SEMICOLON)) cond = parse_expr();
+            if (!is_token(TOKEN_SEMICOLON))
+                cond = parse_expr();
 
             expect_token(TOKEN_SEMICOLON);
             Stmt* next = null;
-            if (!is_token(TOKEN_RPAREN))
-            {
+            if (!is_token(TOKEN_RPAREN)) {
                 next = parse_simple_stmt();
-                if (next->kind == STMT_INIT) syntax_error("Init statements not allowed in for-statement's next clause");
+                if (next->kind == STMT_INIT)
+                    syntax_error("Init statements not allowed in for-statement's next clause");
             }
 
             expect_token(TOKEN_RPAREN);
             return stmt_for(pos, init, cond, next, parse_stmt_block());
         }
 
-        private SwitchCase parse_stmt_switch_case()
-        {
+        private SwitchCase parse_stmt_switch_case() {
             var buf = PtrBuffer.GetPooledBuffer();
-            try
-            {
+            try {
                 var is_default = false;
-                while (is_keyword(case_keyword) || is_keyword(default_keyword))
-                {
-                    if (match_keyword(case_keyword))
-                    {
+                while (is_keyword(case_keyword) || is_keyword(default_keyword)) {
+                    if (match_keyword(case_keyword)) {
                         buf->Add(parse_expr());
                         while (match_token(TOKEN_COMMA)) {
                             buf->Add(parse_expr());
                         }
                     }
-                    else
-                    {
+                    else {
                         assert(is_keyword(default_keyword));
                         next_token();
-                        if (is_default) syntax_error("Duplicate default labels in same switch clause");
+                        if (is_default)
+                            syntax_error("Duplicate default labels in same switch clause");
 
                         is_default = true;
                     }
@@ -585,158 +531,155 @@ namespace Lang
                     stmts = (Stmt**) buf2->_begin,
                     num_stmts = buf2->count
                 };
-                return new SwitchCase
-                {
-                    exprs = (Expr**) ast_dup(buf->_begin, buf->buf_byte_size),
+                return new SwitchCase {
+                    exprs = (Expr**)ast_dup(buf->_begin, buf->buf_byte_size),
                     num_exprs = buf->count,
                     is_default = is_default,
                     block = block
                 };
             }
-            finally
-            {
+            finally {
                 buf->Release();
             }
         }
 
-        private Stmt* parse_stmt_switch(SrcPos pos)
-        {
+        private Stmt* parse_stmt_switch(SrcPos pos) {
             var expr = parse_paren_expr();
 
             var buf = Buffer<SwitchCase>.Create();
             expect_token(TOKEN_LBRACE);
-            while (!is_token_eof() && !is_token(TOKEN_RBRACE)) buf.Add(parse_stmt_switch_case());
+            while (!is_token_eof() && !is_token(TOKEN_RBRACE))
+                buf.Add(parse_stmt_switch_case());
 
             expect_token(TOKEN_RBRACE);
             return stmt_switch(pos, expr, buf, buf.count);
         }
 
-        private Stmt* parse_stmt()
-        {
+        private Stmt* parse_stmt() {
             var pos = token.pos;
-            if (match_keyword(if_keyword)) return parse_stmt_if(pos);
+            if (match_keyword(if_keyword))
+                return parse_stmt_if(pos);
 
-            if (match_keyword(while_keyword)) return parse_stmt_while(pos);
+            if (match_keyword(while_keyword))
+                return parse_stmt_while(pos);
 
-            if (match_keyword(do_keyword)) return parse_stmt_do_while(pos);
+            if (match_keyword(do_keyword))
+                return parse_stmt_do_while(pos);
 
-            if (match_keyword(for_keyword)) return parse_stmt_for(pos);
+            if (match_keyword(for_keyword))
+                return parse_stmt_for(pos);
 
-            if (match_keyword(switch_keyword)) return parse_stmt_switch(pos);
+            if (match_keyword(switch_keyword))
+                return parse_stmt_switch(pos);
 
-            if (is_token(TOKEN_LBRACE)) return stmt_block(pos, parse_stmt_block());
+            if (is_token(TOKEN_LBRACE))
+                return stmt_block(pos, parse_stmt_block());
 
-            if (match_keyword(break_keyword))
-            {
+            if (match_keyword(break_keyword)) {
                 expect_token(TOKEN_SEMICOLON);
                 return stmt_break(pos);
             }
 
-            if (match_keyword(continue_keyword))
-            {
+            if (match_keyword(continue_keyword)) {
                 expect_token(TOKEN_SEMICOLON);
                 return stmt_continue(pos);
             }
 
-            if (match_keyword(return_keyword))
-            {
+            if (match_keyword(return_keyword)) {
                 Expr* expr = null;
-                if (!is_token(TOKEN_SEMICOLON)) expr = parse_expr();
+                if (!is_token(TOKEN_SEMICOLON))
+                    expr = parse_expr();
 
                 expect_token(TOKEN_SEMICOLON);
                 return stmt_return(pos, expr);
             }
 
             var decl = parse_decl_opt();
-            if (decl != null) return stmt_decl(pos, decl);
+            if (decl != null)
+                return stmt_decl(pos, decl);
 
             var stmt = parse_simple_stmt();
             expect_token(TOKEN_SEMICOLON);
             return stmt;
         }
 
-        private char* parse_name()
-        {
+        private char* parse_name() {
             var name = token.name;
             expect_token(TOKEN_NAME);
             return name;
         }
 
-        private EnumItem parse_decl_enum_item()
-        {
+        private EnumItem parse_decl_enum_item() {
             var pos = token.pos;
             var name = parse_name();
             Expr* init = null;
-            if (match_token(TOKEN_ASSIGN)) init = parse_expr();
+            if (match_token(TOKEN_ASSIGN))
+                init = parse_expr();
 
-            return new EnumItem {pos = pos, name = name, init = init};
+            return new EnumItem { pos = pos, name = name, init = init };
         }
 
-        private Decl* parse_decl_enum(SrcPos pos)
-        {
+        private Decl* parse_decl_enum(SrcPos pos) {
             var name = parse_name();
             expect_token(TOKEN_LBRACE);
             EnumItem* items = null;
             var buf = Buffer<EnumItem>.Create();
-            while (!is_token(TOKEN_RBRACE))
-            {
+            while (!is_token(TOKEN_RBRACE)) {
                 buf.Add(parse_decl_enum_item());
-                if (!match_token(TOKEN_COMMA)) break;
+                if (!match_token(TOKEN_COMMA))
+                    break;
             }
 
             expect_token(TOKEN_RBRACE);
             return decl_enum(pos, name, buf._begin, buf.count);
         }
 
-        private AggregateItem parse_decl_aggregate_item()
-        {
+        private AggregateItem parse_decl_aggregate_item() {
             var buf = PtrBuffer.GetPooledBuffer();
             var pos = token.pos;
-            try
-            {
+            try {
                 buf->Add(parse_name());
-                while (match_token(TOKEN_COMMA)) buf->Add(parse_name());
+                while (match_token(TOKEN_COMMA))
+                    buf->Add(parse_name());
 
                 expect_token(TOKEN_COLON);
                 var type = parse_type();
                 expect_token(TOKEN_SEMICOLON);
-                return new AggregateItem
-                {
+                return new AggregateItem {
                     pos = pos,
-                    names = (char**) ast_dup(buf->_begin, buf->count * sizeof(char*)),
+                    names = (char**)ast_dup(buf->_begin, buf->count * sizeof(char*)),
                     num_names = buf->count,
                     type = type
                 };
             }
-            finally
-            {
+            finally {
                 buf->Release();
             }
         }
 
-        private Decl* parse_decl_aggregate(SrcPos pos, DeclKind kind)
-        {
+        private Decl* parse_decl_aggregate(SrcPos pos, DeclKind kind) {
             assert(kind == DECL_STRUCT || kind == DECL_UNION);
             var name = parse_name();
             expect_token(TOKEN_LBRACE);
 
             var buf = Buffer<AggregateItem>.Create();
-            while (!is_token_eof() && !is_token(TOKEN_RBRACE)) buf.Add(parse_decl_aggregate_item());
+            while (!is_token_eof() && !is_token(TOKEN_RBRACE))
+                buf.Add(parse_decl_aggregate_item());
 
             expect_token(TOKEN_RBRACE);
             return decl_aggregate(pos, kind, name, buf, buf.count);
         }
 
-        private Decl* parse_decl_var(SrcPos pos)
-        {
+        private Decl* parse_decl_var(SrcPos pos) {
             var name = parse_name();
-            if (match_token(TOKEN_ASSIGN)) return decl_var(pos, name, null, parse_expr());
+            if (match_token(TOKEN_ASSIGN))
+                return decl_var(pos, name, null, parse_expr());
 
-            if (match_token(TOKEN_COLON))
-            {
+            if (match_token(TOKEN_COLON)) {
                 var type = parse_type();
                 Expr* expr = null;
-                if (match_token(TOKEN_ASSIGN)) expr = parse_expr();
+                if (match_token(TOKEN_ASSIGN))
+                    expr = parse_expr();
 
                 return decl_var(pos, name, type, expr);
             }
@@ -745,51 +688,60 @@ namespace Lang
             return null;
         }
 
-        private Decl* parse_decl_const(SrcPos pos)
-        {
+        private Decl* parse_decl_const(SrcPos pos) {
             var name = parse_name();
             expect_token(TOKEN_ASSIGN);
             return decl_const(pos, name, parse_expr());
         }
 
-        private Decl* parse_decl_typedef(SrcPos pos)
-        {
+        private Decl* parse_decl_typedef(SrcPos pos) {
             var name = parse_name();
             expect_token(TOKEN_ASSIGN);
             return decl_typedef(pos, name, parse_type());
         }
 
-        private FuncParam parse_decl_func_param()
-        {
+        private FuncParam parse_decl_func_param() {
             var pos = token.pos;
             var name = parse_name();
             expect_token(TOKEN_COLON);
             var type = parse_type();
-            return new FuncParam {pos = pos, name = name, type = type};
+            return new FuncParam { pos = pos, name = name, type = type };
         }
 
-        private Decl* parse_decl_func(SrcPos pos)
-        {
+        private Decl* parse_decl_func(SrcPos pos) {
             var name = parse_name();
+            bool variadic = false;
             expect_token(TOKEN_LPAREN);
             FuncParam* @params = null;
             var buf = Buffer<FuncParam>.Create();
-            if (!is_token(TOKEN_RPAREN))
-            {
+            if (!is_token(TOKEN_RPAREN)) {
                 buf.Add(parse_decl_func_param());
-                while (match_token(TOKEN_COMMA)) buf.Add(parse_decl_func_param());
+                while (match_token(TOKEN_COMMA)) {
+                    if (match_token(TOKEN_ELLIPSIS)) {
+                        if (variadic) {
+                            syntax_error("Multiple ellipsis in function declaration");
+                        }
+                        variadic = true;
+                    }
+                    else {
+                        if (variadic) {
+                            syntax_error("Ellipsis must be last parameter in function declaration");
+                        }
+                        buf.Add(parse_decl_func_param());
+                    }
+                }
             }
 
             expect_token(TOKEN_RPAREN);
             Typespec* ret_type = null;
-            if (match_token(TOKEN_COLON)) ret_type = parse_type();
+            if (match_token(TOKEN_COLON))
+                ret_type = parse_type();
 
             var block = parse_stmt_block();
-            return decl_func(pos, name, buf, buf.count, ret_type, block);
+            return decl_func(pos, name, buf, buf.count, ret_type, variadic, block);
         }
 
-        private Decl* parse_decl_opt()
-        {
+        private Decl* parse_decl_opt() {
             var pos = token.pos;
             if (match_keyword(enum_keyword))
                 return parse_decl_enum(pos);
@@ -808,35 +760,31 @@ namespace Lang
             return null;
         }
 
-        private Decl* parse_decl()
-        {
+        private Decl* parse_decl() {
             var decl = parse_decl_opt();
-            if (decl == null) fatal_syntax_error("Expected declaration keyword, got {0}", token_info());
+            if (decl == null)
+                fatal_syntax_error("Expected declaration keyword, got {0}", token_info());
 
             return decl;
         }
 
-        internal void init_parse_test()
-        {
+        internal void init_parse_test() {
             _p2 = code1.ToPtr();
-            _ptr = (char**) xmalloc(PTR_SIZE * decls.Length);
+            _ptr = (char**)xmalloc(PTR_SIZE * decls.Length);
             _len = decls.Length;
 
-            for (var i = 0; i < _len; i++)
-            {
+            for (var i = 0; i < _len; i++) {
                 var it = decls[i].ToPtr();
                 *(_ptr + i) = it;
             }
         }
 
-        internal void parse_test_and_print()
-        {
+        internal void parse_test_and_print() {
             init_parse_test();
             Console.WriteLine();
             init_stream(_p2);
             var ds = parse_file();
-            for (var i = 0; i < _len; i++)
-            {
+            for (var i = 0; i < _len; i++) {
                 var it = *(_ptr + i);
                 init_stream(it);
                 var decl = parse_decl();
@@ -854,18 +802,15 @@ namespace Lang
         }
 
 
-        internal void parse_test()
-        {
-            for (var i = 0; i < _len; i++)
-            {
+        internal void parse_test() {
+            for (var i = 0; i < _len; i++) {
                 var it = *(_ptr + i);
                 init_stream(it);
                 var decl = parse_decl();
             }
         }
 
-        internal void parse_test2()
-        {
+        internal void parse_test2() {
             init_stream(_p2);
             var ds = parse_file();
         }

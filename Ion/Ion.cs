@@ -1,12 +1,12 @@
 ﻿using System;
+using System.IO;
 using System.Reflection;
 
 namespace Lang
 {
     public unsafe partial class Ion
     {
-        private bool ion_compile_file(string spath)
-        { 
+        private bool ion_compile_file(string spath) {
             lex_init();
             var path = spath.ToPtr();
             lex_init();
@@ -16,19 +16,19 @@ namespace Lang
             sym_global_decls(ds);
             finalize_syms();
             gen_all();
-            //Console.WriteLine(new string(gen_buf));
             return false;
             //Console.WriteLine("Path: " + new string(path));
             var c_path = replace_ext(spath.ToPtr(), "c".ToPtr());
-            if (c_path == null) return false;
-            if (!write_file(c_path, gen_buf)) return false;
+            if (c_path == null)
+                return false;
+            if (!write_file(c_path, gen_buf))
+                return false;
             return true;
         }
 
-        private char* ion_compile_str(char* str)
-        {
+        private char* ion_compile_str(string path) {
             lex_init();
-            init_stream(str);
+            init_stream(read_file(path), $"\"{path}\"".ToPtr());
             init_global_syms();
             sym_global_decls(parse_file());
             finalize_syms();
@@ -36,28 +36,23 @@ namespace Lang
             return gen_buf;
         }
 
-        private void ion_test()
-        {
+        private void ion_test() {
             var b = ion_compile_file("test1.ion");
             assert(b);
         }
 
-        private long ion_main(string[] args)
-        {
-            if (args.Length == 0)
-            {
+        private long ion_main(string[] args) {
+            if (args.Length == 0) {
                 Console.WriteLine("Usage: {0} <ion-source-file>\n", Assembly.GetEntryAssembly()?.FullName);
                 return 1;
             }
-
             var path = args[0];
-            lex_init();
-            if (!ion_compile_file(path))
-            {
+            bool b = write_file(@"C:\Users\john\source\repos\Test\TestCompiler\test1.c", ion_compile_str(path));
+            if (!b) {
                 printf("Compilation failed.\n");
                 return 1;
             }
-
+            File.Copy(path, @"C:\Users\john\source\repos\Test\TestCompiler\test1.ion", true);
             printf("Compilation succeeded.\n");
             return 0;
         }

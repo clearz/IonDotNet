@@ -65,12 +65,13 @@ namespace Lang
             return t;
         }
 
-        private Typespec* typespec_func(SrcPos pos, Typespec** args, int num_args, Typespec* ret)
+        private Typespec* typespec_func(SrcPos pos, Typespec** args, int num_args, Typespec* ret, bool variadic)
         {
             var t = typespec_new(pos, TYPESPEC_FUNC);
             t->func.args = (Typespec**) ast_dup(args, num_args * sizeof(Typespec*));
             t->func.num_args = num_args;
             t->func.ret = ret;
+            t->func.variadic = variadic;
             return t;
         }
 
@@ -118,13 +119,13 @@ namespace Lang
             return d;
         }
 
-        private Decl* decl_func(SrcPos pos, char* name, FuncParam* @params, int num_params, Typespec* ret_type,
-            StmtList block)
+        private Decl* decl_func(SrcPos pos, char* name, FuncParam* @params, int num_params, Typespec* ret_type, bool variadic, StmtList block)
         {
             var d = decl_new(DECL_FUNC, pos, name);
             d->func.@params = (FuncParam*) ast_dup(@params, num_params * sizeof(FuncParam));
             d->func.num_params = num_params;
             d->func.ret_type = ret_type;
+            d->func.variadic = variadic;
             d->func.block = block;
             return d;
         }
@@ -146,7 +147,7 @@ namespace Lang
         private Expr* expr_new(ExprKind kind, SrcPos pos)
         {
             var e = (Expr*) ast_alloc(sizeof(Expr));
-            e->Pos = pos;
+            e->pos = pos;
             e->kind = kind;
             return e;
         }

@@ -25,6 +25,7 @@ namespace Lang
         {
             public Typespec** args;
             public int num_args;
+            public bool variadic;
             public Typespec* ret;
         }
 
@@ -92,6 +93,7 @@ namespace Lang
         {
             public FuncParam* @params;
             public int num_params;
+            public bool variadic;
             public Typespec* ret_type;
             public StmtList block;
         }
@@ -151,7 +153,7 @@ namespace Lang
     internal unsafe struct Expr
     {
         [FieldOffset(0)] public ExprKind kind;
-        [FieldOffset(4)] public SrcPos Pos;
+        [FieldOffset(4)] public SrcPos pos;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Type* type;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public int int_val;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public double float_val;
