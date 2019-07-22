@@ -49,13 +49,69 @@ namespace Lang
         }
 
         public static char* ToPtr2(this string s) {
-            var stream = Ion.xmalloc<char>(s.Length + 1);
             fixed (char* c = s) {
-                Unsafe.CopyBlock(stream, c, (uint)s.Length << 1);
+                return c;
             }
+        }
 
-            stream[s.Length] = '\0';
-            return stream;
+        static char* tmp = Ion.xmalloc<char>(24);
+        public static char* itoa(this int i) {
+            int pos = 11;
+
+            tmp[pos] = '\0';
+            var j = i;
+            while (j != 0) {
+                if (i < 0)
+                    tmp[--pos] = (char)(-(j % 10) + 48);
+                else
+                    tmp[--pos] = (char)((j % 10) + 48);
+                j /= 10;
+            }
+            if (i < 0)
+                tmp[--pos] = '-';
+            return tmp + pos;
+
+        }
+        public static char* itoa(this uint i) {
+            int pos = 11;
+
+            tmp[pos] = '\0';
+            var j = i;
+            while (j != 0) {
+                tmp[--pos] = (char)((j % 10) + 48);
+                j /= 10;
+            }
+            return tmp + pos;
+
+        }
+        public static char* itoa(this long i) {
+            int pos = 11;
+
+            tmp[pos] = '\0';
+            var j = i;
+            while (j != 0) {
+                if (i < 0)
+                    tmp[--pos] = (char)(-(j % 10) + 48);
+                else
+                    tmp[--pos] = (char)((j % 10) + 48);
+                j /= 10;
+            }
+            if (i < 0)
+                tmp[--pos] = '-';
+            return tmp + pos;
+
+        }
+        public static char* itoa(this ulong i) {
+            int pos = 11;
+
+            tmp[pos] = '\0';
+            var j = i;
+            while (j != 0) {
+                tmp[--pos] = (char)((j % 10) + 48);
+                j /= 10;
+            }
+            return tmp + pos;
+
         }
     }
 

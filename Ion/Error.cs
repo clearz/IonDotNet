@@ -9,13 +9,13 @@ namespace Lang
     {
         [DebuggerHidden]
         private static void fatal(string format, params object[] pmz) {
-            Console.WriteLine("FATAL: " + format, pmz);
+            Console.Error.WriteLine("FATAL: " + format, pmz);
             Exit();
         }
         [DebuggerHidden]
         private static void error(SrcPos pos, string format, params object[] pmz) {
-            Console.Write("{0}({1}): error: ", new string(pos.name), pos.line);
-            Console.WriteLine(format, pmz);
+            Console.Error.Write("{0}({1}): error: ", new string(pos.name), pos.line);
+            Console.Error.WriteLine(format, pmz);
         }
 
         [DebuggerHidden]
@@ -46,17 +46,10 @@ namespace Lang
         [DebuggerHidden]
         private static void Exit(int wait_ms = 2000, int rtn_code = 1) {
             assert(false);
-            Console.WriteLine("Exiting...");
+            Console.Error.WriteLine("Exiting...");
             Thread.Sleep(wait_ms);
             Environment.Exit(rtn_code);
         }
     }
 
-
-    [StructLayout(LayoutKind.Sequential, Size = 16)]
-    internal unsafe struct SrcPos
-    {
-        public char* name;
-        public long line;
-    }
 }

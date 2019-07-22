@@ -311,7 +311,7 @@ namespace Lang
         }
 
         private static char* read_file(string path) {
-            var buf = File.ReadAllText(path).ToPtr2();
+            var buf = File.ReadAllText(path).ToPtr();
             return buf;
         }
 

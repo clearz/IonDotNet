@@ -183,17 +183,19 @@ namespace Lang
             return e;
         }
 
-        private Expr* expr_int(SrcPos pos, int int_val)
+        private Expr* expr_int(SrcPos pos, int int_val, char* name)
         {
             var e = expr_new(EXPR_INT, pos);
+            e->name = name;
             e->int_val = int_val;
             return e;
         }
 
-        private Expr* expr_float(SrcPos pos, double float_val)
+        private Expr* expr_float(SrcPos pos, double float_val, char* name)
         {
             var e = expr_new(EXPR_FLOAT, pos);
             e->float_val = float_val;
+            e->name = name;
             return e;
         }
 

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using DotNetCross.Memory;
+using System;
+using System.Runtime.CompilerServices;
 
 namespace Lang
 {
@@ -173,15 +175,23 @@ namespace Lang
         private Expr* parse_expr_operand() {
             var pos = token.pos;
             if (is_token(TOKEN_INT)) {
+                int len = (int)(token.end - token.start);
+                char* name = xmalloc<char>(len+1);
+                Unsafe.CopyBlock(name, token.start, (uint)len << 1);
+                name[len] = '\0';
                 var val = token.int_val;
                 next_token();
-                return expr_int(pos, val);
+                return expr_int(pos, val, name);
             }
 
             if (is_token(TOKEN_FLOAT)) {
                 var val = token.float_val;
+                int len = (int)(token.end - token.start);
+                char* name = xmalloc<char>(len+1);
+                Unsafe.CopyBlock(name, token.start, (uint)len << 1);
+                name[len] = '\0';
                 next_token();
-                return expr_float(pos, val);
+                return expr_float(pos, val, name);
             }
 
             if (is_token(TOKEN_STR)) {

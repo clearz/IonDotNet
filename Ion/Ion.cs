@@ -21,8 +21,8 @@ namespace Lang
             var c_path = replace_ext(spath.ToPtr(), "c".ToPtr());
             if (c_path == null)
                 return false;
-            if (!write_file(c_path, gen_buf))
-                return false;
+           // if (!write_file(c_path, gen_buf))
+           //     return false;
             return true;
         }
 
@@ -33,7 +33,7 @@ namespace Lang
             sym_global_decls(parse_file());
             finalize_syms();
             gen_all();
-            return gen_buf;
+            return gen_buf.ToString().ToPtr();
         }
 
         private void ion_test() {
@@ -47,11 +47,12 @@ namespace Lang
                 return 1;
             }
             var path = args[0];
-            bool b = write_file(@"test1.c", ion_compile_str(path));
+            bool b = write_file(@"C:\Users\john\source\repos\Test\TestCompiler\test1.c", ion_compile_str(path));
             if (!b) {
                 printf("Compilation failed.\n");
                 return 1;
             }
+            File.Copy(path, @"C:\Users\john\source\repos\Test\TestCompiler\test1.ion", true);
             printf("Compilation succeeded.\n");
             return 0;
         }
