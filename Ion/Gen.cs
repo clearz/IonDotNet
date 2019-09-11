@@ -20,7 +20,7 @@ namespace Lang
         // private Buffer<char> gen_buf = Buffer<char>.Create(_1MB, 4);
         StringBuilder gen_buf = new StringBuilder();
         private readonly char[] char_to_escape = new char[256];
-        private readonly string preamble = "// Preamble\n#include <stdio.h>\n\n"+
+        private readonly string preamble = "// Preamble\n#include <stdio.h>\n#include <math.h>\n\n"+
                                             "typedef unsigned char uchar;\n"+
                                             "typedef signed char schar;\n"+
                                             "typedef unsigned short ushort;\n"+

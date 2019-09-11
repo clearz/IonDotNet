@@ -16,13 +16,13 @@ namespace Lang
             try {
 
 
-                if (args.Length > -1)
+                if (args.Length > 0)
                     new Ion().ion_main(args);
                 else {
                     Ion ion = new Ion();
                     //ion.cdecl_test();
                     //ReadKey();
-                    Timer.Time(() => ion.ion_compile_file("test1.ion"));
+                    Timer.Time(() => ion.ion_compile_file("test2.ion"));
                     WriteLine(ion.gen_buf);
                     ReadKey();
                 }

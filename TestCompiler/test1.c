@@ -1,7 +1,8 @@
 // Preamble
 #include <stdio.h>
+#include <math.h>
 
-typedef unsigned char uchar;
+	typedef unsigned char uchar;
 typedef signed char schar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
@@ -10,296 +11,116 @@ typedef long long llong;
 typedef unsigned long long ullong;
 
 // Forward declarations
-typedef union IntOrPtr IntOrPtr;
-typedef struct Vector Vector;
-typedef struct T T;
+typedef struct vec2 vec2;
 
 // Sorted declarations
-#line 10 "test1.ion"
-#define PI (3.14)
-
+#line 10 "test2.ion"
+struct vec2 {
 #line 11
-#define PI2 ((PI) + (PI))
-
-#line 13
-char c = 1;
+	float x;
+#line 11
+	float y;
+};
 
 #line 14
-uchar uc = 1;
+vec2 add2(vec2 a, vec2 b);
 
-#line 15
-schar sc = 1;
+vec2 sub2(vec2 a, vec2 b);
 
-#line 17
-enum { N = (((char)(42)) + (8)) != (0) };
+vec2 neg2(vec2 a);
 
-uchar h(void);
+vec2 mul2(float a, vec2 b);
 
-#line 19
-typedef int (A[(1) + ((2) * (sizeof(h())))]);
+vec2 addmul2(vec2 a, float b, vec2 c);
 
-#line 84
-struct Vector {
-    #line 85
-    int x;
-    #line 85
-    int y;
-};
+float dot2(vec2 a, vec2 b);
 
-#line 43
-typedef IntOrPtr U;
+float len2(vec2 a);
 
-#line 29
-int g(U u);
+vec2 unit2(vec2 a);
 
-#line 49
-union IntOrPtr {
-    #line 50
-    int i;
-    #line 51
-    int (*p);
-};
+vec2 perp2(vec2 a);
 
-#line 33
-void k(void (*vp), int (*ip));
+vec2 dir2(vec2 a, vec2 b);
 
-#line 38
-void f1(void);
+vec2 rot2(float a, vec2 b);
 
-#line 45
-int example_test(void);
-
-#line 100
-int fact_rec(int n);
-
-#line 92
-int fact_iter(int n);
-
-#line 54
-int (escape_to_char[256]) = {['n'] = '\n', ['r'] = '\r', ['t'] = '\t', ['v'] = '\v', ['b'] = '\b', ['a'] = '\a', ['0'] = 0};
-
-#line 64
-int (array[11]) = {1, 2, 3, [10] = 4};
-
-#line 66
-int is_even(int digit);
-
-#line 82
-int i;
-
-#line 88
-void f2(Vector v);
-
-#line 110
-T (*p);
-
-#line 108
-enum { n = (1) + (sizeof(p)) };
-
-struct T {
-    #line 113
-    int (a[n]);
-};
-
-#line 116
-void benchmark(int n);
-
-#line 123
-int va_test(int x, ...);
-
-typedef int (*F)(int, ...);
-
-#line 129
-void test_ops(void);
-
-#line 159
-int main(int argc, char (*(*argv)));
+#line 60
+int main(int argc, char(*(*argv)));
 
 // Function declarations
-#line 21
-uchar h(void) {
-    #line 22
-    (Vector){.x = 1, .y = 2}.x = 42;
-    #line 23
-    int (*p) = &((int){0});
-    #line 24
-    ulong x = ((uint){1}) + ((long){2});
-    #line 25
-    int y = +(c);
-    #line 26
-    return x;
+#line 14
+vec2 add2(vec2 a, vec2 b) {
+#line 15
+	return (vec2) { (a.x) + (b.x), (a.y) + (b.y) };
 }
 
-#line 29
-int g(U u) {
-    #line 30
-    return u.i;
+#line 18
+vec2 sub2(vec2 a, vec2 b) {
+#line 19
+	return (vec2) { (a.x) - (b.x), (a.y) - (b.y) };
 }
 
-#line 33
-void k(void (*vp), int (*ip)) {
-    #line 34
-    vp = ip;
-    #line 35
-    ip = vp;
+#line 22
+vec2 neg2(vec2 a) {
+#line 23
+	return (vec2) { -(a.x), -(a.y) };
+}
+
+#line 26
+vec2 mul2(float a, vec2 b) {
+#line 27
+	return (vec2) { (a)* (b.x), (a)* (b.y) };
+}
+
+#line 30
+vec2 addmul2(vec2 a, float b, vec2 c) {
+#line 31
+	return add2(a, mul2(b, c));
+}
+
+#line 34
+float dot2(vec2 a, vec2 b) {
+#line 35
+	return ((a.x) * (b.x)) + ((a.y) * (b.y));
 }
 
 #line 38
-void f1(void) {
-    #line 39
-    int (*p) = &((int){0});
-    #line 40
-    *(p) = 42;
+float len2(vec2 a) {
+#line 39
+	return sqrtf(dot2(a, a));
 }
 
-#line 45
-int example_test(void) {
-    #line 46
-    return (fact_rec(10)) == (fact_iter(10));
+#line 42
+vec2 unit2(vec2 a) {
+#line 43
+	return mul2((1) / (len2(a)), a);
 }
 
-#line 66
-int is_even(int digit) {
-    #line 67
-    int b = 0;
-    #line 68
-    switch (digit) {
-        case 0:
-        case 2:
-        case 4:
-        case 6:
-        case 8: {
-            #line 70
-            b = 1;
-            break;
-        }
-    }
-    #line 72
-    return b;
+#line 46
+vec2 perp2(vec2 a) {
+#line 47
+	return (vec2) { -(a.y), a.x };
 }
 
-#line 88
-void f2(Vector v) {
-    #line 89
-    v = (Vector){0};
+#line 50
+vec2 dir2(vec2 a, vec2 b) {
+#line 51
+	return unit2(sub2(b, a));
 }
 
-#line 92
-int fact_iter(int n) {
-    #line 93
-    int r = 1;
-    #line 94
-    for (int i = 0; (i) <= (n); i++) {
-        #line 95
-        r *= i;
-    }
-    #line 97
-    return r;
+#line 54
+vec2 rot2(float a, vec2 b) {
+#line 55
+	float c = cosf(a);
+#line 56
+	float s = sinf(a);
+#line 57
+	return (vec2) { ((c) * (b.x)) - ((s) * (b.y)), ((s) * (b.x)) + ((c) * (b.y)) };
 }
 
-#line 100
-int fact_rec(int n) {
-    #line 101
-    if ((n) == (0)) {
-        #line 102
-        return 1;
-    } else {
-        #line 104
-        return (n) * (fact_rec((n) - (1)));
-    }
-}
-
-#line 116
-void benchmark(int n) {
-    #line 117
-    int r = 1;
-    #line 118
-    for (int i = 1; (i) <= (n); i++) {
-        #line 119
-        r *= i;
-    }
-}
-
-#line 123
-int va_test(int x, ...) {
-    #line 124
-    return 0;
-}
-
-#line 129
-void test_ops(void) {
-    #line 130
-    float pi = 3.14;
-    #line 131
-    float f = 0.0;
-    #line 132
-    f = +(pi);
-    #line 133
-    f = -(pi);
-    #line 134
-    int n = -(1);
-    #line 135
-    n = ~(n);
-    #line 136
-    f = ((f) * (pi)) + (n);
-    #line 137
-    f = (pi) / (pi);
-    #line 138
-    n = (3) % (2);
-    #line 139
-    n = (n) + ((uchar)(1));
-    #line 140
-    int (*p) = &(n);
-    #line 141
-    p = (p) + (1);
-    #line 142
-    n = ((p) + (1)) - (p);
-    #line 143
-    n = (n) << (1);
-    #line 144
-    n = (n) >> (1);
-    #line 145
-    int b = ((p) + (1)) > (p);
-    #line 146
-    b = ((p) + (1)) >= (p);
-    #line 147
-    b = ((p) + (1)) < (p);
-    #line 148
-    b = ((p) + (1)) <= (p);
-    #line 149
-    b = ((p) + (1)) == (p);
-    #line 150
-    b = (1) > (2);
-    #line 151
-    b = (1.23) <= (pi);
-    #line 152
-    n = 0xff;
-    #line 153
-    b = (n) & (~(1));
-    #line 154
-    b = (n) & (1);
-    #line 155
-    b = ((n) & (~(1))) ^ (1);
-    #line 156
-    b = (p) && (pi);
-}
-
-#line 159
-int main(int argc, char (*(*argv))) {
-    #line 160
-    test_ops();
-    #line 161
-    int b = example_test();
-    #line 162
-    puts("Hello, world!");
-    #line 163
-    int c = getchar();
-    #line 164
-    printf("You wrote \'%c\'\n", c);
-    #line 165
-    va_test(1);
-    #line 166
-    va_test(1, 2);
-    #line 167
-    return 0;
+#line 60
+int main(int argc, char(*(*argv))) {
+#line 61
+	return 0;
 }
