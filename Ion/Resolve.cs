@@ -1221,9 +1221,9 @@ namespace Lang
 
         private Type* resolve_decl_const(Decl* decl, Val* val) {
             assert(decl->kind == DECL_CONST);
-            var result = resolve_expr(decl->const_decl.expr);
-            if (!result.is_const)
-                fatal_error(decl->pos, "Const initializer is not a constant expression");
+            Operand result = resolve_const_expr(decl->const_decl.expr);
+            if (!is_arithmetic_type(result.type))
+                fatal_error(decl->pos, "Const must have arithmetic type");
             *val = result.val;
             return result.type;
         }
@@ -1480,15 +1480,53 @@ namespace Lang
             return 0;
         }
 
+        double eval_binary_op_d(TokenKind op, double left, double right) {
+            switch (op) {
+                case TOKEN_MUL:
+                    return left * right;
+                case TOKEN_DIV:
+                    return left / right;
+                case TOKEN_ADD:
+                    return left + right;
+                case TOKEN_SUB:
+                    return left - right;
+                default:
+                    assert(false);
+                    break;
+            }
+            return 0.0;
+        }
+
+
+        double eval_unary_op_d(TokenKind op, double val) {
+            switch (op) {
+                case TOKEN_ADD:
+                    return +val;
+                case TOKEN_SUB:
+                    return -val;
+                default:
+                    assert(false);
+                    break;
+            }
+            return 0.0;
+        }
+
+
         Val eval_unary_op(TokenKind op, Type* type, Val val) {
             Operand operand = operand_const(type, val);
-            if (is_signed_type(type)) {
-                convert_operand(&operand, type_llong);
-                operand.val.ll = eval_unary_op_ll(op, operand.val.ll);
+            if (is_integer_type(type)) {
+                if (is_signed_type(type)) {
+                    convert_operand(&operand, type_llong);
+                    operand.val.ll = eval_unary_op_ll(op, operand.val.ll);
+                }
+                else {
+                    convert_operand(&operand, type_ullong);
+                    operand.val.ull = eval_unary_op_ull(op, operand.val.ull);
+                }
             }
             else {
-                convert_operand(&operand, type_ullong);
-                operand.val.ull = eval_unary_op_ull(op, operand.val.ull);
+                convert_operand(&operand, type_double);
+                operand.val.d = eval_unary_op_d(op, operand.val.d);
             }
             convert_operand(&operand, type);
             return operand.val;
@@ -1587,15 +1625,22 @@ namespace Lang
             Operand left_operand = operand_const(type, left);
             Operand right_operand = operand_const(type, right);
             Operand result_operand;
-            if (is_signed_type(type)) {
-                convert_operand(&left_operand, type_llong);
-                convert_operand(&right_operand, type_llong);
-                result_operand = operand_const(type_llong, new Val{ll = eval_binary_op_ll(op, left_operand.val.ll, right_operand.val.ll) });
+            if (is_integer_type(type)) {
+                if (is_signed_type(type)) {
+                    convert_operand(&left_operand, type_llong);
+                    convert_operand(&right_operand, type_llong);
+                    result_operand = operand_const(type_llong, new Val{ll = eval_binary_op_ll(op, left_operand.val.ll, right_operand.val.ll)});
+                }
+                else {
+                    convert_operand(&left_operand, type_ullong);
+                    convert_operand(&right_operand, type_ullong);
+                    result_operand = operand_const(type_ullong, new Val{ull = eval_binary_op_ull(op, left_operand.val.ull, right_operand.val.ull)});
+                }
             }
             else {
-                convert_operand(&left_operand, type_ullong);
-                convert_operand(&right_operand, type_ullong);
-                result_operand = operand_const(type_ullong, new Val{ull = eval_binary_op_ull(op, left_operand.val.ull, right_operand.val.ull)});
+                convert_operand(&left_operand, type_double);
+                convert_operand(&right_operand, type_double);
+                result_operand = operand_const(type_double, new Val{d = eval_binary_op_d(op, left_operand.val.d, right_operand.val.d)});
             }
             convert_operand(&result_operand, type);
             return result_operand.val;
@@ -1968,41 +2013,41 @@ namespace Lang
             Operand result;
             switch (expr->kind) {
                 case EXPR_INT:
-                result = operand_const(type_int, new Val { i = expr->int_val });
-                break;
+                    result = operand_const(type_int, new Val { i = expr->int_val });
+                    break;
                 case EXPR_FLOAT:
-                result = operand_rvalue(type_float);
-                break;
+                    result = operand_const(type_float, new Val { f = expr->float_val });
+                    break;
                 case EXPR_STR:
-                result = operand_rvalue(type_ptr(type_char));
-                break;
+                    result = operand_rvalue(type_ptr(type_char));
+                    break;
                 case EXPR_NAME:
-                result = resolve_expr_name(expr);
-                break;
+                    result = resolve_expr_name(expr);
+                    break;
                 case EXPR_CAST:
-                result = resolve_expr_cast(expr);
-                break;
+                    result = resolve_expr_cast(expr);
+                    break;
                 case EXPR_CALL:
-                result = resolve_expr_call(expr);
-                break;
+                    result = resolve_expr_call(expr);
+                    break;
                 case EXPR_INDEX:
-                result = resolve_expr_index(expr);
-                break;
+                    result = resolve_expr_index(expr);
+                    break;
                 case EXPR_FIELD:
-                result = resolve_expr_field(expr);
-                break;
+                    result = resolve_expr_field(expr);
+                    break;
                 case EXPR_COMPOUND:
-                result = resolve_expr_compound(expr, expected_type);
-                break;
+                    result = resolve_expr_compound(expr, expected_type);
+                    break;
                 case EXPR_UNARY:
-                result = resolve_expr_unary(expr);
-                break;
+                    result = resolve_expr_unary(expr);
+                    break;
                 case EXPR_BINARY:
-                result = resolve_expr_binary(expr);
-                break;
+                    result = resolve_expr_binary(expr);
+                    break;
                 case EXPR_TERNARY:
-                result = resolve_expr_ternary(expr, expected_type);
-                break;
+                    result = resolve_expr_ternary(expr, expected_type);
+                    break;
                 case EXPR_SIZEOF_EXPR: {
                     var type = resolve_expr(expr->sizeof_expr).type;
                     complete_type(type);
@@ -2018,9 +2063,9 @@ namespace Lang
                 }
 
                 default:
-                assert(false);
-                result = default;
-                break;
+                    assert(false);
+                    result = default;
+                    break;
             }
 
             if (result.type != null) {

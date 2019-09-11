@@ -190,7 +190,7 @@ namespace Lang
             return e;
         }
 
-        private Expr* expr_float(SrcPos pos, double float_val, char* name)
+        private Expr* expr_float(SrcPos pos, float float_val, char* name)
         {
             var e = expr_new(EXPR_FLOAT, pos);
             e->float_val = float_val;

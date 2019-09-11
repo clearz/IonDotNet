@@ -329,7 +329,7 @@ namespace Lang
                 while (char.IsDigit(*stream)) stream++;
             }
 
-            var val = double.Parse(new string(start, 0, (int) (stream - start)));
+            var val = float.Parse(new string(start, 0, (int) (stream - start)));
             if (double.IsPositiveInfinity(val)) syntax_error("Float literal overflow");
 
             token.kind = TOKEN_FLOAT;
@@ -988,7 +988,7 @@ namespace Lang
         private struct Token
         {
             [FieldOffset(0)] public int int_val;
-            [FieldOffset(0)] public double float_val;
+            [FieldOffset(0)] public float float_val;
             [FieldOffset(0)] public char* str_val;
             [FieldOffset(0)] public char* name;
 

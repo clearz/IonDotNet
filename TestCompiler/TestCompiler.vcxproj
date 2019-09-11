@@ -102,6 +102,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>C:\Users\john\source\repos\IonDotNet\Ion\bin\x64\Debug\netcoreapp3.0\Ion test1.ion -o C:\Users\john\source\repos\IonDotNet\TestCompiler\test1.c</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

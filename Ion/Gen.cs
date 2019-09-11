@@ -809,19 +809,32 @@ namespace Lang
                 gen_sync_pos(decl->pos);
             switch (decl->kind) {
                 case DECL_CONST:
-                    genln();
-                    c_write(enum_keyword);
-                    c_write(' ');
-                    c_write('{');
-                    c_write(' ');
-                    c_write(sym->name);
-                    c_write(' ');
-                    c_write('=');
-                    c_write(' ');
-                    gen_expr(decl->const_decl.expr);
-                    c_write(' ');
-                    c_write('}');
-                    c_write(';');
+                    if (is_integer_type(decl->sym->type)) {
+                        genln();
+                        c_write(enum_keyword);
+                        c_write(' ');
+                        c_write('{');
+                        c_write(' ');
+                        c_write(sym->name);
+                        c_write(' ');
+                        c_write('=');
+                        c_write(' ');
+                        gen_expr(decl->const_decl.expr);
+                        c_write(' ');
+                        c_write('}');
+                        c_write(';');
+                    }
+                    else {
+                        assert(is_floating_type(decl->sym->type));
+                        genln();
+                        c_write("#define ".ToPtr2(), 8);
+                        c_write(sym->name);
+                        c_write(' ');
+                        c_write('(');
+                        gen_expr(decl->const_decl.expr);
+                        c_write(')');
+                    }
+      
                     break;
                 case DECL_VAR:
                     if (decl->var.type != null && !is_incomplete_array_type(decl->var.type)) {

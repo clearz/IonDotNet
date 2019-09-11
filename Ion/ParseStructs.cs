@@ -178,7 +178,7 @@ namespace Lang
         [FieldOffset(20 + Ion.PTR_SIZE)] public Type* type;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* name;
         [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public int int_val;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public double float_val;
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public float float_val;
         [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public char* str_val;
         [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public Expr* sizeof_expr;
         [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public Typespec* sizeof_type;
