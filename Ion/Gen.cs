@@ -333,13 +333,12 @@ namespace Lang
                 Sym* sym = *it;
                 Decl* decl = sym->decl;
 
-                if (decl != null && decl->kind == DECL_FUNC) {
-                    if (!is_decl_foreign(decl)) {
-                        gen_func_decl(decl);
-                        c_write(' ');
-                        gen_stmt_block(decl->func.block);
-                        genln();
-                    }
+                if (decl != null && decl->kind == DECL_FUNC && !is_decl_foreign(decl)) {
+                    gen_func_decl(decl);
+                    c_write(' ');
+                    gen_stmt_block(decl->func.block);
+                    genln();
+
                 }
             }
         }
@@ -803,7 +802,7 @@ namespace Lang
 
         private void gen_decl(Sym* sym) {
             var decl = sym->decl;
-            if (decl == null)
+            if (decl == null || is_decl_foreign(decl))
                 return;
             if (decl->kind != DECL_FUNC || !is_decl_foreign(decl))
                 gen_sync_pos(decl->pos);
@@ -858,10 +857,8 @@ namespace Lang
                     c_write(';');
                     break;
                 case DECL_FUNC:
-                    if (!is_decl_foreign(decl)) {
-                        gen_func_decl(decl);
-                        c_write(';');
-                    }
+                    gen_func_decl(decl);
+                    c_write(';');
                     break;
                 case DECL_STRUCT:
                 case DECL_UNION:
