@@ -1,11 +1,6 @@
-@foreign
-func printf(fmt: char*, ...): int {}
-
-@foreign
-func puts(fmt: char*): int {}
-
-@foreign
-func getchar(): int {}
+@foreign func printf(fmt: char*, ...): int {}
+@foreign func puts(fmt: char*): int {}
+@foreign func getchar(): int {}
 
 var c: char = 1
 var uc: uchar = 1
@@ -154,6 +149,10 @@ func test_ops() {
 }
 
 func main(argc: int, argv: char**): int {
+
+	sc := sizeof(c);
+	suc := sizeof(uc);
+	ssc := sizeof(sc);
     test_ops();
     b := example_test();
     puts("Hello, world!");

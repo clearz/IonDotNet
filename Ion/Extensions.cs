@@ -1,5 +1,4 @@
-﻿using DotNetCross.Memory;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -137,7 +136,7 @@ namespace Lang
         private static extern bool QueryPerformanceFrequency(out long lpFrequency);
 
 
-        public static void Time(long iterations, Action parse_test) {
+        public static void Time(Action parse_test, long iterations = 1) {
             var sw = new Stopwatch();
             Console.WriteLine("{0} iterations", iterations);
             var it = iterations;

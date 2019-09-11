@@ -875,7 +875,7 @@ namespace Lang
                 return true;
             }
 
-            fatal_syntax_error("Expected token {0}, got {1}", new string(token_kind_names[(int)kind]), token_info());
+            syntax_error("Expected token {0}, got {1}", new string(token_kind_names[(int)kind]), token_info());
             return false;
         }
 

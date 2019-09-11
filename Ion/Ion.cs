@@ -47,12 +47,12 @@ namespace Lang
                 return 1;
             }
             var path = args[0];
-            bool b = write_file(@"C:\Users\john\source\repos\Test\TestCompiler\test1.c", ion_compile_str(path));
+            bool b = write_file(@"..\..\..\..\..\TestCompiler\test1.c", ion_compile_str(path));
             if (!b) {
                 printf("Compilation failed.\n");
                 return 1;
             }
-            File.Copy(path, @"C:\Users\john\source\repos\Test\TestCompiler\test1.ion", true);
+            //File.Copy(path, @"C:\Users\john\source\repos\Test\TestCompiler\test1.ion", true);
             printf("Compilation succeeded.\n");
             return 0;
         }

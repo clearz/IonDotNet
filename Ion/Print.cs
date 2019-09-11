@@ -72,7 +72,10 @@ namespace Lang
                     printf("(array ");
                     print_typespec(t->array.elem);
                     printf(" ");
-                    print_expr(t->array.size);
+                    if (t->array.size != null)
+                        print_expr(t->array.size);
+                    else
+                        printf("nil");
                     printf(")");
                     break;
                 case TYPESPEC_PTR:
