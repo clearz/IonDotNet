@@ -22,7 +22,7 @@ namespace Lang
                     Ion ion = new Ion();
                     //ion.cdecl_test();
                     //ReadKey();
-                    Timer.Time(() => ion.ion_compile_file("test2.ion"));
+                    Timer.Time(() => ion.ion_compile_file("test1.ion"));
                     WriteLine(ion.gen_buf);
                     ReadKey();
                 }

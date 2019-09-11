@@ -20,7 +20,7 @@ namespace Lang
         // private Buffer<char> gen_buf = Buffer<char>.Create(_1MB, 4);
         StringBuilder gen_buf = new StringBuilder();
         private readonly char[] char_to_escape = new char[256];
-        private readonly string preamble = "// Preamble\n#include <stdio.h>\n#include <math.h>\n\n"+
+        private readonly string preamble = "// Preamble\n#include <stdio.h>\n#include <math.h>\n#include <stdbool.h>\n\n"+
                                             "typedef unsigned char uchar;\n"+
                                             "typedef signed char schar;\n"+
                                             "typedef unsigned short ushort;\n"+
@@ -808,32 +808,14 @@ namespace Lang
                 gen_sync_pos(decl->pos);
             switch (decl->kind) {
                 case DECL_CONST:
-                    if (is_integer_type(decl->sym->type)) {
-                        genln();
-                        c_write(enum_keyword);
-                        c_write(' ');
-                        c_write('{');
-                        c_write(' ');
-                        c_write(sym->name);
-                        c_write(' ');
-                        c_write('=');
-                        c_write(' ');
-                        gen_expr(decl->const_decl.expr);
-                        c_write(' ');
-                        c_write('}');
-                        c_write(';');
-                    }
-                    else {
-                        assert(is_floating_type(decl->sym->type));
-                        genln();
-                        c_write("#define ".ToPtr2(), 8);
-                        c_write(sym->name);
-                        c_write(' ');
-                        c_write('(');
-                        gen_expr(decl->const_decl.expr);
-                        c_write(')');
-                    }
-      
+                    genln();
+                    c_write("#define ".ToPtr2(), 8);
+                    c_write(sym->name);
+                    c_write(' ');
+                    c_write('(');
+                    gen_expr(decl->const_decl.expr);
+                    c_write(')');
+
                     break;
                 case DECL_VAR:
                     if (decl->var.type != null && !is_incomplete_array_type(decl->var.type)) {
