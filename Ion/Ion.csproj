@@ -64,4 +64,8 @@
     </None>
   </ItemGroup>
 
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="$(TargetDir)$(TargetName) test1.ion -o &quot;..\..\..\..\..\TestCompiler\test1.c&quot;" />
+  </Target>
+
 </Project>

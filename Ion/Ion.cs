@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 
 namespace Lang
@@ -47,7 +48,14 @@ namespace Lang
                 return 1;
             }
             var path = args[0];
-            bool b = write_file(@"..\..\..\..\..\TestCompiler\test1.c", ion_compile_str(path));
+            string output = replace_ext(path.ToPtr(), "c".ToPtr());
+            if(args.Any(s => s == "-o")) {
+                int pos = Array.IndexOf(args, "-o");
+                if(pos < args.Length) {
+                    output = args[pos + 1];
+                }
+            }
+            bool b = write_file(output, ion_compile_str(path));
             if (!b) {
                 printf("Compilation failed.\n");
                 return 1;
