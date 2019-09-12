@@ -14,7 +14,8 @@ namespace Lang
     using static StmtKind;
     using static CompoundFieldKind;
 
-    unsafe partial class Ion {
+    unsafe partial class Ion
+    {
         public const int MAX_LOCAL_SYMS = 1024;
         private Map cached_ptr_types;
         private Map global_syms_map;
@@ -50,6 +51,7 @@ namespace Lang
 
         readonly int[] type_ranks = new int[(int)NUM_TYPE_KINDS];
         readonly char*[] type_names = new char*[(int)NUM_TYPE_KINDS];
+
         bool is_integer_type(Type* type) {
             return TYPE_BOOL <= type->kind && type->kind <= TYPE_ULLONG;
         }
@@ -190,7 +192,7 @@ namespace Lang
                 type->func.@params = (Type**)xmalloc(sizeof(Type*) * num_params);
                 Unsafe.CopyBlock(type->func.@params, @params,
                     (uint)(num_params *
-                            sizeof(Type*))); //memcpy(t->func.@params, @params, num_params * sizeof(Type*));
+                            sizeof(Type*)));
                 type->func.num_params = num_params;
             }
 
@@ -228,10 +230,10 @@ namespace Lang
             }
 
             type->aggregate.fields =
-                (TypeField*)xmalloc(num_fields * sizeof(TypeField)); //(num_fields, sizeof(TypeField));
+                (TypeField*)xmalloc(num_fields * sizeof(TypeField));
             Unsafe.CopyBlock(type->aggregate.fields, fields,
                 (uint)(num_fields *
-                        sizeof(TypeField))); // memcpy(t->aggregate.fields, fields, num_fields * sizeof(TypeField));
+                        sizeof(TypeField)));
             type->aggregate.num_fields = num_fields;
             return type;
         }
@@ -248,10 +250,10 @@ namespace Lang
             }
 
             type->aggregate.fields =
-                (TypeField*)xmalloc(sizeof(TypeField) * num_fields); //(num_fields, sizeof(TypeField));
+                (TypeField*)xmalloc(sizeof(TypeField) * num_fields);
             Unsafe.CopyBlock(type->aggregate.fields, fields,
                 (uint)(num_fields *
-                        sizeof(TypeField))); // memcpy(t->aggregate.fields, fields, num_fields * sizeof(TypeField));
+                        sizeof(TypeField)));
             type->aggregate.num_fields = num_fields;
             return type;
         }
@@ -264,7 +266,7 @@ namespace Lang
 
 
         private Sym* sym_new(SymKind kind, char* name, Decl* decl) {
-            var sym = xmalloc<Sym>(); //(Sym*)xmalloc(sizeof(Sym));
+            var sym = xmalloc<Sym>();
 
             sym->kind = kind;
             sym->name = name;
@@ -335,12 +337,10 @@ namespace Lang
         }
 
         private void sym_leave(Sym* sym) {
-            // Console.Write((Sym*)local_syms._top - sym);
             local_syms._top = sym;
         }
 
         private void sym_global_put(Sym* sym) {
-            //ulong l = (ulong)sym->name << 32 | (ulong)sym->decl;
             global_syms_map.map_put(sym->name, sym);
             global_syms_buf->Add(sym);
         }
@@ -407,7 +407,7 @@ namespace Lang
         }
 
 
-       
+
 
         int TKind(TypeKind kind) => 5;
         bool convert_operand(Operand* operand, Type* type) {
@@ -420,8 +420,8 @@ namespace Lang
                 return false;
             }
             if (operand->is_const) {
-                if (is_floating_type(operand->type) && is_integer_type(type)) {
-                    operand->is_const = false;
+                if (is_floating_type(operand->type)) {
+                    operand->is_const = !is_integer_type(type);
                 }
                 else {
                     switch (operand->type->kind) {
@@ -464,12 +464,6 @@ namespace Lang
                                     break;
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)(p ? 1 : 0);
-                                    break;
-                                case TYPE_FLOAT:
-                                    operand->val.f = (float)(p ? 1 : 0);
-                                    break;
-                                case TYPE_DOUBLE:
-                                    operand->val.d = (double)(p ? 1 : 0);
                                     break;
                                 default:
                                     operand->is_const = false;
@@ -517,12 +511,6 @@ namespace Lang
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
                                     break;
-                                case TYPE_FLOAT:
-                                    operand->val.f = (float)p;
-                                    break;
-                                case TYPE_DOUBLE:
-                                    operand->val.d = (double)p;
-                                    break;
                                 default:
                                     operand->is_const = false;
                                     break;
@@ -568,12 +556,6 @@ namespace Lang
                                     break;
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
-                                    break;
-                                case TYPE_FLOAT:
-                                    operand->val.f = (float)p;
-                                    break;
-                                case TYPE_DOUBLE:
-                                    operand->val.d = (double)p;
                                     break;
                                 default:
                                     operand->is_const = false;
@@ -621,12 +603,6 @@ namespace Lang
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
                                     break;
-                                case TYPE_FLOAT:
-                                    operand->val.f = (float)p;
-                                    break;
-                                case TYPE_DOUBLE:
-                                    operand->val.d = (double)p;
-                                    break;
                                 default:
                                     operand->is_const = false;
                                     break;
@@ -672,12 +648,6 @@ namespace Lang
                                     break;
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
-                                    break;
-                                case TYPE_FLOAT:
-                                    operand->val.f = (float)p;
-                                    break;
-                                case TYPE_DOUBLE:
-                                    operand->val.d = (double)p;
                                     break;
                                 default:
                                     operand->is_const = false;
@@ -725,12 +695,6 @@ namespace Lang
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
                                     break;
-                                case TYPE_FLOAT:
-                                    operand->val.f = (float)p;
-                                    break;
-                                case TYPE_DOUBLE:
-                                    operand->val.d = (double)p;
-                                    break;
                                 default:
                                     operand->is_const = false;
                                     break;
@@ -776,12 +740,6 @@ namespace Lang
                                     break;
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
-                                    break;
-                                case TYPE_FLOAT:
-                                    operand->val.f = (float)p;
-                                    break;
-                                case TYPE_DOUBLE:
-                                    operand->val.d = (double)p;
                                     break;
                                 default:
                                     operand->is_const = false;
@@ -829,12 +787,6 @@ namespace Lang
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
                                     break;
-                                case TYPE_FLOAT:
-                                    operand->val.f = (float)p;
-                                    break;
-                                case TYPE_DOUBLE:
-                                    operand->val.d = (double)p;
-                                    break;
                                 default:
                                     operand->is_const = false;
                                     break;
@@ -880,12 +832,6 @@ namespace Lang
                                     break;
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
-                                    break;
-                                case TYPE_FLOAT:
-                                    operand->val.f = (float)p;
-                                    break;
-                                case TYPE_DOUBLE:
-                                    operand->val.d = (double)p;
                                     break;
                                 default:
                                     operand->is_const = false;
@@ -933,12 +879,6 @@ namespace Lang
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
                                     break;
-                                case TYPE_FLOAT:
-                                    operand->val.f = (float)p;
-                                    break;
-                                case TYPE_DOUBLE:
-                                    operand->val.d = (double)p;
-                                    break;
                                 default:
                                     operand->is_const = false;
                                     break;
@@ -985,116 +925,6 @@ namespace Lang
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
                                     break;
-                                case TYPE_FLOAT:
-                                    operand->val.f = (float)p;
-                                    break;
-                                case TYPE_DOUBLE:
-                                    operand->val.d = (double)p;
-                                    break;
-                                default:
-                                    operand->is_const = false;
-                                    break;
-                            }
-
-                            break;
-                        }
-                        case TYPE_FLOAT: {
-                            var p = operand->val.f;
-                            switch (type->kind) {
-                                case TYPE_BOOL:
-                                    operand->val.b = p != 0;
-                                    break;
-                                case TYPE_CHAR:
-                                    operand->val.c = (char)p;
-                                    break;
-                                case TYPE_UCHAR:
-                                    operand->val.uc = (byte)p;
-                                    break;
-                                case TYPE_SCHAR:
-                                    operand->val.sc = (sbyte)p;
-                                    break;
-                                case TYPE_SHORT:
-                                    operand->val.s = (short)p;
-                                    break;
-                                case TYPE_USHORT:
-                                    operand->val.us = (ushort)p;
-                                    break;
-                                case TYPE_INT:
-                                    operand->val.i = (int)p;
-                                    break;
-                                case TYPE_UINT:
-                                    operand->val.u = (uint)p;
-                                    break;
-                                case TYPE_LONG:
-                                    operand->val.l = (int)p;
-                                    break;
-                                case TYPE_ULONG:
-                                    operand->val.ul = (uint)p;
-                                    break;
-                                case TYPE_LLONG:
-                                    operand->val.ll = (long)p;
-                                    break;
-                                case TYPE_ULLONG:
-                                    operand->val.ull = (ulong)p;
-                                    break;
-                                case TYPE_FLOAT:
-                                    operand->val.f = (float)p;
-                                    break;
-                                case TYPE_DOUBLE:
-                                    operand->val.d = (double)p;
-                                    break;
-                                default:
-                                    operand->is_const = false;
-                                    break;
-                            }
-
-                            break;
-                        }
-                        case TYPE_DOUBLE: {
-                            var p = operand->val.d;
-                            switch (type->kind) {
-                                case TYPE_BOOL:
-                                    operand->val.b = p != 0;
-                                    break;
-                                case TYPE_CHAR:
-                                    operand->val.c = (char)p;
-                                    break;
-                                case TYPE_UCHAR:
-                                    operand->val.uc = (byte)p;
-                                    break;
-                                case TYPE_SCHAR:
-                                    operand->val.sc = (sbyte)p;
-                                    break;
-                                case TYPE_SHORT:
-                                    operand->val.s = (short)p;
-                                    break;
-                                case TYPE_USHORT:
-                                    operand->val.us = (ushort)p;
-                                    break;
-                                case TYPE_INT:
-                                    operand->val.i = (int)p;
-                                    break;
-                                case TYPE_UINT:
-                                    operand->val.u = (uint)p;
-                                    break;
-                                case TYPE_LONG:
-                                    operand->val.l = (int)p;
-                                    break;
-                                case TYPE_ULONG:
-                                    operand->val.ul = (uint)p;
-                                    break;
-                                case TYPE_LLONG:
-                                    operand->val.ll = (long)p;
-                                    break;
-                                case TYPE_ULLONG:
-                                    operand->val.ull = (ulong)p;
-                                    break;
-                                case TYPE_FLOAT:
-                                    operand->val.f = (float)p;
-                                    break;
-                                case TYPE_DOUBLE:
-                                    operand->val.d = (double)p;
-                                    break;
                                 default:
                                     operand->is_const = false;
                                     break;
@@ -1126,11 +956,11 @@ namespace Lang
                 case TYPE_UCHAR:
                 case TYPE_SHORT:
                 case TYPE_USHORT:
-                convert_operand(operand, type_int);
-                break;
+                    convert_operand(operand, type_int);
+                    break;
                 default:
-                // Do nothing
-                break;
+                    // Do nothing
+                    break;
             }
         }
 
@@ -1215,24 +1045,24 @@ namespace Lang
                 }
                 break;
                 case TYPESPEC_PTR:
-                result = type_ptr(resolve_typespec(typespec->ptr.elem));
-                break;
+                    result = type_ptr(resolve_typespec(typespec->ptr.elem));
+                    break;
                 case TYPESPEC_ARRAY:
-                int size = 0;
-                if (typespec->array.size != null) {
-                    Operand operand = resolve_const_expr(typespec->array.size);
-                    if (!is_integer_type(operand.type)) {
-                        fatal_error(typespec->pos, "Array size constant expression must have integer type");
+                    int size = 0;
+                    if (typespec->array.size != null) {
+                        Operand operand = resolve_const_expr(typespec->array.size);
+                        if (!is_integer_type(operand.type)) {
+                            fatal_error(typespec->pos, "Array size constant expression must have integer type");
+                        }
+                        convert_operand(&operand, type_int);
+                        size = operand.val.i;
+                        if (size <= 0) {
+                            fatal_error(typespec->array.size->pos, "Non-positive array size");
+                        }
                     }
-                    convert_operand(&operand, type_int);
-                    size = operand.val.i;
-                    if (size <= 0) {
-                        fatal_error(typespec->array.size->pos, "Non-positive array size");
-                    }
-                }
 
-                result = type_array(resolve_typespec(typespec->array.elem), size);
-                break;
+                    result = type_array(resolve_typespec(typespec->array.elem), size);
+                    break;
                 case TYPESPEC_FUNC: {
                     var args = PtrBuffer.GetPooledBuffer();
                     try {
@@ -1249,8 +1079,8 @@ namespace Lang
                 }
                 break;
                 default:
-                assert(false);
-                return null;
+                    assert(false);
+                    return null;
             }
 
             assert(typespec->type == null || typespec->type == result);
@@ -1488,20 +1318,20 @@ namespace Lang
             sym->state = SYM_RESOLVING;
             switch (sym->kind) {
                 case SYM_TYPE:
-                sym->type = resolve_decl_type(sym->decl);
-                break;
+                    sym->type = resolve_decl_type(sym->decl);
+                    break;
                 case SYM_VAR:
-                sym->type = resolve_decl_var(sym->decl);
-                break;
+                    sym->type = resolve_decl_var(sym->decl);
+                    break;
                 case SYM_CONST:
-                sym->type = resolve_decl_const(sym->decl, &sym->val);
-                break;
+                    sym->type = resolve_decl_const(sym->decl, &sym->val);
+                    break;
                 case SYM_FUNC:
-                sym->type = resolve_decl_func(sym->decl);
-                break;
+                    sym->type = resolve_decl_func(sym->decl);
+                    break;
                 default:
-                assert(false);
-                break;
+                    assert(false);
+                    break;
             }
 
             sym->state = SYM_RESOLVED;
@@ -1555,16 +1385,16 @@ namespace Lang
         long eval_unary_op_ll(TokenKind op, long val) {
             switch (op) {
                 case TOKEN_ADD:
-                return +val;
+                    return +val;
                 case TOKEN_SUB:
-                return -val;
+                    return -val;
                 case TOKEN_NEG:
-                return ~val;
+                    return ~val;
                 case TOKEN_NOT:
-                return val == 0 ? 1 : 0;
+                    return val == 0 ? 1 : 0;
                 default:
-                assert(false);
-                break;
+                    assert(false);
+                    break;
             }
             return 0;
         }
@@ -1572,55 +1402,23 @@ namespace Lang
         ulong eval_unary_op_ull(TokenKind op, ulong val) {
             switch (op) {
                 case TOKEN_ADD:
-                return +val;
+                    return +val;
                 case TOKEN_SUB:
-                return 0ul - val; // Shut up MSVC's unary minus warning
+                    return 0ul - val; // Shut up MSVC's unary minus warning
                 case TOKEN_NEG:
-                return ~val;
+                    return ~val;
                 case TOKEN_NOT:
-                return val == 0 ? 1ul : 0;
+                    return val == 0 ? 1ul : 0;
                 default:
-                assert(false);
-                break;
+                    assert(false);
+                    break;
             }
             return 0;
         }
 
-        double eval_binary_op_d(TokenKind op, double left, double right) {
-            switch (op) {
-                case TOKEN_MUL:
-                    return left * right;
-                case TOKEN_DIV:
-                    return left / right;
-                case TOKEN_ADD:
-                    return left + right;
-                case TOKEN_SUB:
-                    return left - right;
-                default:
-                    assert(false);
-                    break;
-            }
-            return 0.0;
-        }
-
-
-        double eval_unary_op_d(TokenKind op, double val) {
-            switch (op) {
-                case TOKEN_ADD:
-                    return +val;
-                case TOKEN_SUB:
-                    return -val;
-                default:
-                    assert(false);
-                    break;
-            }
-            return 0.0;
-        }
-
-
         Val eval_unary_op(TokenKind op, Type* type, Val val) {
-            Operand operand = operand_const(type, val);
             if (is_integer_type(type)) {
+                Operand operand = operand_const(type, val);
                 if (is_signed_type(type)) {
                     convert_operand(&operand, type_llong);
                     operand.val.ll = eval_unary_op_ll(op, operand.val.ll);
@@ -1630,55 +1428,50 @@ namespace Lang
                     operand.val.ull = eval_unary_op_ull(op, operand.val.ull);
                 }
             }
-            else {
-                convert_operand(&operand, type_double);
-                operand.val.d = eval_unary_op_d(op, operand.val.d);
-            }
-            convert_operand(&operand, type);
-            return operand.val;
+            return default;
         }
 
         long eval_binary_op_ll(TokenKind op, long left, long right) {
             switch (op) {
                 case TOKEN_MUL:
-                return left * right;
+                    return left * right;
                 case TOKEN_DIV:
-                return right != 0 ? left / right : 0;
+                    return right != 0 ? left / right : 0;
                 case TOKEN_MOD:
-                return right != 0 ? left % right : 0;
+                    return right != 0 ? left % right : 0;
                 case TOKEN_AND:
-                return left & right;
+                    return left & right;
                 case TOKEN_LSHIFT:
-                return left << (int)right;
+                    return left << (int)right;
                 case TOKEN_RSHIFT:
-                return left >> (int)right;
+                    return left >> (int)right;
                 case TOKEN_ADD:
-                return left + right;
+                    return left + right;
                 case TOKEN_SUB:
-                return left - right;
+                    return left - right;
                 case TOKEN_OR:
-                return left | right;
+                    return left | right;
                 case TOKEN_XOR:
-                return left ^ right;
+                    return left ^ right;
                 case TOKEN_EQ:
-                return left == right ? 1 : 0;
+                    return left == right ? 1 : 0;
                 case TOKEN_NOTEQ:
-                return left != right ? 1 : 0;
+                    return left != right ? 1 : 0;
                 case TOKEN_LT:
-                return left < right ? 1 : 0;
+                    return left < right ? 1 : 0;
                 case TOKEN_LTEQ:
-                return left <= right ? 1 : 0;
+                    return left <= right ? 1 : 0;
                 case TOKEN_GT:
-                return left > right ? 1 : 0;
+                    return left > right ? 1 : 0;
                 case TOKEN_GTEQ:
-                return left >= right ? 1 : 0;
+                    return left >= right ? 1 : 0;
                 case TOKEN_AND_AND:
-                return (left != 0 && right != 0) ? 1 : 0;
+                    return (left != 0 && right != 0) ? 1 : 0;
                 case TOKEN_OR_OR:
-                return (left != 0 || right != 0) ? 1 : 0;
+                    return (left != 0 || right != 0) ? 1 : 0;
                 default:
-                assert(false);
-                break;
+                    assert(false);
+                    break;
             }
             return 0;
         }
@@ -1686,70 +1479,67 @@ namespace Lang
         ulong eval_binary_op_ull(TokenKind op, ulong left, ulong right) {
             switch (op) {
                 case TOKEN_MUL:
-                return left * right;
+                    return left * right;
                 case TOKEN_DIV:
-                return right != 0 ? left / right : 0;
+                    return right != 0 ? left / right : 0;
                 case TOKEN_MOD:
-                return right != 0 ? left % right : 0;
+                    return right != 0 ? left % right : 0;
                 case TOKEN_AND:
-                return left & right;
+                    return left & right;
                 case TOKEN_LSHIFT:
-                return left << (int)right;
+                    return left << (int)right;
                 case TOKEN_RSHIFT:
-                return left >> (int)right;
+                    return left >> (int)right;
                 case TOKEN_ADD:
-                return left + right;
+                    return left + right;
                 case TOKEN_SUB:
-                return left - right;
+                    return left - right;
                 case TOKEN_OR:
-                return left | right;
+                    return left | right;
                 case TOKEN_XOR:
-                return left ^ right;
+                    return left ^ right;
                 case TOKEN_EQ:
-                return left == right ? 1ul : 0;
+                    return left == right ? 1ul : 0;
                 case TOKEN_NOTEQ:
-                return left != right ? 1ul : 0;
+                    return left != right ? 1ul : 0;
                 case TOKEN_LT:
-                return left < right ? 1ul : 0;
+                    return left < right ? 1ul : 0;
                 case TOKEN_LTEQ:
-                return left <= right ? 1ul : 0;
+                    return left <= right ? 1ul : 0;
                 case TOKEN_GT:
-                return left > right ? 1ul : 0;
+                    return left > right ? 1ul : 0;
                 case TOKEN_GTEQ:
-                return left >= right ? 1ul : 0;
+                    return left >= right ? 1ul : 0;
                 case TOKEN_AND_AND:
-                return (left != 0 && right != 0) ? 1ul : 0;
+                    return (left != 0 && right != 0) ? 1ul : 0;
                 case TOKEN_OR_OR:
-                return (left != 0 || right != 0) ? 1ul : 0;
+                    return (left != 0 || right != 0) ? 1ul : 0;
                 default:
-                assert(false);
-                break;
+                    assert(false);
+                    break;
             }
             return 0;
         }
         Val eval_binary_op(TokenKind op, Type* type, Val left, Val right) {
-            Operand left_operand = operand_const(type, left);
-            Operand right_operand = operand_const(type, right);
-            Operand result_operand;
             if (is_integer_type(type)) {
+                Operand left_operand = operand_const(type, left);
+                Operand right_operand = operand_const(type, right);
+                Operand result_operand;
                 if (is_signed_type(type)) {
                     convert_operand(&left_operand, type_llong);
                     convert_operand(&right_operand, type_llong);
-                    result_operand = operand_const(type_llong, new Val{ll = eval_binary_op_ll(op, left_operand.val.ll, right_operand.val.ll)});
+                    result_operand = operand_const(type_llong, new Val { ll = eval_binary_op_ll(op, left_operand.val.ll, right_operand.val.ll) });
                 }
                 else {
                     convert_operand(&left_operand, type_ullong);
                     convert_operand(&right_operand, type_ullong);
-                    result_operand = operand_const(type_ullong, new Val{ull = eval_binary_op_ull(op, left_operand.val.ull, right_operand.val.ull)});
+                    result_operand = operand_const(type_ullong, new Val { ull = eval_binary_op_ull(op, left_operand.val.ull, right_operand.val.ull) });
                 }
+                convert_operand(&result_operand, type);
+                return result_operand.val;
             }
-            else {
-                convert_operand(&left_operand, type_double);
-                convert_operand(&right_operand, type_double);
-                result_operand = operand_const(type_double, new Val{d = eval_binary_op_d(op, left_operand.val.d, right_operand.val.d)});
-            }
-            convert_operand(&result_operand, type);
-            return result_operand.val;
+
+            return default;
         }
 
         private Operand resolve_expr_name(Expr* expr) {
@@ -2122,7 +1912,7 @@ namespace Lang
                     result = operand_const(type_int, new Val { i = expr->int_val });
                     break;
                 case EXPR_FLOAT:
-                    result = operand_const(type_float, new Val { f = expr->float_val });
+                    result = operand_const(type_float, default);
                     break;
                 case EXPR_STR:
                     result = operand_rvalue(type_ptr(type_char));
@@ -2233,18 +2023,18 @@ namespace Lang
 
             type_names[(int)TYPE_VOID] = "void".ToPtr();
             type_names[(int)TYPE_BOOL] = "bool".ToPtr();
-            type_names[(int)TYPE_CHAR]   = "char".ToPtr();
-            type_names[(int)TYPE_SCHAR]  = "schar".ToPtr();
-            type_names[(int)TYPE_UCHAR]  = "uchar".ToPtr();
-            type_names[(int)TYPE_SHORT]  = "short".ToPtr();
+            type_names[(int)TYPE_CHAR] = "char".ToPtr();
+            type_names[(int)TYPE_SCHAR] = "schar".ToPtr();
+            type_names[(int)TYPE_UCHAR] = "uchar".ToPtr();
+            type_names[(int)TYPE_SHORT] = "short".ToPtr();
             type_names[(int)TYPE_USHORT] = "ushort".ToPtr();
-            type_names[(int)TYPE_INT]    = "int".ToPtr();
-            type_names[(int)TYPE_UINT]   = "uint".ToPtr();
-            type_names[(int)TYPE_LONG]   = "long".ToPtr();
-            type_names[(int)TYPE_ULONG]  = "ulong".ToPtr();
-            type_names[(int)TYPE_LLONG]  = "llong".ToPtr();
+            type_names[(int)TYPE_INT] = "int".ToPtr();
+            type_names[(int)TYPE_UINT] = "uint".ToPtr();
+            type_names[(int)TYPE_LONG] = "long".ToPtr();
+            type_names[(int)TYPE_ULONG] = "ulong".ToPtr();
+            type_names[(int)TYPE_LLONG] = "llong".ToPtr();
             type_names[(int)TYPE_ULLONG] = "ullong".ToPtr();
-            type_names[(int)TYPE_FLOAT]  = "float".ToPtr();
+            type_names[(int)TYPE_FLOAT] = "float".ToPtr();
             type_names[(int)TYPE_DOUBLE] = "double".ToPtr();
 
             sym_global_type("void".ToPtr(), type_void);
@@ -2264,8 +2054,8 @@ namespace Lang
             sym_global_type("float".ToPtr(), type_float);
 
 
-            sym_global_const("true".ToPtr(), type_bool, new Val{b = true});
-            sym_global_const("false".ToPtr(), type_bool, new Val{b = false});
+            sym_global_const("true".ToPtr(), type_bool, new Val { b = true });
+            sym_global_const("false".ToPtr(), type_bool, new Val { b = false });
         }
 
         private void finalize_syms() {
@@ -2458,8 +2248,6 @@ namespace Lang
         [FieldOffset(0)] public uint ul;
         [FieldOffset(0)] public long ll;
         [FieldOffset(0)] public ulong ull;
-        [FieldOffset(0)] public float f;
-        [FieldOffset(0)] public double d;
 
         public override string ToString() {
             String str;
