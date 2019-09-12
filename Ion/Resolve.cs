@@ -13,6 +13,7 @@ namespace Lang
     using static TokenKind;
     using static StmtKind;
     using static CompoundFieldKind;
+    using static StmtCtrl;
 
     unsafe partial class Ion
     {
@@ -272,6 +273,7 @@ namespace Lang
             sym->name = name;
             sym->decl = decl;
             sym->state = 0;
+            sym->val = default;
             return sym;
         }
 
@@ -1189,11 +1191,17 @@ namespace Lang
             }
         }
 
-        private void resolve_stmt_block(StmtList block, Type* ret_type) {
-            var start = sym_enter();
-            for (var i = 0; i < block.num_stmts; i++)
-                resolve_stmt(block.stmts[i], ret_type);
-            sym_leave(start);
+        private StmtCtrl resolve_stmt_block(StmtList block, Type* ret_type) {
+            var scope = sym_enter();
+            bool returns = false;
+            bool escapes = false;
+            for (var i = 0; i < block.num_stmts; i++){
+                StmtCtrl ctrl = resolve_stmt(block.stmts[i], ret_type);
+                returns = returns || ctrl == CTRL_RETURNS;
+                escapes = escapes || ctrl == CTRL_ESCAPES;
+            }
+            sym_leave(scope);
+            return escapes ? CTRL_ESCAPES : returns ? CTRL_RETURNS : CTRL_DEFAULT;
         }
         void resolve_stmt_assign(Stmt* stmt) {
             assert(stmt->kind == STMT_ASSIGN);
@@ -1209,7 +1217,7 @@ namespace Lang
             }
         }
 
-        private void resolve_stmt(Stmt* stmt, Type* ret_type) {
+        StmtCtrl resolve_stmt(Stmt* stmt, Type* ret_type) {
             switch (stmt->kind) {
                 case STMT_RETURN:
                     if (stmt->expr != null) {
@@ -1223,43 +1231,53 @@ namespace Lang
                             fatal_error(stmt->pos, "Empty return expression for function with non-void return type");
                     }
 
-                    break;
+                    return CTRL_RETURNS;
                 case STMT_BREAK:
                 case STMT_CONTINUE:
-                    // Do nothing
-                    break;
+                    return CTRL_ESCAPES;
                 case STMT_BLOCK:
-                    resolve_stmt_block(stmt->block, ret_type);
-                    break;
-                case STMT_IF:
+                    return resolve_stmt_block(stmt->block, ret_type);
+                case STMT_IF: {
                     resolve_cond_expr(stmt->if_stmt.cond);
-                    resolve_stmt_block(stmt->if_stmt.then_block, ret_type);
+                    StmtCtrl if_ctrl = resolve_stmt_block(stmt->if_stmt.then_block, ret_type);
+                    bool escapes = if_ctrl == CTRL_ESCAPES;
+                    bool returns = if_ctrl == CTRL_RETURNS;
                     for (var i = 0; i < stmt->if_stmt.num_elseifs; i++) {
                         var elseif = stmt->if_stmt.elseifs[i];
                         resolve_cond_expr(elseif->cond);
-                        resolve_stmt_block(elseif->block, ret_type);
+                        StmtCtrl elseif_ctrl = resolve_stmt_block(elseif->block, ret_type);
+                        escapes = escapes || elseif_ctrl == CTRL_ESCAPES;
+                        returns = returns && elseif_ctrl == CTRL_RETURNS;
                     }
 
-                    if (stmt->if_stmt.else_block.stmts != null)
-                        resolve_stmt_block(stmt->if_stmt.else_block, ret_type);
-                    break;
+                    if (stmt->if_stmt.else_block.stmts != null) {
+                        StmtCtrl else_ctrl = resolve_stmt_block(stmt->if_stmt.else_block, ret_type);
+                        escapes = escapes || else_ctrl == CTRL_ESCAPES;
+                        returns = returns && else_ctrl == CTRL_RETURNS;
+                    }
+                    else
+                        returns = false;
+                    return escapes ? CTRL_ESCAPES : returns ? CTRL_RETURNS : CTRL_DEFAULT;
+                }
                 case STMT_WHILE:
                 case STMT_DO_WHILE:
                     resolve_cond_expr(stmt->while_stmt.cond);
-                    resolve_stmt_block(stmt->while_stmt.block, ret_type);
-                    break;
+                    return resolve_stmt_block(stmt->while_stmt.block, ret_type);
                 case STMT_FOR: {
                     var sym = sym_enter();
                     resolve_stmt(stmt->for_stmt.init, ret_type);
                     resolve_cond_expr(stmt->for_stmt.cond);
                     resolve_stmt_block(stmt->for_stmt.block, ret_type);
-                    resolve_stmt(stmt->for_stmt.next, ret_type);
+                    StmtCtrl ctrl = resolve_stmt(stmt->for_stmt.next, ret_type);
                     sym_leave(sym);
-                    break;
+                    return ctrl;
                 }
 
                 case STMT_SWITCH: {
                     var result = resolve_expr(stmt->switch_stmt.expr);
+                    bool escapes = false;
+                    bool returns = true;
+                    bool has_default = false;
                     for (var i = 0; i < stmt->switch_stmt.num_cases; i++) {
                         var switch_case = stmt->switch_stmt.cases[i];
                         for (var j = 0; j < switch_case.num_exprs; j++) {
@@ -1268,26 +1286,36 @@ namespace Lang
                             if (!convert_operand(&case_operand, case_expr->type)) {
                                 fatal_error(case_expr->pos, "Illegal conversion in switch case expression");
                             }
-                            resolve_stmt_block(switch_case.block, ret_type);
+                            StmtCtrl ctrl = resolve_stmt_block(switch_case.block, ret_type);
+                            escapes = escapes || ctrl == CTRL_ESCAPES;
+                            returns = returns && ctrl == CTRL_RETURNS;
+                        }
+                        if (switch_case.is_default) {
+                            if (has_default) {
+                                fatal_error(stmt->pos, "Switch statement has multiple default clauses");
+                            }
+                            has_default = true;
                         }
                     }
-
-                    break;
+                    if (!has_default) {
+                        returns = false;
+                    }
+                    return escapes ? CTRL_ESCAPES : returns ? CTRL_RETURNS : CTRL_DEFAULT;
                 }
 
                 case STMT_ASSIGN:
                     resolve_stmt_assign(stmt);
-                    break;
+                    return CTRL_DEFAULT;
 
                 case STMT_INIT:
                     sym_push_var(stmt->init.name, resolve_expr(stmt->init.expr).type);
-                    break;
+                    return CTRL_DEFAULT;
                 case STMT_EXPR:
                     resolve_expr(stmt->expr);
-                    break;
+                    return CTRL_DEFAULT;
                 default:
                     assert(false);
-                    break;
+                    return CTRL_DEFAULT;
             }
         }
 
@@ -1300,8 +1328,12 @@ namespace Lang
                 var param = decl->func.@params[i];
                 sym_push_var(param.name, resolve_typespec(param.type));
             }
-
-            resolve_stmt_block(decl->func.block, resolve_typespec(decl->func.ret_type));
+            Type *ret_type = resolve_typespec(decl->func.ret_type);
+            StmtCtrl ctrl = resolve_stmt_block(decl->func.block, ret_type);
+            sym_leave(scope);
+            if (ret_type != type_void && ctrl != CTRL_RETURNS) {
+                fatal_error(decl->pos, "Not all control paths return values");
+            }
             sym_leave(scope);
         }
 
@@ -2297,5 +2329,11 @@ namespace Lang
             public bool variadic;
             public Type* ret;
         }
+    }
+    enum StmtCtrl
+    {
+        CTRL_DEFAULT,
+        CTRL_ESCAPES,
+        CTRL_RETURNS,
     }
 }
