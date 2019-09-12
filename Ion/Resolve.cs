@@ -349,10 +349,17 @@ namespace Lang
         private void sym_leave(Sym* sym) {
             local_syms._top = sym;
         }
+        void sym_global_typedef(char* name, Type* type) {
+            Sym *sym = sym_new(SYM_TYPE, _I(name), decl_typedef(pos_builtin, name, typespec_name(pos_builtin, name)));
+            sym->state = SYM_RESOLVED;
+            sym->type = type;
+            sym_global_put(sym);
+        }
+
 
         private void sym_global_put(Sym* sym) {
             if (global_syms_map.map_get(sym->name) != null) {
-                SrcPos pos = sym->decl != null ? sym->decl->pos : new SrcPos{name = "<unknown>".ToPtr()};
+                SrcPos pos = sym->decl != null ? sym->decl->pos : pos_builtin;
                 fatal_error(pos, "Duplicate definition of global symbol");
             }
             global_syms_map.map_put(sym->name, sym);
@@ -2098,6 +2105,14 @@ namespace Lang
             sym_global_type("ullong".ToPtr(), type_ullong);
             sym_global_type("float".ToPtr(), type_float);
 
+            sym_global_typedef("uint8".ToPtr(), type_uchar);
+            sym_global_typedef("int8".ToPtr(), type_schar);
+            sym_global_typedef("uint16".ToPtr(), type_ushort);
+            sym_global_typedef("int16".ToPtr(), type_short);
+            sym_global_typedef("uint32".ToPtr(), type_uint);
+            sym_global_typedef("int32".ToPtr(), type_int);
+            sym_global_typedef("uint64".ToPtr(), type_ullong);
+            sym_global_typedef("int64".ToPtr(), type_llong);
 
             sym_global_const("true".ToPtr(), type_bool, new Val { b = true });
             sym_global_const("false".ToPtr(), type_bool, new Val { b = false });

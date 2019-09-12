@@ -14,6 +14,9 @@ namespace Lang
         }
         [DebuggerHidden]
         private static void error(SrcPos pos, string format, params object[] pmz) {
+            if (pos.name == null) {
+                pos = pos_builtin;
+            }
             Console.Error.Write("{0}({1}): error: ", new string(pos.name), pos.line);
             Console.Error.WriteLine(format, pmz);
         }

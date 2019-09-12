@@ -11,6 +11,15 @@ typedef unsigned long ulong;
 typedef long long llong;
 typedef unsigned long long ullong;
 
+typedef uchar uint8;
+typedef schar int8;
+typedef ushort uint16;
+typedef short int16;
+typedef uint uint32;
+typedef int int32;
+typedef ullong uint64;
+typedef llong int64;
+
 // Forward declarations
 typedef union IntOrPtr IntOrPtr;
 typedef struct Vector Vector;
@@ -33,7 +42,7 @@ uchar uc = 1;
 schar sc = 1;
 
 #line 17
-#define N ((((char)(42)) + (8)) != (0))
+#define N1 ((((char)(42)) + (8)) != (0))
 
 uchar h(void);
 
@@ -112,18 +121,24 @@ int va_test(int x, ...);
 typedef int (*F)(int, ...);
 
 #line 131
+#define N ((ullong)(1))
+
+#line 133
+uint8 u8 = 123;
+
+#line 135
 void test_ops(void);
 
-#line 161
+#line 165
 int test_ctrl(void);
 
-#line 172
+#line 176
 #define IS_DEBUG (true)
 
-#line 174
+#line 178
 void test_bool(void);
 
-#line 181
+#line 185
 int main(int argc, char (*(*argv)));
 
 // Function declarations
@@ -241,109 +256,109 @@ int va_test(int x, ...) {
     return 0;
 }
 
-#line 131
+#line 135
 void test_ops(void) {
-    #line 132
-    float pi = 3.14;
-    #line 133
-    float f = 0.0;
-    #line 134
-    f = +(pi);
-    #line 135
-    f = -(pi);
     #line 136
-    int n = -(1);
+    float pi = 3.14;
     #line 137
-    n = ~(n);
+    float f = 0.0;
     #line 138
-    f = ((f) * (pi)) + (n);
+    f = +(pi);
     #line 139
-    f = (pi) / (pi);
+    f = -(pi);
     #line 140
-    n = (3) % (2);
+    int n = -(1);
     #line 141
-    n = (n) + ((uchar)(1));
+    n = ~(n);
     #line 142
-    int (*p) = &(n);
+    f = ((f) * (pi)) + (n);
     #line 143
-    p = (p) + (1);
+    f = (pi) / (pi);
     #line 144
-    n = ((p) + (1)) - (p);
+    n = (3) % (2);
     #line 145
-    n = (n) << (1);
+    n = (n) + ((uchar)(1));
     #line 146
-    n = (n) >> (1);
+    int (*p) = &(n);
     #line 147
-    int b = ((p) + (1)) > (p);
+    p = (p) + (1);
     #line 148
-    b = ((p) + (1)) >= (p);
+    n = ((p) + (1)) - (p);
     #line 149
-    b = ((p) + (1)) < (p);
+    n = (n) << (1);
     #line 150
-    b = ((p) + (1)) <= (p);
+    n = (n) >> (1);
     #line 151
-    b = ((p) + (1)) == (p);
+    int b = ((p) + (1)) > (p);
     #line 152
-    b = (1) > (2);
+    b = ((p) + (1)) >= (p);
     #line 153
-    b = (1.23) <= (pi);
+    b = ((p) + (1)) < (p);
     #line 154
-    n = 0xff;
+    b = ((p) + (1)) <= (p);
     #line 155
-    b = (n) & (~(1));
+    b = ((p) + (1)) == (p);
     #line 156
-    b = (n) & (1);
+    b = (1) > (2);
     #line 157
-    b = ((n) & (~(1))) ^ (1);
+    b = (1.23) <= (pi);
     #line 158
+    n = 0xff;
+    #line 159
+    b = (n) & (~(1));
+    #line 160
+    b = (n) & (1);
+    #line 161
+    b = ((n) & (~(1))) ^ (1);
+    #line 162
     b = (p) && (pi);
 }
 
-#line 161
+#line 165
 int test_ctrl(void) {
-    #line 162
+    #line 166
     while ((3) < (6)) {
-        #line 163
+        #line 167
         while (1) {
-            #line 164
+            #line 168
             break;
         }
-        #line 166
+        #line 170
         return 42;
     }
-    #line 168
+    #line 172
     return 0;
 }
 
 void test_bool(void) {
-    #line 175
+    #line 179
     bool b = false;
-    #line 176
+    #line 180
     b = true;
-    #line 177
+    #line 181
     int i = 0;
-    #line 178
+    #line 182
     i = IS_DEBUG;
 }
 
-#line 181
+#line 185
 int main(int argc, char (*(*argv))) {
-    #line 182
-    (test_bool)();
-    #line 183
-    (test_ops)();
-    #line 184
-    int b = (example_test)();
-    #line 185
-    (puts)("Hello, world!");
     #line 186
-    int c = (getchar)();
+    (test_bool)();
     #line 187
-    (printf)("You wrote \'%c\'\n", c);
+    (test_ops)();
     #line 188
-    (va_test)(1);
+    int b = (example_test)();
     #line 189
-    (va_test)(1, 2);
+    (puts)("Hello, world!");
     #line 190
+    int c = (getchar)();
+    #line 191
+    (printf)("You wrote \'%c\'\n", c);
+    #line 192
+    (va_test)(1);
+    #line 193
+    (va_test)(1, 2);
+    #line 194
     return 0;
 }

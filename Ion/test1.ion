@@ -14,7 +14,7 @@ var c: char = 1
 var uc: uchar = 1
 var sc: schar = 1
 
-const N = (:char)42 + 8 != 0
+const N1 = (:char)42 + 8 != 0
 
 typedef A = int[1 + 2*sizeof(h())]
 
@@ -127,6 +127,10 @@ func va_test(x: int, ...): int {
 }
 
 typedef F = func(int, ...):int
+
+const N = ullong(1)
+
+var u8: uint8 = 123
 
 func test_ops() {
     pi := 3.14;

@@ -28,8 +28,18 @@ namespace Lang
                                             "typedef unsigned long ulong;\n"+
                                             "typedef long long llong;\n"+
                                             "typedef unsigned long long ullong;\n"+
+                                            "\n"+
+                                            "typedef uchar uint8;\n"+
+                                            "typedef schar int8;\n"+
+                                            "typedef ushort uint16;\n"+
+                                            "typedef short int16;\n"+
+                                            "typedef uint uint32;\n"+
+                                            "typedef int int32;\n"+
+                                            "typedef ullong uint64;\n"+
+                                            "typedef llong int64;\n"+
                                             "\n";
 
+        private readonly char* defineStr = "#define ".ToPtr();
         private readonly char* lineStr = "#line ".ToPtr();
         private readonly char* VOID = "void".ToPtr();
 
@@ -817,7 +827,7 @@ namespace Lang
             switch (decl->kind) {
                 case DECL_CONST:
                     genln();
-                    c_write("#define ".ToPtr2(), 8);
+                    c_write(defineStr, 8);
                     c_write(sym->name);
                     c_write(' ');
                     c_write('(');

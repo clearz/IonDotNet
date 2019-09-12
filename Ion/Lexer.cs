@@ -16,6 +16,8 @@ namespace Lang
 
         private readonly byte[] char_to_digit = new byte[256];
         private readonly char[] escape_to_char = new char[256];
+        static SrcPos pos_builtin = new SrcPos{name = "<builtin>".ToPtr()};
+
         private char** token_kind_names;
 
         void init_tokens() {
