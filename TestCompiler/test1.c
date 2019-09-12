@@ -117,13 +117,13 @@ void test_ops(void);
 #line 159
 int test_ctrl(void);
 
-#line 169
+#line 170
 #define IS_DEBUG (true)
 
-#line 171
+#line 172
 void test_bool(void);
 
-#line 178
+#line 179
 int main(int argc, char (*(*argv)));
 
 // Function declarations
@@ -298,7 +298,7 @@ void test_ops(void) {
 #line 159
 int test_ctrl(void) {
     #line 160
-    while (1) {
+    while ((3) < (6)) {
         #line 161
         while (1) {
             #line 162
@@ -307,38 +307,39 @@ int test_ctrl(void) {
         #line 164
         return 42;
     }
+    #line 166
+    return 0;
 }
 
-#line 171
 void test_bool(void) {
-    #line 172
-    bool b = false;
     #line 173
-    b = true;
+    bool b = false;
     #line 174
-    int i = 0;
+    b = true;
     #line 175
+    int i = 0;
+    #line 176
     i = IS_DEBUG;
 }
 
-#line 178
+#line 179
 int main(int argc, char (*(*argv))) {
-    #line 179
-    test_bool();
     #line 180
-    test_ops();
+    test_bool();
     #line 181
-    int b = example_test();
+    test_ops();
     #line 182
-    puts("Hello, world!");
+    int b = example_test();
     #line 183
-    int c = getchar();
+    puts("Hello, world!");
     #line 184
-    printf("You wrote \'%c\'\n", c);
+    int c = getchar();
     #line 185
-    va_test(1);
+    printf("You wrote \'%c\'\n", c);
     #line 186
-    va_test(1, 2);
+    va_test(1);
     #line 187
+    va_test(1, 2);
+    #line 188
     return 0;
 }
