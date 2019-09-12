@@ -312,15 +312,22 @@ namespace Lang
             return sym_new(SYM_ENUM_CONST, name, decl);
         }
 
-        private Sym* sym_get(char* name) {
+        private Sym* sym_get_local(char* name) {
             for (var sym = local_syms._top - 1; sym >= local_syms._begin; sym--)
                 if (sym->name == name)
                     return sym;
 
-            return (Sym*)global_syms_map.map_get(name);
+            return null; 
+        }
+        Sym* sym_get(char* name) {
+            Sym *sym = sym_get_local(name);
+            return sym != null ? sym : (Sym*)global_syms_map.map_get(name);
         }
 
-        private void sym_push_var(char* name, Type* type) {
+        private bool sym_push_var(char* name, Type* type) {
+            if (sym_get_local(name) != null) {
+                return false;
+            }
             if (local_syms._top == local_syms._begin + MAX_LOCAL_SYMS)
                 fatal("Too many local symbols");
 
@@ -331,6 +338,8 @@ namespace Lang
             sym->state = SYM_RESOLVED;
             sym->type = type;
             *local_syms._top++ = *sym;
+
+            return true;
         }
 
         private Sym* sym_enter() {
@@ -342,6 +351,10 @@ namespace Lang
         }
 
         private void sym_global_put(Sym* sym) {
+            if (global_syms_map.map_get(sym->name) != null) {
+                SrcPos pos = sym->decl != null ? sym->decl->pos : default;
+                fatal_error(pos, "Duplicate symbol definition");
+            }
             global_syms_map.map_put(sym->name, sym);
             global_syms_buf->Add(sym);
         }
@@ -407,10 +420,6 @@ namespace Lang
             }
         }
 
-
-
-
-        int TKind(TypeKind kind) => 5;
         bool convert_operand(Operand* operand, Type* type) {
             // TODO: check for legal conversion
 
@@ -1294,7 +1303,9 @@ namespace Lang
                     return false;
 
                 case STMT_INIT:
-                    sym_push_var(stmt->init.name, resolve_expr(stmt->init.expr).type);
+                    if (!sym_push_var(stmt->init.name, resolve_expr(stmt->init.expr).type)) {
+                        fatal_error(stmt->pos, "Shadowed definition of local symbol");
+                    }
                     return false;
                 case STMT_EXPR:
                     resolve_expr(stmt->expr);
