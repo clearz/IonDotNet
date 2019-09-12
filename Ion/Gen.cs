@@ -520,7 +520,9 @@ namespace Lang
                     c_write(')');
                     break;
                 case EXPR_CALL:
+                    c_write('(');
                     gen_expr(expr->call.expr);
+                    c_write(')');
                     c_write('(');
                     for (var i = 0; i < expr->call.num_args; i++) {
                         if (i != 0) {

@@ -352,8 +352,8 @@ namespace Lang
 
         private void sym_global_put(Sym* sym) {
             if (global_syms_map.map_get(sym->name) != null) {
-                SrcPos pos = sym->decl != null ? sym->decl->pos : default;
-                fatal_error(pos, "Duplicate symbol definition");
+                SrcPos pos = sym->decl != null ? sym->decl->pos : new SrcPos{name = "<unknown>".ToPtr()};
+                fatal_error(pos, "Duplicate definition of global symbol");
             }
             global_syms_map.map_put(sym->name, sym);
             global_syms_buf->Add(sym);
@@ -1866,6 +1866,19 @@ namespace Lang
 
         private Operand resolve_expr_call(Expr* expr) {
             assert(expr->kind == EXPR_CALL);
+            if (expr->call.expr->kind == EXPR_NAME) {
+                Sym *sym = resolve_name(expr->call.expr->name);
+                if (sym->kind == SYM_TYPE) {
+                    if (expr->call.num_args != 1) {
+                        fatal_error(expr->pos, "Type conversion operator takes 1 argument");
+                    }
+                    Operand operand = resolve_expr(expr->call.args[0]);
+                    if (!convert_operand(&operand, sym->type)) {
+                        fatal_error(expr->pos, "Invalid type conversion");
+                    }
+                    return operand;
+                }
+            }
             var func = resolve_expr(expr->call.expr);
             if (func.type->kind != TYPE_FUNC)
                 fatal_error(expr->pos, "Trying to call non-function value");

@@ -38,7 +38,7 @@ schar sc = 1;
 uchar h(void);
 
 #line 19
-typedef int (A[(1) + ((2) * (sizeof(h())))]);
+typedef int (A[(1) + ((2) * (sizeof((h)())))]);
 
 #line 86
 struct Vector {
@@ -170,7 +170,7 @@ void f1(void) {
 #line 47
 int example_test(void) {
     #line 48
-    return (fact_rec(10)) == (fact_iter(10));
+    return ((fact_rec)(10)) == ((fact_iter)(10));
 }
 
 #line 68
@@ -220,7 +220,7 @@ int fact_rec(int n) {
         return 1;
     } else {
         #line 106
-        return (n) * (fact_rec((n) - (1)));
+        return (n) * ((fact_rec)((n) - (1)));
     }
 }
 
@@ -329,21 +329,21 @@ void test_bool(void) {
 #line 181
 int main(int argc, char (*(*argv))) {
     #line 182
-    test_bool();
+    (test_bool)();
     #line 183
-    test_ops();
+    (test_ops)();
     #line 184
-    int b = example_test();
+    int b = (example_test)();
     #line 185
-    puts("Hello, world!");
+    (puts)("Hello, world!");
     #line 186
-    int c = getchar();
+    int c = (getchar)();
     #line 187
-    printf("You wrote \'%c\'\n", c);
+    (printf)("You wrote \'%c\'\n", c);
     #line 188
-    va_test(1);
+    (va_test)(1);
     #line 189
-    va_test(1, 2);
+    (va_test)(1, 2);
     #line 190
     return 0;
 }
