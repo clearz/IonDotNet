@@ -707,7 +707,7 @@ namespace Lang
 
                     break;
                 case STMT_WHILE:
-                    c_write(while_keyword);
+                    genlnf(while_keyword);
                     c_write(' ');
                     c_write('(');
                     gen_expr(stmt->while_stmt.cond);
@@ -716,7 +716,7 @@ namespace Lang
                     gen_stmt_block(stmt->while_stmt.block);
                     break;
                 case STMT_DO_WHILE:
-                    c_write(do_keyword);
+                    genlnf(do_keyword);
                     c_write(' ');
                     gen_stmt_block(stmt->while_stmt.block);
                     c_write(' ');

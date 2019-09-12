@@ -1203,6 +1203,7 @@ namespace Lang
             sym_leave(scope);
             return escapes ? CTRL_ESCAPES : returns ? CTRL_RETURNS : CTRL_DEFAULT;
         }
+
         void resolve_stmt_assign(Stmt* stmt) {
             assert(stmt->kind == STMT_ASSIGN);
             Operand left = resolve_expr(stmt->assign.left);
@@ -1260,9 +1261,11 @@ namespace Lang
                     return escapes ? CTRL_ESCAPES : returns ? CTRL_RETURNS : CTRL_DEFAULT;
                 }
                 case STMT_WHILE:
-                case STMT_DO_WHILE:
+                case STMT_DO_WHILE: {
                     resolve_cond_expr(stmt->while_stmt.cond);
-                    return resolve_stmt_block(stmt->while_stmt.block, ret_type);
+                    StmtCtrl ctrl = resolve_stmt_block(stmt->while_stmt.block, ret_type);
+                    return ctrl == CTRL_RETURNS ? CTRL_RETURNS : CTRL_DEFAULT;
+                }
                 case STMT_FOR: {
                     var sym = sym_enter();
                     resolve_stmt(stmt->for_stmt.init, ret_type);
@@ -1270,7 +1273,7 @@ namespace Lang
                     resolve_stmt_block(stmt->for_stmt.block, ret_type);
                     StmtCtrl ctrl = resolve_stmt(stmt->for_stmt.next, ret_type);
                     sym_leave(sym);
-                    return ctrl;
+                    return ctrl == CTRL_RETURNS ? CTRL_RETURNS : CTRL_DEFAULT;
                 }
 
                 case STMT_SWITCH: {

@@ -115,12 +115,15 @@ typedef int (*F)(int, ...);
 void test_ops(void);
 
 #line 159
+int test_ctrl(void);
+
+#line 169
 #define IS_DEBUG (true)
 
-#line 161
+#line 171
 void test_bool(void);
 
-#line 168
+#line 178
 int main(int argc, char (*(*argv)));
 
 // Function declarations
@@ -292,36 +295,50 @@ void test_ops(void) {
     b = (p) && (pi);
 }
 
-#line 161
+#line 159
+int test_ctrl(void) {
+    #line 160
+    while (1) {
+        #line 161
+        while (1) {
+            #line 162
+            break;
+        }
+        #line 164
+        return 42;
+    }
+}
+
+#line 171
 void test_bool(void) {
-    #line 162
+    #line 172
     bool b = false;
-    #line 163
+    #line 173
     b = true;
-    #line 164
+    #line 174
     int i = 0;
-    #line 165
+    #line 175
     i = IS_DEBUG;
 }
 
-#line 168
+#line 178
 int main(int argc, char (*(*argv))) {
-    #line 169
+    #line 179
     test_bool();
-    #line 170
+    #line 180
     test_ops();
-    #line 171
+    #line 181
     int b = example_test();
-    #line 172
+    #line 182
     puts("Hello, world!");
-    #line 173
+    #line 183
     int c = getchar();
-    #line 174
+    #line 184
     printf("You wrote \'%c\'\n", c);
-    #line 175
+    #line 185
     va_test(1);
-    #line 176
+    #line 186
     va_test(1, 2);
-    #line 177
+    #line 187
     return 0;
 }
