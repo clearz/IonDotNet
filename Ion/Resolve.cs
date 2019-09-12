@@ -1286,10 +1286,7 @@ namespace Lang
                             has_default = true;
                         }
                     }
-                    if (!has_default) {
-                        returns = false;
-                    }
-                    return returns;
+                    return returns && has_default;
                 }
 
                 case STMT_ASSIGN:
@@ -1383,8 +1380,11 @@ namespace Lang
             var left = resolve_expr(expr->field.expr);
             var type = left.type;
             complete_type(type);
+            if (type->kind == TYPE_PTR) {
+                type = type->ptr.elem;
+            }
             if (type->kind != TYPE_STRUCT && type->kind != TYPE_UNION) {
-                fatal_error(expr->pos, "Can only access fields on aggregate types");
+                fatal_error(expr->pos, "Can only access fields on aggregates or pointers to aggregates");
                 return default;
             }
 

@@ -541,7 +541,13 @@ namespace Lang
                     break;
                 case EXPR_FIELD:
                     gen_expr(expr->field.expr);
-                    c_write('.');
+                    if (expr->field.expr->type->kind == TYPE_PTR) {
+
+                        c_write('-');
+                        c_write('>');
+                    }
+                    else
+                        c_write('.');
                     c_write(expr->field.name);
                     break;
                 case EXPR_COMPOUND:
