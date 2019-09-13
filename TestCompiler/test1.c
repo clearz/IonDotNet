@@ -68,11 +68,11 @@ union IntOrPtr {
     #line 52
     int i;
     #line 53
-    int (*p);
+    int *(p);
 };
 
 #line 35
-void k(void (*vp), int (*ip));
+void k(void *(vp), int *(ip));
 
 #line 40
 void f1(void);
@@ -102,7 +102,7 @@ int i;
 void f2(Vector v);
 
 #line 112
-T (*p);
+T *(p);
 
 #line 110
 #define M ((1) + (sizeof(p)))
@@ -133,7 +133,7 @@ void test_bool(void);
 int test_ctrl(void);
 
 #line 180
-int main(int argc, char (*(*argv)));
+int main(int argc, char *(*(argv)));
 
 // Function declarations
 #line 21
@@ -161,7 +161,7 @@ int g(U u) {
 }
 
 #line 35
-void k(void (*vp), int (*ip)) {
+void k(void *(vp), int *(ip)) {
     #line 36
     vp = ip;
     #line 37
@@ -337,7 +337,7 @@ int test_ctrl(void) {
 }
 
 #line 180
-int main(int argc, char (*(*argv))) {
+int main(int argc, char *(*(argv))) {
     #line 181
     if ((argv) == (0)) {
         #line 182

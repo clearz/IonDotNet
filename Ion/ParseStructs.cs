@@ -8,6 +8,7 @@ namespace Lang
     {
         public char* name;
         public long line;
+        public long col;
     }
 
     internal unsafe struct StmtList

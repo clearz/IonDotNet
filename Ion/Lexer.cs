@@ -438,7 +438,7 @@ namespace Lang
                     while (char.IsWhiteSpace(*stream))
                         if (*stream++ == '\n')
                         {
-                            line_start = stream;
+                            line_start = stream + 1;
                             token.pos.line++;
                         }
 
@@ -816,6 +816,7 @@ namespace Lang
             }
 
             token.end = stream;
+            token.pos.col = stream - line_start;
         }
 
         private void init_stream(string buf, string name = "<anonymous>")
@@ -826,7 +827,7 @@ namespace Lang
         private void init_stream(char* str, char* name = null)
         {
             token.pos.name = name != null ? name : "<string>".ToPtr();
-            token.pos.line = 1;
+            token.pos.line = token.pos.col = 1;
             stream = str;
             next_token();
         }

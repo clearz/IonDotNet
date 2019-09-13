@@ -264,8 +264,8 @@ namespace Lang
                     break;
                 case TYPESPEC_PTR:
                     if (str != null) {
-                        buf_write('(');
                         buf_write('*');
+                        buf_write('(');
                         buf_write(str);
                         buf_write(')');
                         typespec_to_cdecl(typespec->ptr.elem, copy_buf());
