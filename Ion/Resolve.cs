@@ -422,6 +422,12 @@ namespace Lang
             else if (dest->kind == TYPE_PTR && src->kind == TYPE_PTR) {
                 return dest->ptr.elem == type_void || src->ptr.elem == type_void;
             }
+            else if (is_arithmetic_type(dest)) {
+                return src->kind == TYPE_PTR;
+            }
+            else if (is_arithmetic_type(src)) {
+                return dest->kind == TYPE_PTR;
+            }
             else {
                 return false;
             }
@@ -436,12 +442,17 @@ namespace Lang
             if (!is_convertible(operand->type, type)) {
                 return false;
             }
+            if (type->kind == TYPE_PTR && is_arithmetic_type(operand->type) && !is_null_ptr(*operand)) {
+                return false;
+            }
             if (operand->is_const) {
                 if (is_floating_type(operand->type)) {
                     operand->is_const = !is_integer_type(type);
                 }
                 else {
                     switch (operand->type->kind) {
+                        case TYPE_PTR:
+                            return type->kind == TYPE_PTR;
                         case TYPE_BOOL: {
                             var p = operand->val.b;
                             switch (type->kind) {
@@ -481,6 +492,17 @@ namespace Lang
                                     break;
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)(p ? 1 : 0);
+                                    break;
+                                case TYPE_FLOAT:
+                                case TYPE_DOUBLE:
+                                    break;
+                                case TYPE_PTR:
+                                    if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        operand->val.p = (void*)(p ? 1 : 0);
+                                    }
+                                    else {
+                                        operand->is_const = false;
+                                    }
                                     break;
                                 default:
                                     operand->is_const = false;
@@ -528,6 +550,17 @@ namespace Lang
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
                                     break;
+                                case TYPE_FLOAT:
+                                case TYPE_DOUBLE:
+                                    break;
+                                case TYPE_PTR:
+                                    if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        operand->val.p = (void*)(int)p;
+                                    }
+                                    else {
+                                        operand->is_const = false;
+                                    }
+                                    break;
                                 default:
                                     operand->is_const = false;
                                     break;
@@ -573,6 +606,17 @@ namespace Lang
                                     break;
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
+                                    break;
+                                case TYPE_FLOAT:
+                                case TYPE_DOUBLE:
+                                    break;
+                                case TYPE_PTR:
+                                    if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        operand->val.p = (void*)p;
+                                    }
+                                    else {
+                                        operand->is_const = false;
+                                    }
                                     break;
                                 default:
                                     operand->is_const = false;
@@ -620,6 +664,17 @@ namespace Lang
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
                                     break;
+                                case TYPE_FLOAT:
+                                case TYPE_DOUBLE:
+                                    break;
+                                case TYPE_PTR:
+                                    if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        operand->val.p = (void*)p;
+                                    }
+                                    else {
+                                        operand->is_const = false;
+                                    }
+                                    break;
                                 default:
                                     operand->is_const = false;
                                     break;
@@ -665,6 +720,17 @@ namespace Lang
                                     break;
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
+                                    break;
+                                case TYPE_FLOAT:
+                                case TYPE_DOUBLE:
+                                    break;
+                                case TYPE_PTR:
+                                    if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        operand->val.p = (void*)p;
+                                    }
+                                    else {
+                                        operand->is_const = false;
+                                    }
                                     break;
                                 default:
                                     operand->is_const = false;
@@ -712,6 +778,17 @@ namespace Lang
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
                                     break;
+                                case TYPE_FLOAT:
+                                case TYPE_DOUBLE:
+                                    break;
+                                case TYPE_PTR:
+                                    if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        operand->val.p = (void*)p;
+                                    }
+                                    else {
+                                        operand->is_const = false;
+                                    }
+                                    break;
                                 default:
                                     operand->is_const = false;
                                     break;
@@ -757,6 +834,17 @@ namespace Lang
                                     break;
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
+                                    break;
+                                case TYPE_FLOAT:
+                                case TYPE_DOUBLE:
+                                    break;
+                                case TYPE_PTR:
+                                    if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        operand->val.p = (void*)p;
+                                    }
+                                    else {
+                                        operand->is_const = false;
+                                    }
                                     break;
                                 default:
                                     operand->is_const = false;
@@ -804,6 +892,17 @@ namespace Lang
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
                                     break;
+                                case TYPE_FLOAT:
+                                case TYPE_DOUBLE:
+                                    break;
+                                case TYPE_PTR:
+                                    if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        operand->val.p = (void*)p;
+                                    }
+                                    else {
+                                        operand->is_const = false;
+                                    }
+                                    break;
                                 default:
                                     operand->is_const = false;
                                     break;
@@ -849,6 +948,17 @@ namespace Lang
                                     break;
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
+                                    break;
+                                case TYPE_FLOAT:
+                                case TYPE_DOUBLE:
+                                    break;
+                                case TYPE_PTR:
+                                    if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        operand->val.p = (void*)p;
+                                    }
+                                    else {
+                                        operand->is_const = false;
+                                    }
                                     break;
                                 default:
                                     operand->is_const = false;
@@ -896,6 +1006,17 @@ namespace Lang
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
                                     break;
+                                case TYPE_FLOAT:
+                                case TYPE_DOUBLE:
+                                    break;
+                                case TYPE_PTR:
+                                    if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        operand->val.p = (void*)p;
+                                    }
+                                    else {
+                                        operand->is_const = false;
+                                    }
+                                    break;
                                 default:
                                     operand->is_const = false;
                                     break;
@@ -942,6 +1063,17 @@ namespace Lang
                                 case TYPE_ULLONG:
                                     operand->val.ull = (ulong)p;
                                     break;
+                                case TYPE_FLOAT:
+                                case TYPE_DOUBLE:
+                                    break;
+                                case TYPE_PTR:
+                                    if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        operand->val.p = (void*)p;
+                                    }
+                                    else {
+                                        operand->is_const = false;
+                                    }
+                                    break;
                                 default:
                                     operand->is_const = false;
                                     break;
@@ -959,6 +1091,15 @@ namespace Lang
             return true;
         }
 
+        bool is_null_ptr(Operand operand) {
+            if (operand.is_const && (operand.type->kind == TYPE_PTR || is_arithmetic_type(operand.type))) {
+                convert_operand(&operand, type_ullong);
+                return operand.val.ull == 0;
+            }
+            else {
+                return false;
+            }
+        }
         Val convert_const(Type* dest_type, Type* src_type, Val src_val) {
             Operand operand = operand_const(src_type, src_val);
             convert_operand(&operand, dest_type);
@@ -1153,7 +1294,7 @@ namespace Lang
             Type* type = null;
             if (decl->var.type != null)
                 type = resolve_typespec(decl->var.type);
-            if (decl->var.expr != null) {
+            if (decl->var.expr != null && decl->var.expr->kind != EXPR_NULL) {
                 Operand operand = resolve_expected_expr(decl->var.expr, type);
                 if (type != null) {
                     if (type->kind == TYPE_ARRAY && operand.type->kind == TYPE_ARRAY && type->array.elem == operand.type->array.elem && type->array.size == 0) {
@@ -1224,7 +1365,12 @@ namespace Lang
             }
             if (stmt->assign.right != null) {
                 Operand right = resolve_expected_expr(stmt->assign.right, left.type);
+           
                 if (!convert_operand(&right, left.type)) {
+                    if (is_arithmetic_type(left.type) && is_null_ptr(right)) {
+                        fatal_error(stmt->pos, "Cannot assign null to non-pointer");
+                    }
+                    else
                     fatal_error(stmt->pos, "Illegal conversion in assignment statement");
                 }
             }
@@ -1743,13 +1889,15 @@ namespace Lang
                         return result;
                     }
                     else if (left.type->kind == TYPE_PTR && right.type->kind == TYPE_PTR) {
-                        if (left.type->ptr.elem != right.type->ptr.elem) {
+                        if ((left.type->ptr.elem != right.type->ptr.elem) && !is_null_ptr(*&right) && !is_null_ptr(*&left)) {
                             fatal_error(expr->pos, "Cannot compare pointers to different types");
                         }
                         return operand_rvalue(type_int);
                     }
+                    else if ((is_null_ptr(*&left) && right.type->kind == TYPE_PTR) || (is_null_ptr(*&right) && left.type->kind == TYPE_PTR)) {
+                        return operand_rvalue(type_int);
+                    }
                     else {
-                        // TODO: handle null pointer constants
                         fatal_error(expr->pos, "Operands of {0} must be arithmetic types or compatible pointer types", op_name);
                     }
                     break;
@@ -1960,6 +2108,9 @@ namespace Lang
         private Operand resolve_expected_expr(Expr* expr, Type* expected_type) {
             Operand result;
             switch (expr->kind) {
+                case EXPR_NULL:
+                    result = operand_const(type_ptr(type_void), new Val { p = null });
+                    break;
                 case EXPR_INT:
                     result = operand_const(type_int, new Val { i = expr->int_val });
                     break;
@@ -2294,7 +2445,7 @@ namespace Lang
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    internal struct Val
+    internal unsafe struct Val
     {
         [FieldOffset(0)] public bool b;
         [FieldOffset(0)] public char c;
@@ -2308,6 +2459,7 @@ namespace Lang
         [FieldOffset(0)] public uint ul;
         [FieldOffset(0)] public long ll;
         [FieldOffset(0)] public ulong ull;
+        [FieldOffset(0)] public void* p;
 
         public override string ToString() {
             String str;

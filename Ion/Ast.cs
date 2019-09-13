@@ -205,10 +205,14 @@ namespace Lang
             return e;
         }
 
-        private Expr* expr_name(SrcPos pos, char* name)
-        {
+        private Expr* expr_name(SrcPos pos, char* name) {
             var e = expr_new(EXPR_NAME, pos);
             e->name = name;
+            return e;
+        }
+
+        private Expr* expr_null(SrcPos pos) {
+            var e = expr_new(EXPR_NULL, pos);
             return e;
         }
 

@@ -373,7 +373,8 @@ namespace Lang
         EXPR_BINARY,
         EXPR_TERNARY,
         EXPR_SIZEOF_EXPR,
-        EXPR_SIZEOF_TYPE
+        EXPR_SIZEOF_TYPE,
+        EXPR_NULL,
     }
 
 

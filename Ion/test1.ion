@@ -1,11 +1,11 @@
 @foreign
-func printf(fmt: char*, ...): int {return 0;}
+func printf(fmt: char*, ...): int { return 0; }
 
 @foreign
-func puts(str: char*): int {return 0;}
+func puts(str: char*): int { return 0; }
 
 @foreign
-func getchar(): int {return 0;}
+func getchar(): int { return 0; }
 
 const PI = 3.14
 const PI2 = PI + PI
@@ -14,13 +14,13 @@ var c: char = 1
 var uc: uchar = 1
 var sc: schar = 1
 
-const N1 = (:char)42 + 8 != 0
+const N = (:char)42 + 8 != 0
 
 typedef A = int[1 + 2*sizeof(h())]
 
 func h(): uchar {
     Vector{x = 1, y = 2}.x = 42;
-	v := &Vector{1, 2};
+    v := &Vector{1, 2};
     v.x = 42;
     p := &int{0};
     x := uint{1} + long{2};
@@ -128,10 +128,6 @@ func va_test(x: int, ...): int {
 
 typedef F = func(int, ...):int
 
-const N = ullong(1)
-
-var u8: uint8 = 123
-
 func test_ops() {
     pi := 3.14;
     f := 0.0;
@@ -162,17 +158,6 @@ func test_ops() {
     b = p && pi;
 }
 
-func test_ctrl(): int {
-    while (3 < 6) {
-        while (1) {
-            break;
-        }
-        return 42;
-    }
-	return 0;
-}
-
-
 const IS_DEBUG = true
 
 func test_bool() {
@@ -182,7 +167,20 @@ func test_bool() {
     i = IS_DEBUG;
 }
 
+func test_ctrl(): int {
+    while (1) {
+        while (1) {
+            break;
+        }
+        return 42;
+    }
+    return 0;
+}
+
 func main(argc: int, argv: char**): int {
+    if (argv == 0) {
+        printf("argv is null\n");
+    }
     test_bool();
     test_ops();
     b := example_test();
@@ -191,5 +189,6 @@ func main(argc: int, argv: char**): int {
     printf("You wrote '%c'\n", c);
     va_test(1);
     va_test(1, 2);
+    argv = null;
     return 0;
 }

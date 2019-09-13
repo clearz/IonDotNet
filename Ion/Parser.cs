@@ -176,6 +176,10 @@ namespace Lang
                 return expr_name(pos, name);
             }
 
+            if (match_keyword(null_keyword)) {
+                return expr_new(EXPR_NULL, pos);
+            }
+
             if (match_keyword(sizeof_keyword)) {
                 expect_token(TOKEN_LPAREN);
                 if (match_token(TOKEN_COLON)) {

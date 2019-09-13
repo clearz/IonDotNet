@@ -42,7 +42,7 @@ uchar uc = 1;
 schar sc = 1;
 
 #line 17
-#define N1 ((((char)(42)) + (8)) != (0))
+#define N ((((char)(42)) + (8)) != (0))
 
 uchar h(void);
 
@@ -121,24 +121,18 @@ int va_test(int x, ...);
 typedef int (*F)(int, ...);
 
 #line 131
-#define N ((ullong)(1))
-
-#line 133
-uint8 u8 = 123;
-
-#line 135
 void test_ops(void);
 
-#line 165
-int test_ctrl(void);
-
-#line 176
+#line 161
 #define IS_DEBUG (true)
 
-#line 178
+#line 163
 void test_bool(void);
 
-#line 185
+#line 170
+int test_ctrl(void);
+
+#line 180
 int main(int argc, char (*(*argv)));
 
 // Function declarations
@@ -256,109 +250,117 @@ int va_test(int x, ...) {
     return 0;
 }
 
-#line 135
+#line 131
 void test_ops(void) {
-    #line 136
+    #line 132
     float pi = 3.14;
-    #line 137
+    #line 133
     float f = 0.0;
-    #line 138
+    #line 134
     f = +(pi);
-    #line 139
+    #line 135
     f = -(pi);
-    #line 140
+    #line 136
     int n = -(1);
-    #line 141
+    #line 137
     n = ~(n);
-    #line 142
+    #line 138
     f = ((f) * (pi)) + (n);
-    #line 143
+    #line 139
     f = (pi) / (pi);
-    #line 144
+    #line 140
     n = (3) % (2);
-    #line 145
+    #line 141
     n = (n) + ((uchar)(1));
-    #line 146
+    #line 142
     int (*p) = &(n);
-    #line 147
+    #line 143
     p = (p) + (1);
-    #line 148
+    #line 144
     n = ((p) + (1)) - (p);
-    #line 149
+    #line 145
     n = (n) << (1);
-    #line 150
+    #line 146
     n = (n) >> (1);
-    #line 151
+    #line 147
     int b = ((p) + (1)) > (p);
-    #line 152
+    #line 148
     b = ((p) + (1)) >= (p);
-    #line 153
+    #line 149
     b = ((p) + (1)) < (p);
-    #line 154
+    #line 150
     b = ((p) + (1)) <= (p);
-    #line 155
+    #line 151
     b = ((p) + (1)) == (p);
-    #line 156
+    #line 152
     b = (1) > (2);
-    #line 157
+    #line 153
     b = (1.23) <= (pi);
-    #line 158
+    #line 154
     n = 0xff;
-    #line 159
+    #line 155
     b = (n) & (~(1));
-    #line 160
+    #line 156
     b = (n) & (1);
-    #line 161
+    #line 157
     b = ((n) & (~(1))) ^ (1);
-    #line 162
+    #line 158
     b = (p) && (pi);
 }
 
-#line 165
-int test_ctrl(void) {
-    #line 166
-    while ((3) < (6)) {
-        #line 167
-        while (1) {
-            #line 168
-            break;
-        }
-        #line 170
-        return 42;
-    }
-    #line 172
-    return 0;
-}
-
+#line 163
 void test_bool(void) {
-    #line 179
+    #line 164
     bool b = false;
-    #line 180
+    #line 165
     b = true;
-    #line 181
+    #line 166
     int i = 0;
-    #line 182
+    #line 167
     i = IS_DEBUG;
 }
 
-#line 185
+#line 170
+int test_ctrl(void) {
+    #line 171
+    while (1) {
+        #line 172
+        while (1) {
+            #line 173
+            break;
+        }
+        #line 175
+        return 42;
+    }
+    #line 177
+    return 0;
+}
+
+#line 180
 int main(int argc, char (*(*argv))) {
-    #line 186
+    #line 181
+    if ((argv) == (0)) {
+        #line 182
+        (printf)("argv is null\n");
+    }
+    #line 184
     (test_bool)();
-    #line 187
+    #line 185
     (test_ops)();
-    #line 188
+    #line 186
     int b = (example_test)();
-    #line 189
+    #line 187
     (puts)("Hello, world!");
-    #line 190
+    #line 188
     int c = (getchar)();
-    #line 191
+    #line 189
     (printf)("You wrote \'%c\'\n", c);
-    #line 192
+    #line 190
     (va_test)(1);
-    #line 193
+    #line 191
     (va_test)(1, 2);
-    #line 194
+    #line 192
+    argv = NULL;
+    #line 193
     return 0;
 }

@@ -95,6 +95,7 @@ namespace Lang
         private char* line_start;
         private char* return_keyword;
         private char* sizeof_keyword;
+        private char* null_keyword;
 
         private Buffer<char> str_buf;
         private char* stream;
@@ -221,13 +222,17 @@ namespace Lang
             default_keyword = _I("default");
             keywords->Add(default_keyword);
 
+            null_keyword = _I("null");
+            keywords->Add(null_keyword);
+
             foreign_name = _I("foreign");
             keywords->Add(foreign_name);
+
 
             assert(intern_arena->end == arena_end);
 
             first_keyword = typedef_keyword;
-            last_keyword = default_keyword;
+            last_keyword = null_keyword;
         }
 
         private bool is_keyword_name(char* name)
@@ -1073,7 +1078,8 @@ namespace Lang
         TOKEN_INC,
         TOKEN_DEC,
         TOKEN_COLON_ASSIGN,
-        TOKEN_SIZE
+        TOKEN_SIZE,
+
     }
 
     internal enum TokenMod : byte

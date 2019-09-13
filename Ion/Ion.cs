@@ -11,7 +11,7 @@ namespace Lang
             lex_init();
             var path = spath.ToPtr();
             lex_init();
-            init_stream(read_file(spath), $"\"{spath}\"".ToPtr());
+            init_stream(read_file(spath), $"{spath}".ToPtr());
             init_global_syms();
             var ds = parse_file();
             sym_global_decls(ds);
@@ -29,7 +29,7 @@ namespace Lang
 
         private char* ion_compile_str(string path) {
             lex_init();
-            init_stream(read_file(path), $"\"{path}\"".ToPtr());
+            init_stream(read_file(path), $"{path}".ToPtr());
             init_global_syms();
             sym_global_decls(parse_file());
             finalize_syms();

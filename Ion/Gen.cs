@@ -42,6 +42,8 @@ namespace Lang
         private readonly char* defineStr = "#define ".ToPtr();
         private readonly char* lineStr = "#line ".ToPtr();
         private readonly char* VOID = "void".ToPtr();
+        private readonly char* null_upper = "NULL".ToPtr();
+        private readonly char* null_lower = "null".ToPtr();
 
         private SrcPos gen_pos;
         private int _pos, gen_indent;
@@ -238,7 +240,9 @@ namespace Lang
                 c_write(pos.line.itoa());
                 if (gen_pos.name != pos.name) {
                     c_write(' ');
+                    c_write('"');
                     c_write(pos.name);
+                    c_write('"');
                 }
                 gen_pos = pos;
             }
@@ -507,6 +511,9 @@ namespace Lang
         }
         private void gen_expr(Expr* expr) {
             switch (expr->kind) {
+                case EXPR_NULL:
+                    c_write(null_upper);
+                    break;
                 case EXPR_INT:
                     c_write(expr->name);
                     break;
@@ -851,6 +858,9 @@ namespace Lang
                         c_write(' ');
                         c_write('=');
                         c_write(' ');
+                        //if (decl->var.expr->kind == EXPR_NAME && strcmp(decl->var.expr->name, null_lower) == 0)
+                        //    c_write(null_upper, 4);
+                        //else
                         gen_init_expr(decl->var.expr);
                     }
 
@@ -899,7 +909,7 @@ namespace Lang
             gen_forward_decls();
             genln();
             genlnf(sorted_declarations);
-            gen_sorted_decls();
+           gen_sorted_decls();
             genlnf(function_declarations);
             gen_func_defs();
         }
