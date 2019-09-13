@@ -299,7 +299,8 @@ namespace Lang
 
                     break;
                 case TYPESPEC_FUNC: {
-                    typespec_to_cdecl(typespec->func.ret, null);
+                    if(typespec->func.ret != null)
+                        typespec_to_cdecl(typespec->func.ret, null);
                     c_write(' ');
                     if (str != null) {
 
@@ -919,7 +920,7 @@ namespace Lang
             var c = 'x';
             _pos = 0;
             lex_init();
-            init_global_syms();
+            init_builtins();
             type_to_cdecl(type_int, &c);
             Console.WriteLine(new string(cdecl_buffer));
             _pos = 0;

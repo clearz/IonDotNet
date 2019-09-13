@@ -2209,7 +2209,7 @@ namespace Lang
         "func f7(n: int): int { p := 1; do { p *= 2; n--; } while (n); return p; }",*/
         };
 
-        private void init_global_syms() {
+        private void init_builtins() {
             type_ranks[(int)TYPE_BOOL] = 1;
             type_ranks[(int)TYPE_CHAR] = 2;
             type_ranks[(int)TYPE_SCHAR] = 2;
@@ -2278,7 +2278,7 @@ namespace Lang
         }
 
         private void resolve_test() {
-            init_global_syms();
+            init_builtins();
             assert(promote_type(type_char) == type_int);
             assert(promote_type(type_schar) == type_int);
             assert(promote_type(type_uchar) == type_int);

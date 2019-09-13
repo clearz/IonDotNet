@@ -34,7 +34,7 @@ namespace Lang
             try {
                 expect_token(TOKEN_LPAREN);
                 if (!is_token(TOKEN_RPAREN)) {
-                    buf->Add(parse_type());
+                    buf->Add(parse_type_func_param());
                     while (match_token(TOKEN_COMMA)) {
                         if (match_token(TOKEN_ELLIPSIS)) {
                             if (variadic) {
@@ -46,7 +46,7 @@ namespace Lang
                             if (variadic) {
                                 syntax_error("Ellipsis must be last parameter in function type");
                             }
-                            buf->Add(parse_type());
+                            buf->Add(parse_type_func_param());
                         }
                     }
                 }
@@ -102,6 +102,17 @@ namespace Lang
                     type = typespec_ptr(pos, type);
                 }
 
+            return type;
+        }
+
+        Typespec* parse_type_func_param() {
+            Typespec *type = parse_type();
+            if (match_token(TOKEN_COLON)) {
+                if (type->kind != TypespecKind.TYPESPEC_NAME) {
+                    syntax_error("Colons in parameters of func types must be preceded by names.");
+                }
+                type = parse_type();
+            }
             return type;
         }
 
