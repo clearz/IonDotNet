@@ -185,7 +185,24 @@ func f4(x: int const*) {
 }
 
 func test_const() {
+    i := 0;
+    i = 1;
+    // j = 0;
+    // *q = 0;
+    x := cv.x;
+    // cv.x = {};
+    c := escape_to_char[0];
+    // escape_to_char[0] = 0;
+    f4(escape_to_char);
     p := (:int const*)0; // (:int*)0
+    p = escape_to_char;
+    p = escape_to_char + 1;
+    q := (:int*)escape_to_char;
+    // q = escape_to_char;
+    p = (:int const*)1;
+    // p = 1;
+    // i = p;
+    i = ullong(p);
 }
 func main(argc: int, argv: char const**): int {
     if (argv == 0) {
