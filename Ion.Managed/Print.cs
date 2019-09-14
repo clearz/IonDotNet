@@ -59,7 +59,7 @@ namespace MLang
                     break;
                 case TypespecKind.TYPESPEC_PTR:
                     printf("(ptr ");
-                    print_typespec(t.ptr.elem);
+                    print_typespec(t.base);
                     printf(")");
                     break;
                 default:

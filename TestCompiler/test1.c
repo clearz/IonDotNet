@@ -68,11 +68,11 @@ union IntOrPtr {
     #line 52
     int i;
     #line 53
-    int *(p);
+    int (*p);
 };
 
 #line 35
-void k(void *(vp), int *(ip));
+void k(void (*vp), int (*ip));
 
 #line 40
 void f1(void);
@@ -87,7 +87,7 @@ int fact_rec(int n);
 int fact_iter(int n);
 
 #line 56
-int (escape_to_char[256]) = {['n'] = '\n', ['r'] = '\r', ['t'] = '\t', ['v'] = '\v', ['b'] = '\b', ['a'] = '\a', ['0'] = 0};
+int const (escape_to_char[256]) = {['n'] = '\n', ['r'] = '\r', ['t'] = '\t', ['v'] = '\v', ['b'] = '\b', ['a'] = '\a', ['0'] = 0};
 
 #line 66
 int (array[11]) = {1, 2, 3, [10] = 4};
@@ -102,7 +102,7 @@ int i;
 void f2(Vector v);
 
 #line 112
-T *(p);
+T (*p);
 
 #line 110
 #define M ((1) + (sizeof(p)))
@@ -133,7 +133,22 @@ void test_bool(void);
 int test_ctrl(void);
 
 #line 180
-int main(int argc, char *(*(argv)));
+int const (j);
+
+#line 181
+int const ((*q));
+
+#line 182
+Vector const (cv);
+
+#line 184
+void f4(int const ((*x)));
+
+#line 187
+void test_const(void);
+
+#line 190
+int main(int argc, char const ((*(*argv))));
 
 // Function declarations
 #line 21
@@ -161,7 +176,7 @@ int g(U u) {
 }
 
 #line 35
-void k(void *(vp), int *(ip)) {
+void k(void (*vp), int (*ip)) {
     #line 36
     vp = ip;
     #line 37
@@ -336,31 +351,41 @@ int test_ctrl(void) {
     return 0;
 }
 
-#line 180
-int main(int argc, char *(*(argv))) {
-    #line 181
+#line 184
+void f4(int const ((*x))) {
+}
+
+#line 187
+void test_const(void) {
+    #line 188
+    int const ((*p)) = (int const *)(0);
+}
+
+#line 190
+int main(int argc, char const ((*(*argv)))) {
+    #line 191
     if ((argv) == (0)) {
-        #line 182
+        #line 192
         (printf)("argv is null\n");
     }
-    #line 184
+    #line 194
     (test_bool)();
-    #line 185
+    #line 195
     (test_ops)();
-    #line 186
+    #line 196
     int b = (example_test)();
-    #line 187
+    #line 197
     (puts)("Hello, world!");
-    #line 188
+    #line 198
     int c = (getchar)();
-    #line 189
+    #line 199
     (printf)("You wrote \'%c\'\n", c);
-    #line 190
+    #line 200
     (va_test)(1);
-    #line 191
+    #line 201
     (va_test)(1, 2);
-    #line 192
+    #line 202
     argv = NULL;
-    #line 193
+    #line 203
     return 0;
 }

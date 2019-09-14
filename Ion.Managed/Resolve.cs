@@ -54,7 +54,7 @@ namespace MLang
             t.ptr = new Type._ptr();
             t.size = PTR_SIZE;
             t.align = PTR_ALIGN;
-            t.ptr.elem = elem;
+            t.base = elem;
 
             cached_ptr_types.Add(new CachedPtrType { elem = elem, ptr = t});
             return t;
@@ -316,7 +316,7 @@ namespace MLang
                     return sym.type;
                 }
                 case TYPESPEC_PTR:
-                    return type_ptr(resolve_typespec(typespec.ptr.elem));
+                    return type_ptr(resolve_typespec(typespec.base));
                 case TYPESPEC_ARRAY:
                     var size = resolve_const_expr(typespec.array.size);
                     if (size < 0)
@@ -768,7 +768,7 @@ namespace MLang
                     if (type.kind != TYPE_PTR)
                         throw new Exception("Cannot deref non-ptr type");
 
-                    return resolved_lvalue(type.ptr.elem);
+                    return resolved_lvalue(type.base);
                 case TOKEN_AND:
                     if (!operand.is_lvalue)
                         throw new Exception("Cannot take address of non-lvalue");
@@ -964,7 +964,7 @@ namespace MLang
             {
                 throw new Exception("Index expression must have type long");
             }
-            return resolved_lvalue(operand.type.ptr.elem);
+            return resolved_lvalue(operand.type.base);
         }
 
         ResolvedExpr resolve_expr_cast(Expr expr)

@@ -162,8 +162,8 @@ namespace Lang
                 this = new_map;
             }
 
-            public void* map_get(void* key) {
-                return map_get(hash_ptr(key));
+            public T* map_get<T>(void* key) where T : unmanaged{
+                return (T*)map_get(hash_ptr(key));
             }
 
             public void* map_get(ulong key) {
@@ -214,6 +214,8 @@ namespace Lang
                     i++;
                 }
             }
+
+            internal bool exists(char* key) => map_get(hash_ptr(key)) != null;
         }
 
         #region Macros*

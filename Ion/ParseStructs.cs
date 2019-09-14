@@ -24,10 +24,10 @@ namespace Lang
         [FieldOffset(0)] public TypespecKind kind;
         [FieldOffset(4)] public SrcPos pos;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Type* type;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* name;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public PtrTypespec ptr;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public FuncTypespec func;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public ArrayTypespec array;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Typespec* @base;
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public char* name;
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public FuncTypespec func;
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public Expr *num_elems;
 
 
         internal struct FuncTypespec
@@ -343,7 +343,8 @@ namespace Lang
         TYPESPEC_NAME,
         TYPESPEC_FUNC,
         TYPESPEC_ARRAY,
-        TYPESPEC_PTR
+        TYPESPEC_PTR,
+        TYPESPEC_CONST
     }
 
     internal enum DeclKind

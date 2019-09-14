@@ -141,31 +141,43 @@ namespace Lang
                         buf_write('*');
                         buf_write(str);
                         buf_write(')');
-                        type_to_cdecl(type->ptr.elem, copy_buf());
+                        type_to_cdecl(type->@base, copy_buf());
                     }
                     else {
-                        //buf_write(cdecl_name(type->ptr.elem));
-                        type_to_cdecl(type->ptr.elem, null);
+                        //buf_write(cdecl_name(type->@base));
+                        type_to_cdecl(type->@base, null);
                         buf_write(' ');
                         buf_write('*');
                     }
 
+                    break;
+                case TYPE_CONST:
+                    if (str != null) {
+                        type_to_cdecl(type->@base, const_keyword);
+                        buf_write(' ');
+                        buf_write('(');
+                        buf_write(str);
+                        buf_write(')');
+                    }
+                    else {
+                        type_to_cdecl(type->@base, const_keyword);
+                    }
                     break;
                 case TYPE_ARRAY:
                     if (str != null) {
                         buf_write('(');
                         buf_write(str);
                         buf_write('[');
-                        buf_write(type->array.size.itoa());
+                        buf_write(type->num_elems.itoa());
                         buf_write(']');
                         buf_write(')');
-                        type_to_cdecl(type->array.elem, copy_buf());
+                        type_to_cdecl(type->@base, copy_buf());
                     }
                     else {
-                        type_to_cdecl(type->ptr.elem, null);
+                        type_to_cdecl(type->@base, null);
                         buf_write(' ');
                         buf_write('[');
-                        buf_write(type->array.size.itoa());
+                        buf_write(type->num_elems.itoa());
                         buf_write(']');
                     }
 
@@ -262,13 +274,25 @@ namespace Lang
                     }
 
                     break;
+                case TYPESPEC_CONST:
+                    if (str != null) {
+                        typespec_to_cdecl(typespec->@base, const_keyword);
+                        c_write(' ');
+                        c_write('(');
+                        c_write(str);
+                        c_write(')');
+                    }
+                    else {
+                        typespec_to_cdecl(typespec->@base, const_keyword);
+                    }
+                    break;
                 case TYPESPEC_PTR:
                     if (str != null) {
-                        buf_write('*');
                         buf_write('(');
+                        buf_write('*');
                         buf_write(str);
                         buf_write(')');
-                        typespec_to_cdecl(typespec->ptr.elem, copy_buf());
+                        typespec_to_cdecl(typespec->@base, copy_buf());
                     }
                     else {
                         buf_write(typespec->name);
@@ -279,13 +303,13 @@ namespace Lang
                     break;
                 case TYPESPEC_ARRAY:
                     if (str != null) {
-                        c_write(typespec->array.elem->name);
+                        typespec_to_cdecl(typespec->@base, null);
                         c_write(' ');
 
                         c_write('(');
                         c_write(str);
                         c_write('[');
-                        gen_expr(typespec->array.size);
+                        gen_expr(typespec->num_elems);
                         c_write(']');
                         c_write(')');
                     }
@@ -293,7 +317,7 @@ namespace Lang
                         c_write(typespec->name);
                         c_write(' ');
                         c_write('[');
-                        gen_expr(typespec->array.size);
+                        gen_expr(typespec->num_elems);
                         c_write(']');
                     }
 
@@ -632,7 +656,7 @@ namespace Lang
             }
         }
         bool is_incomplete_array_type(Typespec* typespec) {
-            return typespec->kind == TYPESPEC_ARRAY && typespec->array.size == null;
+            return typespec->kind == TYPESPEC_ARRAY && typespec->num_elems == null;
         }
 
         private void gen_stmt_block(StmtList block) {
@@ -652,7 +676,7 @@ namespace Lang
                     break;
                 case STMT_INIT:
                     reset_pos();
-                    type_to_cdecl(stmt->init.expr->type, stmt->init.name);
+                    type_to_cdecl(unqual_type(stmt->init.expr->type), stmt->init.name);
                     c_write(cdecl_buffer, _pos);
                     c_write(' ');
                     c_write('=');
@@ -910,7 +934,7 @@ namespace Lang
             gen_forward_decls();
             genln();
             genlnf(sorted_declarations);
-           gen_sorted_decls();
+            gen_sorted_decls();
             genlnf(function_declarations);
             gen_func_defs();
         }

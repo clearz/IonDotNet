@@ -43,6 +43,10 @@ namespace Lang
 
         [Conditional("DEBUG")]
         [DebuggerHidden]
+        private static void assert(long l) => assert(l != 0);
+
+        [Conditional("DEBUG")]
+        [DebuggerHidden]
         private static void assert(bool b) => Debug.Assert(b);
 
         [DebuggerHidden]

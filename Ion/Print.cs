@@ -70,17 +70,17 @@ namespace Lang
                     break;
                 case TYPESPEC_ARRAY:
                     printf("(array ");
-                    print_typespec(t->array.elem);
+                    print_typespec(t->@base);
                     printf(" ");
-                    if (t->array.size != null)
-                        print_expr(t->array.size);
+                    if (t->num_elems != null)
+                        print_expr(t->num_elems);
                     else
                         printf("nil");
                     printf(")");
                     break;
                 case TYPESPEC_PTR:
                     printf("(ptr ");
-                    print_typespec(t->ptr.elem);
+                    print_typespec(t->@base);
                     printf(")");
                     break;
                 default:

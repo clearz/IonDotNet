@@ -9,8 +9,7 @@ namespace Lang
     using static StmtKind;
     using static CompoundFieldKind;
 
-    public unsafe partial class Ion
-    {
+    public unsafe partial class Ion {
         internal DeclSet* parse_file() {
             var buf = PtrBuffer.GetPooledBuffer();
             try {
@@ -87,7 +86,7 @@ namespace Lang
         private Typespec* parse_type() {
             var pos = token.pos;
             var type = parse_type_base();
-            while (is_token(TOKEN_LBRACKET) || is_token(TOKEN_MUL))
+            while (is_token(TOKEN_LBRACKET) || is_token(TOKEN_MUL) || is_keyword(const_keyword))
                 if (match_token(TOKEN_LBRACKET)) {
                     Expr* expr = null;
                     if (!is_token(TOKEN_RBRACKET))
@@ -95,6 +94,10 @@ namespace Lang
 
                     expect_token(TOKEN_RBRACKET);
                     type = typespec_array(pos, type, expr);
+
+                }
+                else if (match_keyword(const_keyword)) {
+                    type = typespec_const(pos, type);
                 }
                 else {
                     assert(is_token(TOKEN_MUL));

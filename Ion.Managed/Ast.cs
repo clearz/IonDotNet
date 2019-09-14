@@ -46,7 +46,7 @@ namespace MLang
         internal Typespec typespec_ptr(Typespec elem) {
             Typespec t = typespec_new(TypespecKind.TYPESPEC_PTR);
             t.ptr = new PtrTypespec();
-            t.ptr.elem = elem;
+            t.base = elem;
             return t;
         }
 

@@ -51,8 +51,7 @@ namespace Lang
                 {pos = pos, stmts = (Stmt**) ast_dup(stmts, num_stmts * sizeof(Stmt*)), num_stmts = num_stmts};
         }
 
-        private Typespec* typespec_new(SrcPos pos, TypespecKind kind)
-        {
+        private Typespec* typespec_new(TypespecKind kind, SrcPos pos) {
             var t = (Typespec*) ast_alloc(sizeof(Typespec));
             t->pos = pos;
             t->kind = kind;
@@ -61,29 +60,35 @@ namespace Lang
 
         private Typespec* typespec_name(SrcPos pos, char* name)
         {
-            var t = typespec_new(pos, TYPESPEC_NAME);
+            var t = typespec_new(TYPESPEC_NAME, pos);
             t->name = name;
             return t;
         }
 
-        private Typespec* typespec_ptr(SrcPos pos, Typespec* elem)
+        private Typespec* typespec_ptr(SrcPos pos, Typespec* @base)
         {
-            var t = typespec_new(pos, TYPESPEC_PTR);
-            t->ptr.elem = elem;
+            var t = typespec_new(TYPESPEC_PTR, pos);
+            t->@base = @base;
+            t->@base = @base;
+            return t;
+        }
+        Typespec* typespec_const(SrcPos pos, Typespec* @base) {
+            Typespec *t = typespec_new(TYPESPEC_CONST, pos);
+            t->@base = @base;
             return t;
         }
 
         private Typespec* typespec_array(SrcPos pos, Typespec* elem, Expr* size)
         {
-            var t = typespec_new(pos, TYPESPEC_ARRAY);
-            t->array.elem = elem;
-            t->array.size = size;
+            var t = typespec_new(TYPESPEC_ARRAY, pos);
+            t->@base = elem;
+            t->num_elems = size;
             return t;
         }
 
         private Typespec* typespec_func(SrcPos pos, Typespec** args, int num_args, Typespec* ret, bool variadic)
         {
-            var t = typespec_new(pos, TYPESPEC_FUNC);
+            var t = typespec_new(TYPESPEC_FUNC, pos);
             t->func.args = (Typespec**) ast_dup(args, num_args * sizeof(Typespec*));
             t->func.num_args = num_args;
             t->func.ret = ret;
