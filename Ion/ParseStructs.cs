@@ -38,18 +38,6 @@ namespace Lang
             public Typespec* ret;
         }
 
-        [StructLayout(LayoutKind.Sequential, Size = 8)]
-        internal struct PtrTypespec
-        {
-            public Typespec* elem;
-        }
-
-
-        internal struct ArrayTypespec
-        {
-            public Typespec* elem;
-            public Expr* size;
-        }
     }
 
 

@@ -67,6 +67,14 @@ namespace Lang
         bool is_scalar_type(Type* type) {
             return TYPE_BOOL <= type->kind && type->kind <= TYPE_FUNC;
         }
+        bool is_ptr_type(Type* type) {
+            return type->kind == TYPE_PTR;
+        }
+
+        bool is_array_type(Type* type) {
+            return type->kind == TYPE_ARRAY;
+        }
+
 
         bool is_signed_type(Type* type) {
             switch (type->kind) {
@@ -464,10 +472,10 @@ namespace Lang
             else if (is_arithmetic_type(dest) && is_arithmetic_type(src)) {
                 return true;
             }
-            else if (dest->kind == TYPE_PTR && src->kind == TYPE_PTR) {
+            else if (is_ptr_type(dest) && is_ptr_type(src)) {
                 return dest->@base == type_void || src->@base == type_void;
             }
-            else if (is_null_ptr(*operand) && dest->kind == TYPE_PTR) {
+            else if (is_null_ptr(*operand) && is_ptr_type(dest)) {
                 return true;
             }
             else {
@@ -481,12 +489,12 @@ namespace Lang
                 return true;
             }
             else if (is_arithmetic_type(dest)) {
-                return src->kind == TYPE_PTR;
+                return is_ptr_type(src);
             }
             else if (is_arithmetic_type(src)) {
-                return dest->kind == TYPE_PTR;
+                return is_ptr_type(dest);
             }
-            else if (dest->kind == TYPE_PTR && src->kind == TYPE_PTR) {
+            else if (is_ptr_type(dest) && is_ptr_type(src)) {
                 return true;
             }
             else {
@@ -562,7 +570,7 @@ namespace Lang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
                                             operand->val.p = (void*)p;
                                         }
                                         else {
@@ -619,7 +627,7 @@ namespace Lang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
                                             operand->val.p = (void*)(int)p;
                                         }
                                         else {
@@ -676,7 +684,7 @@ namespace Lang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
                                             operand->val.p = (void*)p;
                                         }
                                         else {
@@ -733,7 +741,7 @@ namespace Lang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
                                             operand->val.p = (void*)p;
                                         }
                                         else {
@@ -790,7 +798,7 @@ namespace Lang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
                                             operand->val.p = (void*)p;
                                         }
                                         else {
@@ -847,7 +855,7 @@ namespace Lang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
                                             operand->val.p = (void*)p;
                                         }
                                         else {
@@ -904,7 +912,7 @@ namespace Lang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
                                             operand->val.p = (void*)p;
                                         }
                                         else {
@@ -961,7 +969,7 @@ namespace Lang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
                                             operand->val.p = (void*)p;
                                         }
                                         else {
@@ -1018,7 +1026,7 @@ namespace Lang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
                                             operand->val.p = (void*)p;
                                         }
                                         else {
@@ -1075,7 +1083,7 @@ namespace Lang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
                                             operand->val.p = (void*)p;
                                         }
                                         else {
@@ -1132,7 +1140,7 @@ namespace Lang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (operand->type->kind == TYPE_PTR || is_null_ptr(*operand)) {
+                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
                                             operand->val.p = (void*)p;
                                         }
                                         else {
@@ -1158,7 +1166,7 @@ namespace Lang
         }
 
         bool is_null_ptr(Operand operand) {
-            if (operand.is_const && (operand.type->kind == TYPE_PTR || is_arithmetic_type(operand.type))) {
+            if (operand.is_const && (is_ptr_type(operand.type) || is_arithmetic_type(operand.type))) {
                 cast_operand(&operand, type_ullong);
                 return operand.val.ull == 0;
             }
@@ -1333,9 +1341,9 @@ namespace Lang
             for (var i = 0; i < decl->aggregate.num_items; i++) {
                 var item = decl->aggregate.items[i];
                 var item_type = resolve_typespec(item.type);
-                if (item_type->kind == TYPE_CONST) {
-                    fatal_error(item.pos, "Field cannot be const qualified");
-                }
+                //if (item_type->kind == TYPE_CONST) {
+                //    fatal_error(item.pos, "Field cannot be const qualified");
+                //}
                 complete_type(item_type);
                 for (var j = 0; j < item.num_names; j++)
                     fields.Add(new TypeField { name = item.names[j], type = item_type });
@@ -1369,7 +1377,7 @@ namespace Lang
             if (decl->var.expr != null && decl->var.expr->kind != EXPR_NULL) {
                 Operand operand = resolve_expected_expr(decl->var.expr, type);
                 if (type != null) {
-                    if (type->kind == TYPE_ARRAY && operand.type->kind == TYPE_ARRAY && type->@base == operand.type->@base && type->num_elems == 0) {
+                    if (is_array_type(type) && is_array_type(operand.type) && type->@base == operand.type->@base && type->num_elems == 0) {
                         // Incomplete array size, so infer the size from the initializer expression's type.
                     }
                     else {
@@ -1619,7 +1627,7 @@ namespace Lang
             bool is_const_type = operand.type->kind == TYPE_CONST;
             Type *type = unqualify_type(operand.type);
             complete_type(type);
-            if (type->kind == TYPE_PTR) {
+            if (is_ptr_type(type)) {
                 type = type->@base;
             }
             if (type->kind != TYPE_STRUCT && type->kind != TYPE_UNION) {
@@ -1905,10 +1913,10 @@ namespace Lang
                     if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
                         return resolve_binary_arithmetic_op(op, left, right);
                     }
-                    else if (left.type->kind == TYPE_PTR && is_integer_type(right.type)) {
+                    else if (is_ptr_type(left.type) && is_integer_type(right.type)) {
                         return operand_rvalue(left.type);
                     }
-                    else if (right.type->kind == TYPE_PTR && is_integer_type(left.type)) {
+                    else if (is_ptr_type(right.type) && is_integer_type(left.type)) {
                         return operand_rvalue(right.type);
                     }
                     else {
@@ -1919,10 +1927,10 @@ namespace Lang
                     if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
                         return resolve_binary_arithmetic_op(op, left, right);
                     }
-                    else if (left.type->kind == TYPE_PTR && is_integer_type(right.type)) {
+                    else if (is_ptr_type(left.type) && is_integer_type(right.type)) {
                         return operand_rvalue(left.type);
                     }
-                    else if (left.type->kind == TYPE_PTR && right.type->kind == TYPE_PTR) {
+                    else if (is_ptr_type(left.type) && is_ptr_type(right.type)) {
                         if (left.type->@base != right.type->@base) {
                             fatal_error(expr->pos, "Cannot subtract pointers to different types");
                         }
@@ -1966,13 +1974,13 @@ namespace Lang
                         cast_operand(&result, type_int);
                         return result;
                     }
-                    else if (left.type->kind == TYPE_PTR && right.type->kind == TYPE_PTR) {
+                    else if (is_ptr_type(left.type) && is_ptr_type(right.type)) {
                         if ((left.type->@base != right.type->@base) && !is_null_ptr(*&right) && !is_null_ptr(*&left)) {
                             fatal_error(expr->pos, "Cannot compare pointers to different types");
                         }
                         return operand_rvalue(type_int);
                     }
-                    else if ((is_null_ptr(*&left) && right.type->kind == TYPE_PTR) || (is_null_ptr(*&right) && left.type->kind == TYPE_PTR)) {
+                    else if ((is_null_ptr(*&left) && is_ptr_type(right.type)) || (is_null_ptr(*&right) && is_ptr_type(left.type))) {
                         return operand_rvalue(type_int);
                     }
                     else {
@@ -1993,7 +2001,14 @@ namespace Lang
                 case TOKEN_OR_OR:
                     // TODO: const expr evaluation
                     if (is_scalar_type(left.type) && is_scalar_type(right.type)) {
-                        return operand_rvalue(type_int);
+                        if (left.is_const && right.is_const) {
+                            cast_operand(&left, type_bool);
+                            cast_operand(&right, type_bool);
+                            return operand_const(type_int, new Val{b = left.val.b && right.val.b});
+                        }
+                        else {
+                            return operand_rvalue(type_int);
+                        }
                     }
                     else {
                         fatal_error(expr->pos, "Operands of {0} must have scalar types", op_name);
@@ -2047,7 +2062,7 @@ namespace Lang
                     index++;
                 }
             }
-            else if (type->kind == TYPE_ARRAY) {
+            else if (is_array_type(type)) {
                 int index = 0, max_index = 0;
                 for (var i = 0; i < expr->compound.num_fields; i++) {
                     var field = expr->compound.fields[i];
@@ -2572,19 +2587,6 @@ namespace Lang
         [FieldOffset(2 * Ion.PTR_SIZE + 24)] public _aggregate aggregate;
         [FieldOffset(2 * Ion.PTR_SIZE + 24)] public _func func;
         [FieldOffset(2 * Ion.PTR_SIZE + 24)] public int num_elems;
-
-
-        [StructLayout(LayoutKind.Sequential, Size = 8)]
-        internal struct _ptr
-        {
-            public Type* elem;
-        }
-
-        internal struct _array
-        {
-            public Type* elem;
-            public long size;
-        }
 
         internal struct _aggregate
         {
