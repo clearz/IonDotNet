@@ -2004,7 +2004,15 @@ namespace Lang
                         if (left.is_const && right.is_const) {
                             cast_operand(&left, type_bool);
                             cast_operand(&right, type_bool);
-                            return operand_const(type_int, new Val{b = left.val.b && right.val.b});
+                            bool b;
+                            if (op == TOKEN_AND_AND) {
+                                b = left.val.b && right.val.b;
+                            }
+                            else {
+                                assert(op == TOKEN_OR_OR);
+                                b = left.val.b || right.val.b;
+                            }
+                            return operand_const(type_int, new Val { b = b });
                         }
                         else {
                             return operand_rvalue(type_int);
