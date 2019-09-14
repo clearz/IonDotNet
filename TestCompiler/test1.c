@@ -147,7 +147,7 @@ void f4(int const ((*x)));
 #line 187
 void test_const(void);
 
-#line 207
+#line 208
 int main(int argc, char const ((*(*argv))));
 
 // Function declarations
@@ -166,7 +166,7 @@ uchar h(void) {
     #line 27
     int y = +(c);
     #line 28
-    return x;
+    return (uchar)(x);
 }
 
 #line 31
@@ -292,7 +292,7 @@ void test_ops(void) {
     #line 143
     p = (p) + (1);
     #line 144
-    n = ((p) + (1)) - (p);
+    n = (int)(((p) + (1)) - (p));
     #line 145
     n = (n) << (1);
     #line 146
@@ -375,34 +375,34 @@ void test_const(void) {
     int (*q) = (int *)(escape_to_char);
     p = (int const *)(1);
     #line 205
-    i = (ullong)(p);
+    i = (int)((ullong)(p));
 }
 
-#line 207
+#line 208
 int main(int argc, char const ((*(*argv)))) {
-    #line 208
+    #line 209
     if ((argv) == (0)) {
-        #line 209
+        #line 210
         (printf)("argv is null\n");
     }
-    #line 211
-    (test_bool)();
     #line 212
-    (test_ops)();
+    (test_bool)();
     #line 213
-    int b = (example_test)();
+    (test_ops)();
     #line 214
-    (puts)("Hello, world!");
+    int b = (example_test)();
     #line 215
-    int c = (getchar)();
+    (puts)("Hello, world!");
     #line 216
-    (printf)("You wrote \'%c\'\n", c);
+    int c = (getchar)();
     #line 217
-    (va_test)(1);
+    (printf)("You wrote \'%c\'\n", c);
     #line 218
-    (va_test)(1, 2);
+    (va_test)(1);
     #line 219
-    argv = NULL;
+    (va_test)(1, 2);
     #line 220
+    argv = NULL;
+    #line 221
     return 0;
 }

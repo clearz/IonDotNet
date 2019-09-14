@@ -2169,10 +2169,10 @@ namespace Lang
             assert(expr->kind == EXPR_INDEX);
             var operand = resolve_expr_rvalue(expr->index.expr);
             if (operand.type->kind != TYPE_PTR)
-                fatal_error(expr->pos, "Can only index arrays or pointers");
+                fatal_error(expr->pos, "Can only index arrays and pointers");
             var index = resolve_expr(expr->index.index);
-            if (index.type->kind != TYPE_INT)
-                fatal_error(expr->pos, "Index expression must have type long");
+            if (!is_integer_type(index.type))
+                fatal_error(expr->pos, "Index expression must have integer type");
             return operand_lvalue(operand.type->@base);
         }
 
