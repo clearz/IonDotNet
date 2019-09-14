@@ -676,7 +676,7 @@ namespace Lang
                     break;
                 case STMT_INIT:
                     reset_pos();
-                    type_to_cdecl(unqual_type(stmt->init.expr->type), stmt->init.name);
+                    type_to_cdecl(unqualify_type(stmt->init.expr->type), stmt->init.name);
                     c_write(cdecl_buffer, _pos);
                     c_write(' ');
                     c_write('=');

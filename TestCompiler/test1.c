@@ -24,6 +24,7 @@ typedef llong int64;
 typedef union IntOrPtr IntOrPtr;
 typedef struct Vector Vector;
 typedef struct T T;
+typedef struct ConstVector ConstVector;
 
 // Sorted declarations
 #line 10 "test1.ion"
@@ -87,7 +88,7 @@ int fact_rec(int n);
 int fact_iter(int n);
 
 #line 56
-int const (escape_to_char[256]) = {['n'] = '\n', ['r'] = '\r', ['t'] = '\t', ['v'] = '\v', ['b'] = '\b', ['a'] = '\a', ['0'] = 0};
+char const (escape_to_char[256]) = {['n'] = '\n', ['r'] = '\r', ['t'] = '\t', ['v'] = '\v', ['b'] = '\b', ['a'] = '\a', ['0'] = 0};
 
 #line 66
 int (array[11]) = {1, 2, 3, [10] = 4};
@@ -142,12 +143,20 @@ int const ((*q));
 Vector const (cv);
 
 #line 184
-void f4(int const ((*x)));
+void f4(char const ((*x)));
 
 #line 187
+struct ConstVector {
+    #line 188
+    int const (x);
+    #line 188
+    int const (y);
+};
+
+#line 191
 void test_const(void);
 
-#line 208
+#line 214
 int main(int argc, char const ((*(*argv))));
 
 // Function declarations
@@ -352,57 +361,60 @@ int test_ctrl(void) {
 }
 
 #line 184
-void f4(int const ((*x))) {
+void f4(char const ((*x))) {
 }
 
-#line 187
+#line 191
 void test_const(void) {
-    #line 188
-    int i = 0;
-    #line 189
-    i = 1;
     #line 192
-    int x = cv.x;
-    int c = escape_to_char[0];
-    (f4)(escape_to_char);
-    #line 197
-    int const ((*p)) = (int const *)(0);
+    ConstVector cv2 = {1, 2};
+    int i = 0;
+    #line 195
+    i = 1;
     #line 198
-    p = escape_to_char;
-    #line 199
+    int x = cv.x;
+    char c = escape_to_char[0];
+    (f4)(escape_to_char);
+    #line 203
+    char const ((*p)) = (char const *)(0);
+    #line 204
     p = (escape_to_char) + (1);
-    #line 200
-    int (*q) = (int *)(escape_to_char);
-    p = (int const *)(1);
     #line 205
+    char (*q) = (char *)(escape_to_char);
+    #line 206
+    c = q['n'];
+    p = (char const *)(1);
+    #line 211
     i = (int)((ullong)(p));
 }
 
-#line 208
+#line 214
 int main(int argc, char const ((*(*argv)))) {
-    #line 209
+    #line 215
     if ((argv) == (0)) {
-        #line 210
+        #line 216
         (printf)("argv is null\n");
     }
-    #line 212
-    (test_bool)();
-    #line 213
-    (test_ops)();
-    #line 214
-    int b = (example_test)();
-    #line 215
-    (puts)("Hello, world!");
-    #line 216
-    int c = (getchar)();
-    #line 217
-    (printf)("You wrote \'%c\'\n", c);
     #line 218
-    (va_test)(1);
+    (test_const)();
     #line 219
-    (va_test)(1, 2);
+    (test_bool)();
     #line 220
-    argv = NULL;
+    (test_ops)();
     #line 221
+    int b = (example_test)();
+    #line 222
+    (puts)("Hello, world!");
+    #line 223
+    int c = (getchar)();
+    #line 224
+    (printf)("You wrote \'%c\'\n", c);
+    #line 225
+    (va_test)(1);
+    #line 226
+    (va_test)(1, 2);
+    #line 227
+    argv = NULL;
+    #line 228
     return 0;
 }

@@ -173,7 +173,7 @@ namespace Lang
             return type;
         }
 
-        Type* unqual_type(Type* type) {
+        Type* unqualify_type(Type* type) {
             if (type->kind == TYPE_CONST) {
                 return type->@base;
             }
@@ -435,7 +435,7 @@ namespace Lang
         }
 
         private Operand operand_rvalue(Type* type) {
-            return new Operand { type = unqual_type(type) };
+            return new Operand { type = unqualify_type(type) };
         }
 
         private Operand operand_lvalue(Type* type) {
@@ -443,11 +443,11 @@ namespace Lang
         }
 
         private Operand operand_const(Type* type, Val val) {
-            return new Operand { type = unqual_type(type), is_const = true, val = val };
+            return new Operand { type = unqualify_type(type), is_const = true, val = val };
         }
 
         Operand operand_decay(Operand operand) {
-            operand.type = unqual_type(operand.type);
+            operand.type = unqualify_type(operand.type);
             if (operand.type->kind == TYPE_ARRAY) {
                 operand.type = type_ptr(operand.type->@base);
             }
@@ -456,8 +456,8 @@ namespace Lang
         }
 
         bool is_convertible(Operand* operand, Type* dest) {
-            dest = unqual_type(dest);
-            Type *src = unqual_type(operand->type);
+            dest = unqualify_type(dest);
+            Type *src = unqualify_type(operand->type);
             if (dest == src) {
                 return true;
             }
@@ -505,8 +505,8 @@ namespace Lang
 
         bool cast_operand(Operand* operand, Type* type) {
             Type *qual_type = type;
-            type = unqual_type(type);
-            operand->type = unqual_type(operand->type);
+            type = unqualify_type(type);
+            operand->type = unqualify_type(operand->type);
 
             if (operand->type != type) {
 
@@ -1530,7 +1530,7 @@ namespace Lang
                     return false;
 
                 case STMT_INIT:
-                    if (!sym_push_var(stmt->init.name, unqual_type(resolve_expr(stmt->init.expr).type))) {
+                    if (!sym_push_var(stmt->init.name, unqualify_type(resolve_expr(stmt->init.expr).type))) {
                         fatal_error(stmt->pos, "Shadowed definition of local symbol");
                     }
                     return false;
@@ -1617,7 +1617,7 @@ namespace Lang
             assert(expr->kind == EXPR_FIELD);
             Operand operand = resolve_expr(expr->field.expr);
             bool is_const_type = operand.type->kind == TYPE_CONST;
-            Type *type = unqual_type(operand.type);
+            Type *type = unqualify_type(operand.type);
             complete_type(type);
             if (type->kind == TYPE_PTR) {
                 type = type->@base;
