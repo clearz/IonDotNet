@@ -315,7 +315,7 @@ namespace IonLang
                 it->offset = type->size;
                 type->size = type_sizeof(it->type) + ALIGN_UP(type->size, type_alignof(it->type));
                 type->align = MAX(type->align, type_alignof(it->type));
-                nonmodifiable = type->nonmodifiable || nonmodifiable;
+                nonmodifiable = it->type->nonmodifiable || nonmodifiable;
             }
 
             type->aggregate.fields =

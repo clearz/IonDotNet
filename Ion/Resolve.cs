@@ -1942,21 +1942,39 @@ namespace IonLang
                 case EXPR_INT:
                     switch (expr->int_lit.suffix) {
                         case SUFFIX_NONE:
+                            if (expr->int_lit.val > int.MaxValue) {
+                                fatal_error(expr->pos, "Out of range int literal");
+                            }
                             result = operand_const(type_int, new Val{i = (int)expr->int_lit.val});
                             break;
                         case SUFFIX_U:
+                            if (expr->int_lit.val > uint.MaxValue) {
+                                fatal_error(expr->pos, "Out of range uint literal");
+                            }
                             result = operand_const(type_uint, new Val{u = (uint)expr->int_lit.val});
                             break;
                         case SUFFIX_L:
+                            if (expr->int_lit.val > int.MaxValue) {
+                                fatal_error(expr->pos, "Out of range long literal");
+                            }
                             result = operand_const(type_long, new Val{l = (int)expr->int_lit.val});
                             break;
                         case SUFFIX_UL:
+                            if (expr->int_lit.val > uint.MaxValue) {
+                                fatal_error(expr->pos, "Out of range ulong literal");
+                            }
                             result = operand_const(type_ulong, new Val{ul = (uint)expr->int_lit.val});
                             break;
                         case SUFFIX_LL:
+                            if (expr->int_lit.val > long.MaxValue) {
+                                fatal_error(expr->pos, "Out of range llong literal");
+                            }
                             result = operand_const(type_llong, new Val{ll = (long)expr->int_lit.val});
                             break;
                         case SUFFIX_ULL:
+                            if (expr->int_lit.val > ulong.MaxValue) {
+                                fatal_error(expr->pos, "Out of range ullong literal");
+                            }
                             result = operand_const(type_ullong, new Val{ull = (ulong)expr->int_lit.val});
                             break;
                         default:
