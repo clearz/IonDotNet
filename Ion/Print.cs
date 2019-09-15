@@ -2,7 +2,7 @@
 using System.IO;
 using System.Text;
 
-namespace Lang
+namespace IonLang
 {
     using static TypespecKind;
     using static DeclKind;
@@ -95,10 +95,10 @@ namespace Lang
             switch (e->kind)
             {
                 case EXPR_INT:
-                    printf("{0}", e->int_val);
+                    printf("{0}", e->int_lit.val);
                     break;
                 case EXPR_FLOAT:
-                    printf("{0}", e->float_val);
+                    printf("{0}", e->float_lit.val);
                     break;
                 case EXPR_STR:
                     printf("\"{0}\"", e->str_val);

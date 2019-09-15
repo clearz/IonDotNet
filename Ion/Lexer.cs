@@ -2,10 +2,11 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Lang
+namespace IonLang
 {
     using static TokenKind;
     using static TokenMod;
+    using static TokenSuffix;
 
     public unsafe partial class Ion
     {
@@ -19,9 +20,18 @@ namespace Lang
         static SrcPos pos_builtin = new SrcPos{name = "<builtin>".ToPtr()};
 
         private char** token_kind_names;
-
-        void init_tokens() {
+        char*[] token_suffix_names;
+    void init_tokens() {
             token_kind_names = (char**)xmalloc((int)TOKEN_SIZE * sizeof(char**));
+            token_suffix_names = new char*[7];
+
+            token_suffix_names[(int)SUFFIX_NONE] = "".ToPtr();
+            token_suffix_names[(int)SUFFIX_D] = "d".ToPtr();
+            token_suffix_names[(int)SUFFIX_U] = "u".ToPtr();
+            token_suffix_names[(int)SUFFIX_L] = "l".ToPtr();
+            token_suffix_names[(int)SUFFIX_UL] = "ul".ToPtr();
+            token_suffix_names[(int)SUFFIX_LL] = "ll".ToPtr();
+            token_suffix_names[(int)SUFFIX_ULL] = "ull".ToPtr();
 
             token_kind_names[(int)TOKEN_EOF] = "EOF".ToPtr();
             token_kind_names[(int)TOKEN_COLON] = ":".ToPtr();
@@ -264,33 +274,33 @@ namespace Lang
 
         private void scan_int()
         {
-            int @base = 10;
+            ulong @base = 10;
             if (*stream == '0')
             {
                 stream++;
                 if (char.ToLower(*stream) == 'x')
                 {
                     stream++;
-                    token.mod = TOKENMOD_HEX;
+                    token.mod = MOD_HEX;
                     @base = 16;
                 }
                 else if (char.ToLower(*stream) == 'b')
                 {
                     stream++;
-                    token.mod = TOKENMOD_BIN;
+                    token.mod = MOD_BIN;
                     @base = 2;
                 }
                 else if (char.IsDigit(*stream))
                 {
-                    token.mod = TOKENMOD_OCT;
+                    token.mod = MOD_OCT;
                     @base = 8;
                 }
             }
 
-            int val = 0;
+            ulong val = 0;
             for (;;)
             {
-                int digit = char_to_digit[*stream];
+                ulong digit = (ulong)char_to_digit[*stream];
                 if (digit == 0 && *stream != '0') break;
 
                 if (digit >= @base)
@@ -299,8 +309,7 @@ namespace Lang
                     digit = 0;
                 }
 
-                if (val > (int.MaxValue - digit) / @base)
-                {
+                if (val > (ulong.MaxValue - (digit) / @base)) {
                     syntax_error("Integer literal overflow");
                     while (char.IsDigit(*stream)) stream++;
 
@@ -336,11 +345,39 @@ namespace Lang
                 while (char.IsDigit(*stream)) stream++;
             }
 
-            var val = float.Parse(new string(start, 0, (int) (stream - start)));
+            var val = double.Parse(new string(start, 0, (int) (stream - start)));
             if (double.IsPositiveInfinity(val)) syntax_error("Float literal overflow");
 
             token.kind = TOKEN_FLOAT;
             token.float_val = val;
+
+        }
+
+        void scan_sufffix() {
+            if (tolower(*stream) == 'u') {
+                if (tolower(*++stream) == 'l') {
+                    if (tolower(*++stream) == 'l') {
+                        token.suffix = SUFFIX_ULL;
+                        stream++;
+                    }
+                    else
+                        token.suffix = SUFFIX_UL;
+                }
+                else
+                    token.suffix = SUFFIX_U;
+            }
+            else if (tolower(*stream) == 'l') {
+                if (tolower(*++stream) == 'l') {
+                    token.suffix = SUFFIX_LL;
+                    stream++;
+                }
+                else
+                    token.suffix = SUFFIX_L;
+            }
+            else if (tolower(*stream) == 'd') {
+                token.suffix = SUFFIX_D;
+                stream++;
+            }
         }
 
         private void scan_char()
@@ -378,7 +415,7 @@ namespace Lang
 
             token.kind = TOKEN_INT;
             token.int_val = val;
-            token.mod = TOKENMOD_CHAR;
+            token.mod = MOD_CHAR;
         }
 
         private void scan_str()
@@ -427,6 +464,7 @@ namespace Lang
         {
             repeat:
             token.start = stream;
+            token.suffix = 0;
             token.mod = 0;
             switch (*stream)
             {
@@ -935,11 +973,11 @@ namespace Lang
             init_stream("0 18446744073709551615 0xffffffffffffffff 042 0b1111");
             assert_token_int(0);
             assert_token_int(18446744073709551615L);
-            assert(token.mod == TOKENMOD_HEX);
+            assert(token.mod == MOD_HEX);
             assert_token_int(0xffffffffffffffffL);
-            assert(token.mod == TOKENMOD_OCT);
+            assert(token.mod == MOD_OCT);
             assert_token_int(34);
-            assert(token.mod == TOKENMOD_BIN);
+            assert(token.mod == MOD_BIN);
             assert_token_int(0b1111);
             assert_token_eof();
 
@@ -995,14 +1033,15 @@ namespace Lang
         [StructLayout(LayoutKind.Explicit)]
         private struct Token
         {
-            [FieldOffset(0)] public int int_val;
-            [FieldOffset(0)] public float float_val;
+            [FieldOffset(0)] public ulong int_val;
+            [FieldOffset(0)] public double float_val;
             [FieldOffset(0)] public char* str_val;
             [FieldOffset(0)] public char* name;
 
             [FieldOffset(8)] public TokenKind kind;
             [FieldOffset(9)] public TokenMod mod;
-            [FieldOffset(10)] public char* start;
+            [FieldOffset(10)] public TokenSuffix suffix;
+            [FieldOffset(11)] public char* start;
             [FieldOffset(12 + PTR_SIZE)] public char* end;
             [FieldOffset(12 + 2 * PTR_SIZE)] public SrcPos pos;
         }
@@ -1085,10 +1124,21 @@ namespace Lang
 
     internal enum TokenMod : byte
     {
-        TOKENMOD_NONE,
-        TOKENMOD_HEX,
-        TOKENMOD_BIN,
-        TOKENMOD_OCT,
-        TOKENMOD_CHAR
+        MOD_NONE,
+        MOD_HEX,
+        MOD_BIN,
+        MOD_OCT,
+        MOD_CHAR
+    }
+
+    enum TokenSuffix : byte
+    {
+        SUFFIX_NONE,
+        SUFFIX_D,
+        SUFFIX_U,
+        SUFFIX_L,
+        SUFFIX_UL,
+        SUFFIX_LL,
+        SUFFIX_ULL,
     }
 }

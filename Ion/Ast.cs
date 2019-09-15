@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace Lang
+namespace IonLang
 {
     using static TypespecKind;
     using static DeclKind;
@@ -187,18 +187,20 @@ namespace Lang
             return e;
         }
 
-        private Expr* expr_int(SrcPos pos, int int_val, char* name)
+        private Expr* expr_int(SrcPos pos, ulong val, TokenSuffix suffix, char* name)
         {
             var e = expr_new(EXPR_INT, pos);
             e->name = name;
-            e->int_val = int_val;
+            e->int_lit.val = val;
+            e->int_lit.suffix = suffix;
             return e;
         }
 
-        private Expr* expr_float(SrcPos pos, float float_val, char* name)
+        private Expr* expr_float(SrcPos pos, double val, TokenSuffix suffix, char* name)
         {
             var e = expr_new(EXPR_FLOAT, pos);
-            e->float_val = float_val;
+            e->float_lit.val = val;
+            e->float_lit.suffix = suffix;
             e->name = name;
             return e;
         }

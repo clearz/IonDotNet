@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace Lang
+namespace IonLang
 {
     public unsafe partial class Ion
     {

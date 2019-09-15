@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Lang
+namespace IonLang
 {
 
     [StructLayout(LayoutKind.Sequential, Size = 16)]
@@ -166,8 +166,8 @@ namespace Lang
         [FieldOffset(4)] public SrcPos pos;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Type* type;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* name;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public int int_val;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public float float_val;
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public _int_lit int_lit;
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public _float_lit float_lit;
         [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public char* str_val;
         [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public Expr* sizeof_expr;
         [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public Typespec* sizeof_type;
@@ -180,6 +180,18 @@ namespace Lang
         [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public IndexExpr index;
         [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public FieldExpr field;
 
+        internal struct _int_lit
+        {
+            public TokenSuffix suffix;
+            public ulong val;
+        }
+
+
+        internal struct _float_lit
+        {
+            public TokenSuffix suffix;
+            public double val;
+        }
 
         internal struct CompoundExpr
         {

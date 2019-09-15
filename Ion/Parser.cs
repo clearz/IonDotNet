@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 
-namespace Lang
+namespace IonLang
 {
     using static TokenKind;
     using static DeclKind;
@@ -162,18 +162,22 @@ namespace Lang
                 Unsafe.CopyBlock(name, token.start, (uint)len << 1);
                 name[len] = '\0';
                 var val = token.int_val;
+                scan_sufffix();
+                TokenSuffix suffix = token.suffix;
                 next_token();
-                return expr_int(pos, val, name);
+                return expr_int(pos, val, suffix, name);
             }
 
             if (is_token(TOKEN_FLOAT)) {
-                var val = token.float_val;
+                double val = token.float_val;
+                scan_sufffix();
+                TokenSuffix suffix = token.suffix;
                 int len = (int)(token.end - token.start);
                 char* name = xmalloc<char>(len+1);
                 Unsafe.CopyBlock(name, token.start, (uint)len << 1);
                 name[len] = '\0';
                 next_token();
-                return expr_float(pos, val, name);
+                return expr_float(pos, val, suffix, name);
             }
 
             if (is_token(TOKEN_STR)) {

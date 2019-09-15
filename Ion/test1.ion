@@ -188,6 +188,17 @@ struct ConstVector {
     x, y: int const;
 }
 
+func test_lits() {
+    f := 3.14;
+    d := 3.14d;
+    i := 1;
+    u := 1u;
+    l := 1l;
+    ul := 1ul;
+    ll := 1ll;
+    ull := 1ull;
+}
+
 func test_const() {
     cv2 := ConstVector{1, 2};
     // cv2 = {};
@@ -215,6 +226,9 @@ func main(argc: int, argv: char const**): int {
     if (argv == 0) {
         printf("argv is null\n");
     }
+	else { printf("%s\n", *argv); }
+
+	test_lits();
     test_const();
     test_bool();
     test_ops();

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using static System.Console;
-namespace Lang
+namespace IonLang
 {
     using static TypeKind;
 

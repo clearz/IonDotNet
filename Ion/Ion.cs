@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
-namespace Lang
+namespace IonLang
 {
     public unsafe partial class Ion
     {

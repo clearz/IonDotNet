@@ -6,7 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Lang
+namespace IonLang
 {
     internal static unsafe class Extensions
     {

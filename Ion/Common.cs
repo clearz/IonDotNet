@@ -3,7 +3,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Lang
+namespace IonLang
 {
     unsafe partial class Ion
     {
@@ -543,5 +543,34 @@ namespace Lang
         }
 
         #endregion
+    }
+
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal unsafe struct Val
+    {
+        [FieldOffset(0)] public bool b;
+        [FieldOffset(0)] public char c;
+        [FieldOffset(0)] public byte uc;
+        [FieldOffset(0)] public sbyte sc;
+        [FieldOffset(0)] public short s;
+        [FieldOffset(0)] public ushort us;
+        [FieldOffset(0)] public int i;
+        [FieldOffset(0)] public uint u;
+        [FieldOffset(0)] public int l;
+        [FieldOffset(0)] public uint ul;
+        [FieldOffset(0)] public long ll;
+        [FieldOffset(0)] public ulong ull;
+        [FieldOffset(0)] public void* p;
+
+        public override string ToString() {
+            String str;
+
+            if ((ull >> 32) > 0)
+                str = Convert.ToString((int)(ull >> 32), 2) + Convert.ToString(l, 2).PadLeft(8, '0');
+            else
+                str = Convert.ToString(l, 2);
+            return $"[{str.Length}:{str}]";
+        }
     }
 }

@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Lang
+namespace IonLang
 {
     using static CompoundFieldKind;
     using static DeclKind;
@@ -541,9 +541,12 @@ namespace Lang
                     break;
                 case EXPR_INT:
                     c_write(expr->name);
+                    c_write(token_suffix_names[(int)expr->int_lit.suffix]);
                     break;
                 case EXPR_FLOAT:
                     c_write(expr->name);
+                    if (expr->float_lit.suffix != TokenSuffix.SUFFIX_D)
+                        c_write('f');
                     break;
                 case EXPR_STR:
                     gen_str(expr->str_val);
