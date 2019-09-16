@@ -241,6 +241,10 @@ namespace IonLang
             }
         }
 
+        bool is_incomplete_array_type(Type* type) {
+            return is_array_type(type) && type->num_elems == 0;
+        }
+
         private Type* type_array(Type* elem, int num_elems) {
             for (var it = cached_array_types._begin; it != cached_array_types._top; it++)
                 if (it->elem == elem && it->num_elems == num_elems)

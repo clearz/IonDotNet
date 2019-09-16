@@ -1108,7 +1108,7 @@ namespace IonLang
             if (decl->var.expr != null && decl->var.expr->kind != EXPR_NULL) {
                 Operand operand = resolve_expected_expr(decl->var.expr, type);
                 if (type != null) {
-                    if (is_array_type(type) && is_array_type(operand.type) && type->@base == operand.type->@base && type->num_elems == 0) {
+                    if (is_incomplete_array_type(type) && is_array_type(operand.type)) {
                         // Incomplete array size, so infer the size from the initializer expression's type.
                     }
                     else {
@@ -1121,6 +1121,9 @@ namespace IonLang
             }
 
             complete_type(type);
+            if (type->size == 0) {
+                fatal_error(decl->pos, "Cannot declare variable of size 0");
+            }
             return type;
         }
 
@@ -1190,15 +1193,15 @@ namespace IonLang
         }
         void resolve_stmt_init(Stmt* stmt) {
             assert(stmt->kind == STMT_INIT);
-            Type *type = null;
+            Type *type;
             if (stmt->init.type != null) {
                 type = resolve_typespec(stmt->init.type);
                 if (stmt->init.expr != null) {
                     Type *expected_type = unqualify_type(type);
                     Operand operand = resolve_expected_expr(stmt->init.expr, expected_type);
-                    if (is_array_type(type) && is_array_type(operand.type) && type->@base == operand.type->@base && type->num_elems == 0) {
-                        // Incomplete array size, so infer the size from the initializer expression's type.
-                    } else if (!convert_operand(&operand, type)) {
+                    if (is_incomplete_array_type(type) && is_array_type(operand.type) && type->@base == operand.type->@base) {
+                        type = operand.type;
+                    } else if (!convert_operand(&operand, expected_type)) {
                         fatal_error(stmt->pos, "Illegal conversion in init statement");
                     }
                 }
@@ -1206,6 +1209,9 @@ namespace IonLang
             else {
                 assert(stmt->init.expr != null);
                 type = unqualify_type(resolve_expr(stmt->init.expr).type);
+            }
+            if (type->size == 0) {
+                fatal_error(stmt->pos, "Cannot declare variable of size 0");
             }
             if (!sym_push_var(stmt->init.name, type)) {
                 fatal_error(stmt->pos, "Shadowed definition of local symbol");

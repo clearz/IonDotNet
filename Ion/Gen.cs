@@ -706,7 +706,7 @@ namespace IonLang
                 gen_expr(expr);
             }
         }
-        bool is_incomplete_array_type(Typespec* typespec) {
+        bool is_incomplete_array_typespec(Typespec* typespec) {
             return typespec->kind == TYPESPEC_ARRAY && typespec->num_elems == null;
         }
 
@@ -729,7 +729,7 @@ namespace IonLang
                     reset_pos();
       
                     if (stmt->init.type != null) {
-                        if (is_incomplete_array_type(stmt->init.type)) {
+                        if (is_incomplete_array_typespec(stmt->init.type)) {
                             type_to_cdecl(stmt->init.expr->type, stmt->init.name);
                         }
                         else {
@@ -937,7 +937,7 @@ namespace IonLang
 
                     break;
                 case DECL_VAR:
-                    if (decl->var.type != null && !is_incomplete_array_type(decl->var.type)) {
+                    if (decl->var.type != null && !is_incomplete_array_typespec(decl->var.type)) {
                         genln();
                         typespec_to_cdecl(decl->var.type, sym->name);
                     }
