@@ -202,9 +202,16 @@ namespace IonLang
                 return true;
             }
             else if (is_ptr_type(dest) && is_ptr_type(src)) {
-                return dest->@base == type_void || src->@base == type_void;
+                src = src->@base;
+                dest = unqualify_type(dest->@base);
+                if (dest == type_void) {
+                    return src->kind != TYPE_CONST;
+                }
+                else {
+                    return dest == src || src == type_void;
+                }
             }
-            else if (is_null_ptr(*operand) && is_ptr_type(dest)) {
+            else if (is_ptr_type(dest) && is_null_ptr(*operand)) {
                 return true;
             }
             else {
@@ -1141,8 +1148,8 @@ namespace IonLang
                 for (var i = 0; i < decl->func.num_params; i++) {
                     Type *param = resolve_typespec(decl->func.@params[i].type);
                     complete_type(param);
-                    if (param->size == 0) {
-                        fatal_error(decl->pos, "Function parameter type cannot have size 0");
+                    if (param == type_void) {
+                        fatal_error(decl->pos, "Function parameter type cannot be void");
                     }
                     @params->Add(param);
                 }

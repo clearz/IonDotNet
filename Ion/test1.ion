@@ -42,6 +42,9 @@ func f1() {
     *p = 42;
 }
 
+func f3(a: int[]) {
+}
+
 typedef U = IntOrPtr;
 
 func example_test(): int {
@@ -64,7 +67,7 @@ var escape_to_char: char const[256] = {
 };
 
 var a2: int[] = {1, 2, 3, [10]=4};
-//var a3: int[];
+// var a3: int[];
 
 func is_even(digit: int): int {
     b := 0;
@@ -204,6 +207,17 @@ struct ConstVector {
     x, y: int const;
 }
 
+func f5(p: void const*) {
+}
+
+func test_convert() {
+    a: int const* = 0;
+    b: int* = 0;
+    a = b;
+    p: int* = 0;
+    f5(p);
+}
+
 func test_const() {
     cv2 := ConstVector{1, 2};
     // cv2 = {};
@@ -231,11 +245,9 @@ func test_init() {
     x := (:int const)0;
     y: int;
     z: int = 42;
-	a: int[] = {1, 2, 3};
-
-
-    //a2: int[];
-    //v: void;
+    a: int[] = {1, 2, 3};
+    // a2: int[];
+    // v: void;
 }
 
 func main(argc: int, argv: char const**): int {

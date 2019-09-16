@@ -50,22 +50,22 @@ uchar h(void);
 #line 19
 typedef int (A[(1) + ((2) * (sizeof((h)())))]);
 
-#line 87
+#line 90
 struct Vector {
-    #line 88
+    #line 91
     int x;
-    #line 88
+    #line 91
     int y;
 };
 
-#line 45
+#line 48
 typedef IntOrPtr U;
 
-#line 51
+#line 54
 union IntOrPtr {
-    #line 52
+    #line 55
     int i;
-    #line 53
+    #line 56
     int (*p);
 };
 
@@ -77,91 +77,100 @@ void k(void (*vp), int (*ip));
 #line 40
 void f1(void);
 
-#line 47
+#line 45
+void f3(int (a[]));
+
+#line 50
 int example_test(void);
 
-#line 103
+#line 106
 int fact_rec(int n);
 
-#line 95
+#line 98
 int fact_iter(int n);
 
-#line 56
+#line 59
 char const (escape_to_char[256]) = {['n'] = '\n', ['r'] = '\r', ['t'] = '\t', ['v'] = '\v', ['b'] = '\b', ['a'] = '\a', ['0'] = 0};
 
-#line 66
+#line 69
 int (a2[11]) = {1, 2, 3, [10] = 4};
 
-#line 69
+#line 72
 int is_even(int digit);
 
-#line 85
+#line 88
 int i;
 
-#line 91
+#line 94
 void f2(Vector v);
 
-#line 113
+#line 116
 T (*p);
 
-#line 111
+#line 114
 #define M ((1) + (sizeof(p)))
 
 struct T {
-    #line 116
+    #line 119
     int (a[M]);
 };
 
-#line 119
+#line 122
 void benchmark(int n);
 
-#line 126
+#line 129
 int va_test(int x, ...);
 
 typedef int (*F)(int, ...);
 
-#line 132
+#line 135
 void test_lits(void);
 
-#line 147
+#line 150
 void test_ops(void);
 
-#line 177
+#line 180
 #define IS_DEBUG (true)
 
-#line 179
+#line 182
 void test_bool(void);
 
-#line 186
+#line 189
 int test_ctrl(void);
 
-#line 196
+#line 199
 int const (j);
 
-#line 197
+#line 200
 int const ((*q));
 
-#line 198
+#line 201
 Vector const (cv);
 
-#line 200
+#line 203
 void f4(char const ((*x)));
 
-#line 203
+#line 206
 struct ConstVector {
-    #line 204
+    #line 207
     int const (x);
-    #line 204
+    #line 207
     int const (y);
 };
 
-#line 207
+#line 210
+void f5(void const ((*p)));
+
+#line 213
+void test_convert(void);
+
+#line 221
 void test_const(void);
 
-#line 230
+#line 244
 void test_init(void);
 
-#line 241
+#line 253
 int main(int argc, char const ((*(*argv))));
 
 // Function declarations
@@ -205,265 +214,287 @@ void f1(void) {
     *(p) = 42;
 }
 
-#line 47
+#line 45
+void f3(int (a[])) {
+}
+
+#line 50
 int example_test(void) {
-    #line 48
+    #line 51
     return ((fact_rec)(10)) == ((fact_iter)(10));
 }
 
-#line 69
+#line 72
 int is_even(int digit) {
-    #line 70
+    #line 73
     int b = 0;
-    #line 71
+    #line 74
     switch (digit) {
         case 0:
         case 2:
         case 4:
         case 6:
         case 8: {
-            #line 73
+            #line 76
             b = 1;
             break;
         }
     }
-    #line 75
+    #line 78
     return b;
 }
 
-#line 91
+#line 94
 void f2(Vector v) {
-    #line 92
+    #line 95
     v = (Vector){0};
 }
 
-#line 95
+#line 98
 int fact_iter(int n) {
-    #line 96
+    #line 99
     int r = 1;
-    #line 97
+    #line 100
     for (int i = 0; (i) <= (n); i++) {
-        #line 98
+        #line 101
         r *= i;
     }
-    #line 100
+    #line 103
     return r;
 }
 
-#line 103
+#line 106
 int fact_rec(int n) {
-    #line 104
+    #line 107
     if ((n) == (0)) {
-        #line 105
+        #line 108
         return 1;
     } else {
-        #line 107
+        #line 110
         return (n) * ((fact_rec)((n) - (1)));
     }
 }
 
-#line 119
+#line 122
 void benchmark(int n) {
-    #line 120
+    #line 123
     int r = 1;
-    #line 121
+    #line 124
     for (int i = 1; (i) <= (n); i++) {
-        #line 122
+        #line 125
         r *= i;
     }
 }
 
-#line 126
+#line 129
 int va_test(int x, ...) {
-    #line 127
+    #line 130
     return 0;
 }
 
-#line 132
+#line 135
 void test_lits(void) {
-    #line 133
-    float f = 3.14f;
-    #line 134
-    double d = 3.14;
-    #line 135
-    int i = 1;
     #line 136
-    uint u = 0xFFFFFFFFu;
+    float f = 3.14f;
     #line 137
-    long l = 1l;
+    double d = 3.14;
     #line 138
-    ulong ul = 1ul;
+    int i = 1;
     #line 139
-    llong ll = 0x100000000ll;
+    uint u = 0xFFFFFFFFu;
     #line 140
-    ullong ull = 0xFFFFFFFFFFFFFFFFull;
+    long l = 1l;
     #line 141
-    uint x1 = 0xFFFFFFFF;
+    ulong ul = 1ul;
     #line 142
-    llong x2 = 4294967295;
+    llong ll = 0x100000000ll;
     #line 143
-    ullong x3 = 0xFFFFFFFFFFFFFFFF;
+    ullong ull = 0xFFFFFFFFFFFFFFFFull;
     #line 144
+    uint x1 = 0xFFFFFFFF;
+    #line 145
+    llong x2 = 4294967295;
+    #line 146
+    ullong x3 = 0xFFFFFFFFFFFFFFFF;
+    #line 147
     int x4 = (0xAA) + (0x55);
 }
 
-#line 147
+#line 150
 void test_ops(void) {
-    #line 148
-    float pi = 3.14f;
-    #line 149
-    float f = 0.0f;
-    #line 150
-    f = +(pi);
     #line 151
-    f = -(pi);
+    float pi = 3.14f;
     #line 152
-    int n = -(1);
+    float f = 0.0f;
     #line 153
-    n = ~(n);
+    f = +(pi);
     #line 154
-    f = ((f) * (pi)) + (n);
+    f = -(pi);
     #line 155
-    f = (pi) / (pi);
+    int n = -(1);
     #line 156
-    n = (3) % (2);
+    n = ~(n);
     #line 157
-    n = (n) + ((uchar)(1));
+    f = ((f) * (pi)) + (n);
     #line 158
-    int (*p) = &(n);
+    f = (pi) / (pi);
     #line 159
-    p = (p) + (1);
+    n = (3) % (2);
     #line 160
-    n = (int)(((p) + (1)) - (p));
+    n = (n) + ((uchar)(1));
     #line 161
-    n = (n) << (1);
+    int (*p) = &(n);
     #line 162
-    n = (n) >> (1);
+    p = (p) + (1);
     #line 163
-    int b = ((p) + (1)) > (p);
+    n = (int)(((p) + (1)) - (p));
     #line 164
-    b = ((p) + (1)) >= (p);
+    n = (n) << (1);
     #line 165
-    b = ((p) + (1)) < (p);
+    n = (n) >> (1);
     #line 166
-    b = ((p) + (1)) <= (p);
+    int b = ((p) + (1)) > (p);
     #line 167
-    b = ((p) + (1)) == (p);
+    b = ((p) + (1)) >= (p);
     #line 168
-    b = (1) > (2);
+    b = ((p) + (1)) < (p);
     #line 169
-    b = (1.23f) <= (pi);
+    b = ((p) + (1)) <= (p);
     #line 170
-    n = 0xFF;
+    b = ((p) + (1)) == (p);
     #line 171
-    b = (n) & (~(1));
+    b = (1) > (2);
     #line 172
-    b = (n) & (1);
+    b = (1.23f) <= (pi);
     #line 173
-    b = ((n) & (~(1))) ^ (1);
+    n = 0xFF;
     #line 174
+    b = (n) & (~(1));
+    #line 175
+    b = (n) & (1);
+    #line 176
+    b = ((n) & (~(1))) ^ (1);
+    #line 177
     b = (p) && (pi);
 }
 
-#line 179
+#line 182
 void test_bool(void) {
-    #line 180
-    bool b = false;
-    #line 181
-    b = true;
-    #line 182
-    int i = 0;
     #line 183
+    bool b = false;
+    #line 184
+    b = true;
+    #line 185
+    int i = 0;
+    #line 186
     i = IS_DEBUG;
 }
 
-#line 186
+#line 189
 int test_ctrl(void) {
-    #line 187
+    #line 190
     while (1) {
-        #line 188
+        #line 191
         while (1) {
-            #line 189
+            #line 192
             break;
         }
-        #line 191
+        #line 194
         return 42;
     }
-    #line 193
+    #line 196
     return 0;
 }
 
-#line 200
+#line 203
 void f4(char const ((*x))) {
 }
 
-#line 207
+#line 210
+void f5(void const ((*p))) {
+}
+
+#line 213
+void test_convert(void) {
+    #line 214
+    int const ((*a)) = 0;
+    #line 215
+    int (*b) = 0;
+    #line 216
+    a = b;
+    #line 217
+    int (*p) = 0;
+    #line 218
+    (f5)(p);
+}
+
+#line 221
 void test_const(void) {
-    #line 208
+    #line 222
     ConstVector cv2 = {1, 2};
     int i = 0;
-    #line 211
+    #line 225
     i = 1;
-    #line 214
+    #line 228
     int x = cv.x;
     char c = escape_to_char[0];
     (f4)(escape_to_char);
-    #line 219
+    #line 233
     char const ((*p)) = (char const *)(0);
-    #line 220
+    #line 234
     p = (escape_to_char) + (1);
-    #line 221
+    #line 235
     char (*q) = (char *)(escape_to_char);
-    #line 222
+    #line 236
     c = q['n'];
     p = (char const *)(1);
-    #line 227
+    #line 241
     i = (int)((ullong)(p));
 }
 
-#line 230
+#line 244
 void test_init(void) {
-    #line 231
+    #line 245
     int x = (int const)(0);
-    #line 232
+    #line 246
     int y;
-    #line 233
+    #line 247
     int z = 42;
-    #line 234
+    #line 248
     int (a[3]) = {1, 2, 3};
 }
 
-#line 241
+#line 253
 int main(int argc, char const ((*(*argv)))) {
-    #line 242
+    #line 254
     if ((argv) == (0)) {
-        #line 243
+        #line 255
         (printf)("argv is null\n");
     }
-    #line 245
-    (test_init)();
-    #line 246
-    (test_lits)();
-    #line 247
-    (test_const)();
-    #line 248
-    (test_bool)();
-    #line 249
-    (test_ops)();
-    #line 250
-    int b = (example_test)();
-    #line 251
-    (puts)("Hello, world!");
-    #line 252
-    int c = (getchar)();
-    #line 253
-    (printf)("You wrote \'%c\'\n", c);
-    #line 254
-    (va_test)(1);
-    #line 255
-    (va_test)(1, 2);
-    #line 256
-    argv = NULL;
     #line 257
+    (test_init)();
+    #line 258
+    (test_lits)();
+    #line 259
+    (test_const)();
+    #line 260
+    (test_bool)();
+    #line 261
+    (test_ops)();
+    #line 262
+    int b = (example_test)();
+    #line 263
+    (puts)("Hello, world!");
+    #line 264
+    int c = (getchar)();
+    #line 265
+    (printf)("You wrote \'%c\'\n", c);
+    #line 266
+    (va_test)(1);
+    #line 267
+    (va_test)(1, 2);
+    #line 268
+    argv = NULL;
+    #line 269
     return 0;
 }

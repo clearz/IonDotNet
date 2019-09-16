@@ -318,7 +318,8 @@ namespace IonLang
                         c_write('(');
                         c_write(str);
                         c_write('[');
-                        gen_expr(typespec->num_elems);
+                        if (typespec->num_elems != null)
+                            gen_expr(typespec->num_elems);
                         c_write(']');
                         c_write(')');
                     }
