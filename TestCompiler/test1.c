@@ -160,6 +160,9 @@ struct ConstVector {
 void test_const(void);
 
 #line 229
+void test_init(void);
+
+#line 236
 int main(int argc, char const ((*(*argv))));
 
 // Function declarations
@@ -420,34 +423,48 @@ void test_const(void) {
 }
 
 #line 229
-int main(int argc, char const ((*(*argv)))) {
+void test_init(void) {
     #line 230
+    int x = (int const)(0);
+    #line 231
+    int y;
+    #line 232
+    int z = 42;
+    #line 233
+    int (a[3]) = {1, 2, 3};
+}
+
+#line 236
+int main(int argc, char const ((*(*argv)))) {
+    #line 237
     if ((argv) == (0)) {
-        #line 231
+        #line 238
         (printf)("argv is null\n");
     }
-    #line 233
-    (test_lits)();
-    #line 234
-    (test_const)();
-    #line 235
-    (test_bool)();
-    #line 236
-    (test_ops)();
-    #line 237
-    int b = (example_test)();
-    #line 238
-    (puts)("Hello, world!");
-    #line 239
-    int c = (getchar)();
     #line 240
-    (printf)("You wrote \'%c\'\n", c);
+    (test_init)();
     #line 241
-    (va_test)(1);
+    (test_lits)();
     #line 242
-    (va_test)(1, 2);
+    (test_const)();
     #line 243
-    argv = NULL;
+    (test_bool)();
     #line 244
+    (test_ops)();
+    #line 245
+    int b = (example_test)();
+    #line 246
+    (puts)("Hello, world!");
+    #line 247
+    int c = (getchar)();
+    #line 248
+    (printf)("You wrote \'%c\'\n", c);
+    #line 249
+    (va_test)(1);
+    #line 250
+    (va_test)(1, 2);
+    #line 251
+    argv = NULL;
+    #line 252
     return 0;
 }

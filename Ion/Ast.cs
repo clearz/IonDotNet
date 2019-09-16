@@ -385,10 +385,11 @@ namespace IonLang
             return s;
         }
 
-        private Stmt* stmt_init(SrcPos pos, char* name, Expr* expr)
+        private Stmt* stmt_init(SrcPos pos, char* name, Typespec* type, Expr* expr)
         {
             var s = stmt_new(STMT_INIT, pos);
             s->init.name = name;
+            s->init.type = type;
             s->init.expr = expr;
             return s;
         }

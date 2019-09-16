@@ -727,12 +727,30 @@ namespace IonLang
                     break;
                 case STMT_INIT:
                     reset_pos();
-                    type_to_cdecl(unqualify_type(stmt->init.expr->type), stmt->init.name);
-                    c_write(cdecl_buffer, _pos);
-                    c_write(' ');
-                    c_write('=');
-                    c_write(' ');
-                    gen_init_expr(stmt->init.expr);
+      
+                    if (stmt->init.type != null) {
+                        if (is_incomplete_array_type(stmt->init.type)) {
+                            type_to_cdecl(stmt->init.expr->type, stmt->init.name);
+                        }
+                        else {
+                            typespec_to_cdecl(stmt->init.type, stmt->init.name);
+                        }
+                        c_write(cdecl_buffer, _pos);
+                        if (stmt->init.expr != null) {
+                            c_write(' ');
+                            c_write('=');
+                            c_write(' ');
+                            gen_init_expr(stmt->init.expr);
+                        }
+                    }
+                    else {
+                        type_to_cdecl(unqualify_type(stmt->init.expr->type), stmt->init.name);
+                        c_write(cdecl_buffer, _pos);
+                        c_write(' ');
+                        c_write('=');
+                        c_write(' ');
+                        gen_init_expr(stmt->init.expr);
+                    }
                     break;
                 case STMT_ASSIGN:
                     gen_expr(stmt->assign.left);

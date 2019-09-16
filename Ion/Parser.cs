@@ -79,7 +79,7 @@ namespace IonLang
                 return type;
             }
 
-            fatal_syntax_error("Unexpected token {0} in type", token_info());
+            fatal_error_here("Unexpected token {0} in type", token_info());
             return null;
         }
 
@@ -131,7 +131,7 @@ namespace IonLang
             var expr = parse_expr();
             if (match_token(TOKEN_ASSIGN)) {
                 if (expr->kind != EXPR_NAME)
-                    fatal_syntax_error("Named initializer in compound literal must be preceded by field name");
+                    fatal_error_here("Named initializer in compound literal must be preceded by field name");
                 return new CompoundField { pos = pos, kind = FIELD_NAME, init = parse_expr(), name = expr->name };
             }
 
@@ -219,7 +219,7 @@ namespace IonLang
                 return expr;
             }
 
-            fatal_syntax_error("Unexpected token {0} in expression", token_info());
+            fatal_error_here("Unexpected token {0} in expression", token_info());
             return null;
         }
 
@@ -420,7 +420,7 @@ namespace IonLang
         private Stmt* parse_stmt_do_while(SrcPos pos) {
             var block = parse_stmt_block();
             if (!match_keyword(while_keyword)) {
-                fatal_syntax_error("Expected 'while' after 'do' block");
+                fatal_error_here("Expected 'while' after 'do' block");
                 return null;
             }
 
@@ -439,11 +439,26 @@ namespace IonLang
             Stmt* stmt;
             if (match_token(TOKEN_COLON_ASSIGN)) {
                 if (expr->kind != EXPR_NAME) {
-                    fatal_syntax_error(":= must be preceded by a name");
+                    fatal_error_here(":= must be preceded by a name");
                     return null;
                 }
 
-                stmt = stmt_init(pos, expr->name, parse_expr());
+                stmt = stmt_init(pos, expr->name, null, parse_expr());
+            }
+            else if (match_token(TOKEN_COLON)) {
+                if (expr->kind != EXPR_NAME) {
+                    fatal_error_here(": must be preceded by a name");
+                    return null;
+                }
+                char *name = expr->name;
+                Typespec *type = parse_type();
+                if (match_token(TOKEN_ASSIGN)) {
+                    expr = parse_expr();
+                }
+                else
+                    expr = null;
+
+                stmt = stmt_init(pos, name, type, expr);
             }
             else if (is_assign_op()) {
                 var op = token.kind;
@@ -551,32 +566,32 @@ namespace IonLang
             if (match_keyword(if_keyword))
                 return parse_stmt_if(pos);
 
-            if (match_keyword(while_keyword))
+            else if (match_keyword(while_keyword))
                 return parse_stmt_while(pos);
 
-            if (match_keyword(do_keyword))
+            else if (match_keyword(do_keyword))
                 return parse_stmt_do_while(pos);
 
-            if (match_keyword(for_keyword))
+            else if (match_keyword(for_keyword))
                 return parse_stmt_for(pos);
 
-            if (match_keyword(switch_keyword))
+            else if (match_keyword(switch_keyword))
                 return parse_stmt_switch(pos);
 
-            if (is_token(TOKEN_LBRACE))
+            else if(is_token(TOKEN_LBRACE))
                 return stmt_block(pos, parse_stmt_block());
 
-            if (match_keyword(break_keyword)) {
+            else if(match_keyword(break_keyword)) {
                 expect_token(TOKEN_SEMICOLON);
                 return stmt_break(pos);
             }
 
-            if (match_keyword(continue_keyword)) {
+            else if(match_keyword(continue_keyword)) {
                 expect_token(TOKEN_SEMICOLON);
                 return stmt_continue(pos);
             }
 
-            if (match_keyword(return_keyword)) {
+            else if(match_keyword(return_keyword)) {
                 Expr* expr = null;
                 if (!is_token(TOKEN_SEMICOLON))
                     expr = parse_expr();
@@ -584,14 +599,11 @@ namespace IonLang
                 expect_token(TOKEN_SEMICOLON);
                 return stmt_return(pos, expr);
             }
-
-            var decl = parse_decl_opt();
-            if (decl != null)
-                return stmt_decl(pos, decl);
-
-            var stmt = parse_simple_stmt();
-            expect_token(TOKEN_SEMICOLON);
-            return stmt;
+            else {
+                Stmt *stmt = parse_simple_stmt();
+                expect_token(TOKEN_SEMICOLON);
+                return stmt;
+            }
         }
 
         private char* parse_name() {
@@ -663,32 +675,40 @@ namespace IonLang
 
         private Decl* parse_decl_var(SrcPos pos) {
             var name = parse_name();
-            if (match_token(TOKEN_ASSIGN))
-                return decl_var(pos, name, null, parse_expr());
-
-            if (match_token(TOKEN_COLON)) {
-                var type = parse_type();
-                Expr* expr = null;
-                if (match_token(TOKEN_ASSIGN))
+            if (match_token(TOKEN_ASSIGN)) {
+                Expr *expr = parse_expr();
+                expect_token(TOKEN_SEMICOLON);
+                return decl_var(pos, name, null, expr);
+            }
+            else if (match_token(TOKEN_COLON)) {
+                Typespec *type = parse_type();
+                Expr *expr = null;
+                if (match_token(TOKEN_ASSIGN)) {
                     expr = parse_expr();
-
+                }
+                expect_token(TOKEN_SEMICOLON);
                 return decl_var(pos, name, type, expr);
             }
-
-            fatal_syntax_error("Expected : or = after var, got {0}", token_info());
-            return null;
+            else { 
+                fatal_error_here("Expected : or = after var, got {0}", token_info());
+                return null;
+            }
         }
 
         private Decl* parse_decl_const(SrcPos pos) {
             var name = parse_name();
             expect_token(TOKEN_ASSIGN);
-            return decl_const(pos, name, parse_expr());
+            Expr *expr = parse_expr();
+            expect_token(TOKEN_SEMICOLON);
+            return decl_const(pos, name, expr);
         }
 
         private Decl* parse_decl_typedef(SrcPos pos) {
             var name = parse_name();
             expect_token(TOKEN_ASSIGN);
-            return decl_typedef(pos, name, parse_type());
+            Typespec *type = parse_type();
+            expect_token(TOKEN_SEMICOLON);
+            return decl_typedef(pos, name, type);
         }
 
         private FuncParam parse_decl_func_param() {
@@ -767,7 +787,7 @@ namespace IonLang
             NoteList notes = parse_note_list();
             var decl = parse_decl_opt();
             if (decl == null)
-                fatal_syntax_error("Expected declaration keyword, got {0}", token_info());
+                fatal_error_here("Expected declaration keyword, got {0}", token_info());
 
             decl->notes = notes;
             return decl;

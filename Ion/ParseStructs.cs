@@ -333,6 +333,7 @@ namespace IonLang
         internal struct InitStmt
         {
             public char* name;
+            public Typespec *type;
             public Expr* expr;
         }
     }

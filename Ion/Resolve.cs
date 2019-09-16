@@ -1188,6 +1188,29 @@ namespace IonLang
                 }
             }
         }
+        void resolve_stmt_init(Stmt* stmt) {
+            assert(stmt->kind == STMT_INIT);
+            Type *type = null;
+            if (stmt->init.type != null) {
+                type = resolve_typespec(stmt->init.type);
+                if (stmt->init.expr != null) {
+                    Type *expected_type = unqualify_type(type);
+                    Operand operand = resolve_expected_expr(stmt->init.expr, expected_type);
+                    if (is_array_type(type) && is_array_type(operand.type) && type->@base == operand.type->@base && type->num_elems == 0) {
+                        // Incomplete array size, so infer the size from the initializer expression's type.
+                    } else if (!convert_operand(&operand, type)) {
+                        fatal_error(stmt->pos, "Illegal conversion in init statement");
+                    }
+                }
+            }
+            else {
+                assert(stmt->init.expr != null);
+                type = unqualify_type(resolve_expr(stmt->init.expr).type);
+            }
+            if (!sym_push_var(stmt->init.name, type)) {
+                fatal_error(stmt->pos, "Shadowed definition of local symbol");
+            }
+        }
 
         bool resolve_stmt(Stmt* stmt, Type* ret_type) {
             switch (stmt->kind) {
@@ -1269,9 +1292,7 @@ namespace IonLang
                     return false;
 
                 case STMT_INIT:
-                    if (!sym_push_var(stmt->init.name, unqualify_type(resolve_expr(stmt->init.expr).type))) {
-                        fatal_error(stmt->pos, "Shadowed definition of local symbol");
-                    }
+                    resolve_stmt_init(stmt);
                     return false;
                 case STMT_EXPR:
                     resolve_expr(stmt->expr);

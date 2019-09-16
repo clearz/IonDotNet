@@ -34,7 +34,7 @@ namespace IonLang
 
 
         [DebuggerHidden]
-        private void fatal_syntax_error(string format, params object[] pmz)
+        private void fatal_error_here(string format, params object[] pmz)
         {
             syntax_error(format, pmz);
             Exit();
