@@ -1,10 +1,6 @@
-﻿using System;
-using System.IO;
-using static System.Console;
+﻿using static System.Console;
 namespace IonLang
 {
-    using static TypeKind;
-
     unsafe partial class Ion
     {
         private static void Main(string[] args) {
