@@ -22,6 +22,13 @@ namespace IonLang
         private readonly PtrBuffer* global_syms_buf = PtrBuffer.Create();
         private Buffer<Sym> local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
 
+        const ulong INT_MAX = int.MaxValue, 
+                    UINT_MAX = uint.MaxValue, 
+                    LONG_MAX = int.MaxValue, 
+                    ULONG_MAX = uint.MaxValue, 
+                    LLONG_MAX = long.MaxValue, 
+                    ULLONG_MAX = ulong.MaxValue;
+
 #if X64
         internal const int PTR_SIZE = 8;
 #else
@@ -1932,6 +1939,127 @@ namespace IonLang
             }
             return operand;
         }
+        Operand resolve_expr_int(Expr* expr) {
+            assert(expr->kind == EXPR_INT);
+            ulong val = expr->int_lit.val;
+            Operand operand = operand_const(type_ullong, new Val{ull = val});
+            Type *type = type_ullong;
+            if (expr->int_lit.mod == TokenMod.MOD_NONE) {
+                bool overflow = false;
+                switch (expr->int_lit.suffix) {
+                    case SUFFIX_NONE:
+                        type = type_int;
+                        if (val > INT_MAX) {
+                            type = type_long;
+                            if (val > LONG_MAX) {
+                                type = type_llong;
+                                overflow = val > LLONG_MAX;
+                            }
+                        }
+                        break;
+                    case SUFFIX_U:
+                        type = type_uint;
+                        if (val > UINT_MAX) {
+                            type = type_ulong;
+                            if (val > ULONG_MAX) {
+                                type = type_ullong;
+                            }
+                        }
+                        type = type_uint;
+                        break;
+                    case SUFFIX_L:
+                        type = type_long;
+                        if (val > LONG_MAX) {
+                            type = type_llong;
+                            overflow = val > LLONG_MAX;
+                        }
+                        break;
+                    case SUFFIX_UL:
+                        type = type_ulong;
+                        if (val > ULONG_MAX) {
+                            type = type_ullong;
+                        }
+                        break;
+                    case SUFFIX_LL:
+                        type = type_llong;
+                        overflow = val > LLONG_MAX;
+                        break;
+                    case SUFFIX_ULL:
+                        type = type_ullong;
+                        break;
+                    default:
+                        assert(0);
+                        break;
+                }
+                if (overflow) {
+                    fatal_error(expr->pos, "Integer literal overflow");
+                }
+            }
+            else {
+                switch (expr->int_lit.suffix) {
+                    case SUFFIX_NONE:
+                        type = type_int;
+                        if (val > INT_MAX) {
+                            type = type_uint;
+                            if (val > UINT_MAX) {
+                                type = type_long;
+                                if (val > LONG_MAX) {
+                                    type = type_ulong;
+                                    if (val > ULONG_MAX) {
+                                        type = type_llong;
+                                        if (val > LLONG_MAX) {
+                                            type = type_ullong;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    case SUFFIX_U:
+                        type = type_uint;
+                        if (val > UINT_MAX) {
+                            type = type_ulong;
+                            if (val > ULONG_MAX) {
+                                type = type_ullong;
+                            }
+                        }
+                        break;
+                    case SUFFIX_L:
+                        type = type_long;
+                        if (val > LONG_MAX) {
+                            type = type_ulong;
+                            if (val > ULONG_MAX) {
+                                type = type_llong;
+                                if (val > LLONG_MAX) {
+                                    type = type_ullong;
+                                }
+                            }
+                        }
+                        break;
+                    case SUFFIX_UL:
+                        type = type_ulong;
+                        if (val > ULONG_MAX) {
+                            type = type_ullong;
+                        }
+                        break;
+                    case SUFFIX_LL:
+                        type = type_llong;
+                        if (val > LLONG_MAX) {
+                            type = type_ullong;
+                        }
+                        break;
+                    case SUFFIX_ULL:
+                        type = type_ullong;
+                        break;
+                    default:
+                        assert(0);
+                        break;
+                }
+            }
+            cast_operand(&operand, type);
+            return operand;
+        }
+
 
         private Operand resolve_expected_expr(Expr* expr, Type* expected_type) {
             Operand result;
@@ -1940,48 +2068,7 @@ namespace IonLang
                     result = operand_const(type_ptr(type_void), new Val { p = null });
                     break;
                 case EXPR_INT:
-                    switch (expr->int_lit.suffix) {
-                        case SUFFIX_NONE:
-                            if (expr->int_lit.val > int.MaxValue) {
-                                fatal_error(expr->pos, "Out of range int literal");
-                            }
-                            result = operand_const(type_int, new Val{i = (int)expr->int_lit.val});
-                            break;
-                        case SUFFIX_U:
-                            if (expr->int_lit.val > uint.MaxValue) {
-                                fatal_error(expr->pos, "Out of range uint literal");
-                            }
-                            result = operand_const(type_uint, new Val{u = (uint)expr->int_lit.val});
-                            break;
-                        case SUFFIX_L:
-                            if (expr->int_lit.val > int.MaxValue) {
-                                fatal_error(expr->pos, "Out of range long literal");
-                            }
-                            result = operand_const(type_long, new Val{l = (int)expr->int_lit.val});
-                            break;
-                        case SUFFIX_UL:
-                            if (expr->int_lit.val > uint.MaxValue) {
-                                fatal_error(expr->pos, "Out of range ulong literal");
-                            }
-                            result = operand_const(type_ulong, new Val{ul = (uint)expr->int_lit.val});
-                            break;
-                        case SUFFIX_LL:
-                            if (expr->int_lit.val > long.MaxValue) {
-                                fatal_error(expr->pos, "Out of range llong literal");
-                            }
-                            result = operand_const(type_llong, new Val{ll = (long)expr->int_lit.val});
-                            break;
-                        case SUFFIX_ULL:
-                            if (expr->int_lit.val > ulong.MaxValue) {
-                                fatal_error(expr->pos, "Out of range ullong literal");
-                            }
-                            result = operand_const(type_ullong, new Val{ull = (ulong)expr->int_lit.val});
-                            break;
-                        default:
-                            assert(0);
-                            result = default;
-                            break;
-                    }
+                    result = resolve_expr_int(expr);
                     break;
                 case EXPR_FLOAT:
                     result = operand_const(expr->float_lit.suffix == SUFFIX_D ? type_double : type_float, default);
