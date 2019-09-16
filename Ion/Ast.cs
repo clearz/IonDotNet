@@ -86,13 +86,13 @@ namespace IonLang
             return t;
         }
 
-        private Typespec* typespec_func(SrcPos pos, Typespec** args, int num_args, Typespec* ret, bool variadic)
+        private Typespec* typespec_func(SrcPos pos, Typespec** args, int num_args, Typespec* ret, bool has_varargs)
         {
             var t = typespec_new(TYPESPEC_FUNC, pos);
             t->func.args = (Typespec**) ast_dup(args, num_args * sizeof(Typespec*));
             t->func.num_args = num_args;
             t->func.ret = ret;
-            t->func.variadic = variadic;
+            t->func.has_varargs = has_varargs;
             return t;
         }
 
@@ -140,13 +140,13 @@ namespace IonLang
             return d;
         }
 
-        private Decl* decl_func(SrcPos pos, char* name, FuncParam* @params, int num_params, Typespec* ret_type, bool variadic, StmtList block)
+        private Decl* decl_func(SrcPos pos, char* name, FuncParam* @params, int num_params, Typespec* ret_type, bool has_varargs, StmtList block)
         {
             var d = decl_new(DECL_FUNC, pos, name);
             d->func.@params = (FuncParam*) ast_dup(@params, num_params * sizeof(FuncParam));
             d->func.num_params = num_params;
             d->func.ret_type = ret_type;
-            d->func.variadic = variadic;
+            d->func.has_varargs = has_varargs;
             d->func.block = block;
             return d;
         }

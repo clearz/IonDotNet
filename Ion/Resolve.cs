@@ -201,18 +201,24 @@ namespace IonLang
             else if (is_arithmetic_type(dest) && is_arithmetic_type(src)) {
                 return true;
             }
-            else if (is_ptr_type(dest) && is_ptr_type(src)) {
-                src = src->@base;
-                dest = unqualify_type(dest->@base);
-                if (dest == type_void) {
-                    return src->kind != TYPE_CONST;
-                }
-                else {
-                    return dest == src || src == type_void;
-                }
-            }
             else if (is_ptr_type(dest) && is_null_ptr(*operand)) {
                 return true;
+            }
+            else if (is_ptr_type(dest) && is_ptr_type(src)) {
+                if (is_const_type(dest->@base) && is_const_type(src->@base)) {
+                    return dest->@base->@base == src->@base->@base || dest->@base->@base == type_void || src->@base->@base == type_void;
+                }
+                else {
+                    Type *unqual_dest_base = unqualify_type(dest->@base);
+                    if (unqual_dest_base == src->@base) {
+                        return true;
+                    } else if (unqual_dest_base == type_void) {
+                        return is_const_type(dest->@base) || !is_const_type(src->@base);
+                    }
+                    else {
+                        return src->@base == type_void;
+                    }
+                }
             }
             else {
                 return false;
@@ -902,7 +908,7 @@ namespace IonLang
         }
 
         bool is_null_ptr(Operand operand) {
-            if (operand.is_const && (is_ptr_type(operand.type) || is_arithmetic_type(operand.type))) {
+            if (operand.is_const && (is_ptr_type(operand.type) || is_integer_type(operand.type))) {
                 cast_operand(&operand, type_ullong);
                 return operand.val.ull == 0;
             }
@@ -1118,7 +1124,7 @@ namespace IonLang
                     }
                     else {
                         if (!convert_operand(&operand, type)) {
-                            fatal_error(decl->pos, "Illegal conversion in variable initializer");
+                            fatal_error(decl->pos, "Invalid type in variable initializer");
                         }
                     }
                 }
@@ -1136,7 +1142,7 @@ namespace IonLang
             assert(decl->kind == DECL_CONST);
             Operand result = resolve_const_expr(decl->const_decl.expr);
             if (!is_arithmetic_type(result.type))
-                fatal_error(decl->pos, "Const must have arithmetic type");
+                fatal_error(decl->pos, "Const declarations must have arithmetic type");
             *val = result.val;
             return result.type;
         }
@@ -1161,7 +1167,7 @@ namespace IonLang
                 if (is_array_type(ret_type)) {
                     fatal_error(decl->pos, "Function return type cannot be array");
                 }
-                return type_func((Type**)@params->_begin, @params->count, ret_type, decl->func.variadic);
+                return type_func((Type**)@params->_begin, @params->count, ret_type, decl->func.has_varargs);
             }
             finally {
                 @params->Release();
@@ -1202,7 +1208,7 @@ namespace IonLang
                         fatal_error(stmt->pos, "Cannot assign null to non-pointer");
                     }
                     else
-                    fatal_error(stmt->pos, "Illegal conversion in assignment statement");
+                        fatal_error(stmt->pos, "Invalid type in assignment");
                 }
             }
         }
@@ -1217,7 +1223,7 @@ namespace IonLang
                     if (is_incomplete_array_type(type) && is_array_type(operand.type) && type->@base == operand.type->@base) {
                         type = operand.type;
                     } else if (!convert_operand(&operand, expected_type)) {
-                        fatal_error(stmt->pos, "Illegal conversion in init statement");
+                        fatal_error(stmt->pos, "Invalid type in initialization statement");
                     }
                 }
             }
@@ -1239,7 +1245,7 @@ namespace IonLang
                     if (stmt->expr != null) {
                         Operand operand = resolve_expected_expr(stmt->expr, ret_type);
                         if (!convert_operand(&operand, ret_type)) {
-                            fatal_error(stmt->pos, "Illegal conversion in return expression");
+                            fatal_error(stmt->pos, "Invalid type in return expression");
                         }
                     }
                     else {
@@ -1294,7 +1300,7 @@ namespace IonLang
                             Expr *case_expr = switch_case.exprs[j];
                             Operand case_operand = resolve_expr(case_expr);
                             if (!convert_operand(&case_operand, case_expr->type)) {
-                                fatal_error(case_expr->pos, "Illegal conversion in switch case expression");
+                                fatal_error(case_expr->pos, "Invalid type in switch case expression");
                             }
                             returns = resolve_stmt_block(switch_case.block, ret_type) && returns;
                         }
@@ -1445,7 +1451,7 @@ namespace IonLang
                 case TOKEN_ADD:
                     return +val;
                 case TOKEN_SUB:
-                    return 0ul - val; // Shut up MSVC's unary minus warning
+                    return 0ul - val;
                 case TOKEN_NEG:
                     return ~val;
                 case TOKEN_NOT:
@@ -1506,10 +1512,6 @@ namespace IonLang
                     return left > right ? 1 : 0;
                 case TOKEN_GTEQ:
                     return left >= right ? 1 : 0;
-                case TOKEN_AND_AND:
-                    return (left != 0 && right != 0) ? 1 : 0;
-                case TOKEN_OR_OR:
-                    return (left != 0 || right != 0) ? 1 : 0;
                 default:
                     assert(false);
                     break;
@@ -1551,10 +1553,6 @@ namespace IonLang
                     return left > right ? 1ul : 0;
                 case TOKEN_GTEQ:
                     return left >= right ? 1ul : 0;
-                case TOKEN_AND_AND:
-                    return (left != 0 && right != 0) ? 1ul : 0;
-                case TOKEN_OR_OR:
-                    return (left != 0 || right != 0) ? 1ul : 0;
                 default:
                     assert(false);
                     break;
@@ -1586,6 +1584,9 @@ namespace IonLang
         private Operand resolve_expr_name(Expr* expr) {
             assert(expr->kind == EXPR_NAME);
             var sym = resolve_name(expr->name);
+            if (sym == null) {
+                fatal_error(expr->pos, "Unresolved name");
+            }
             if (sym->kind == SYM_VAR)
                 return operand_lvalue(sym->type);
 
@@ -1838,7 +1839,7 @@ namespace IonLang
                     Type *field_type = type->aggregate.fields[index].type;
                     Operand init = resolve_expected_expr_rvalue(field.init, field_type);
                     if (!convert_operand(&init, field_type)) {
-                        fatal_error(field.pos, "Illegal conversion in compound literal initializer");
+                        fatal_error(field.pos, "Invalid type in compound literal initializer");
                     }
                     index++;
                 }
@@ -1856,7 +1857,7 @@ namespace IonLang
                             fatal_error(field.pos, "Field initializer index expression must have type int");
                         }
                         if (!cast_operand(&operand, type_int)) {
-                            fatal_error(field.pos, "Illegal conversion in field initializer index");
+                            fatal_error(field.pos, "Invalid type in field initializer index");
                         }
                         if (operand.val.i < 0) {
                             fatal_error(field.pos, "Field initializer index cannot be negative");
@@ -1868,7 +1869,7 @@ namespace IonLang
                         fatal_error(field.pos, "Field initializer in array compound literal out of range");
                     Operand init = resolve_expected_expr_rvalue(field.init, type->@base);
                     if (!convert_operand(&init, type->@base)) {
-                        fatal_error(field.pos, "Illegal conversion in compound literal initializer");
+                        fatal_error(field.pos, "Invalid type in compound literal initializer");
                     }
                     max_index = (int)MAX(max_index, index);
                     index++;
@@ -1885,7 +1886,7 @@ namespace IonLang
                     CompoundField field = expr->compound.fields[0];
                     Operand init = resolve_expected_expr_rvalue(field.init, type);
                     if (!convert_operand(&init, type)) {
-                        fatal_error(field.pos, "Illegal conversion in compound literal initializer");
+                        fatal_error(field.pos, "Invalid type in compound literal initializer");
                     }
                 }
             }
@@ -1898,7 +1899,7 @@ namespace IonLang
             if (expr->call.expr->kind == EXPR_NAME) {
                 Sym *sym = resolve_name(expr->call.expr->name);
                 if (sym == null) {
-                    fatal_error(expr->pos, "Name in expression does not exist");
+                    fatal_error(expr->pos, "Unresolved name");
                 }
                 if (sym->kind == SYM_TYPE) {
                     if (expr->call.num_args != 1) {
@@ -1906,28 +1907,31 @@ namespace IonLang
                     }
                     Operand operand = resolve_expr_rvalue(expr->call.args[0]);
                     if (!cast_operand(&operand, sym->type)) {
-                        fatal_error(expr->pos, "Invalid type conversion");
+                        fatal_error(expr->pos, "Invalid type cast");
                     }
                     return operand;
                 }
             }
             var func = resolve_expr_rvalue(expr->call.expr);
             if (func.type->kind != TYPE_FUNC)
-                fatal_error(expr->pos, "Trying to call non-function value");
+                fatal_error(expr->pos, "Cannot call non-function value");
             var num_params = func.type->func.num_params;
 
             if (expr->call.num_args < num_params) {
-                fatal_error(expr->pos, "Tried to call function with too few arguments");
+                fatal_error(expr->pos, "Function call with too few arguments");
             }
-            if (expr->call.num_args > num_params && !func.type->func.variadic) {
-                fatal_error(expr->pos, "Tried to call function with too many arguments");
+            if (expr->call.num_args > num_params && !func.type->func.has_varargs) {
+                fatal_error(expr->pos, "Function call with too many arguments");
             }
 
             for (var i = 0; i < num_params; i++) {
                 var param_type = func.type->func.@params[i];
+                if (is_array_type(param_type)) {
+                    param_type = type_ptr(param_type->@base);
+                }
                 var arg = resolve_expected_expr_rvalue(expr->call.args[i], param_type);
                 if (!convert_operand(&arg, param_type)) {
-                    fatal_error(expr->call.args[i]->pos, "Illegal conversion in call argument expression");
+                    fatal_error(expr->call.args[i]->pos, "Invalid type in function call argument");
                 }
             }
             for (var i = num_params; i < expr->call.num_args; i++) {
@@ -1977,7 +1981,7 @@ namespace IonLang
             var type = resolve_typespec(expr->cast.type);
             var operand = resolve_expr_rvalue(expr->cast.expr);
             if (!cast_operand(&operand, type)) {
-                fatal_error(expr->pos, "Illegal conversion in cast");
+                fatal_error(expr->pos, "Invalid type cast");
             }
             return operand;
         }
@@ -1991,6 +1995,7 @@ namespace IonLang
                 switch (expr->int_lit.suffix) {
                     case SUFFIX_NONE:
                         type = type_int;
+                        // TODO: MAX constants should be sourced from the backend target table, not from the host compiler's header files.
                         if (val > INT_MAX) {
                             type = type_long;
                             if (val > LONG_MAX) {
@@ -2116,7 +2121,7 @@ namespace IonLang
                     result = operand_const(expr->float_lit.suffix == SUFFIX_D ? type_double : type_float, default);
                     break;
                 case EXPR_STR:
-                    result = operand_rvalue(type_ptr(type_const(type_char)));
+                    result = operand_rvalue(type_ptr(type_char));
                     break;
                 case EXPR_NAME:
                     result = resolve_expr_name(expr);

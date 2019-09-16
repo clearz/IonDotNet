@@ -28,20 +28,20 @@ namespace IonLang
         private Typespec* parse_type_func() {
             var buf = PtrBuffer.GetPooledBuffer();
             var pos = token.pos;
-            bool variadic = false;
+            bool has_varargs = false;
             try {
                 expect_token(TOKEN_LPAREN);
                 if (!is_token(TOKEN_RPAREN)) {
                     buf->Add(parse_type_func_param());
                     while (match_token(TOKEN_COMMA)) {
                         if (match_token(TOKEN_ELLIPSIS)) {
-                            if (variadic) {
+                            if (has_varargs) {
                                 syntax_error("Multiple ellipsis instances in function type");
                             }
-                            variadic = true;
+                            has_varargs = true;
                         }
                         else {
-                            if (variadic) {
+                            if (has_varargs) {
                                 syntax_error("Ellipsis must be last parameter in function type");
                             }
                             buf->Add(parse_type_func_param());
@@ -54,7 +54,7 @@ namespace IonLang
                 if (match_token(TOKEN_COLON))
                     ret = parse_type();
 
-                return typespec_func(pos, (Typespec**)buf->_begin, buf->count, ret, variadic);
+                return typespec_func(pos, (Typespec**)buf->_begin, buf->count, ret, has_varargs);
             }
             finally {
                 buf->Release();
@@ -720,7 +720,7 @@ namespace IonLang
 
         private Decl* parse_decl_func(SrcPos pos) {
             var name = parse_name();
-            bool variadic = false;
+            bool has_varargs = false;
             expect_token(TOKEN_LPAREN);
             FuncParam* @params = null;
             var buf = Buffer<FuncParam>.Create();
@@ -728,13 +728,13 @@ namespace IonLang
                 buf.Add(parse_decl_func_param());
                 while (match_token(TOKEN_COMMA)) {
                     if (match_token(TOKEN_ELLIPSIS)) {
-                        if (variadic) {
+                        if (has_varargs) {
                             syntax_error("Multiple ellipsis in function declaration");
                         }
-                        variadic = true;
+                        has_varargs = true;
                     }
                     else {
-                        if (variadic) {
+                        if (has_varargs) {
                             syntax_error("Ellipsis must be last parameter in function declaration");
                         }
                         buf.Add(parse_decl_func_param());
@@ -748,11 +748,11 @@ namespace IonLang
                 ret_type = parse_type();
 
             //if (match_token(TOKEN_SEMICOLON)) {
-            //    return decl_func(pos, name, buf, buf.count, ret_type, variadic, default);
+            //    return decl_func(pos, name, buf, buf.count, ret_type, has_varargs, default);
             //}
 
             var block = parse_stmt_block();
-            return decl_func(pos, name, buf, buf.count, ret_type, variadic, block);
+            return decl_func(pos, name, buf, buf.count, ret_type, has_varargs, block);
         }
 
         NoteList parse_note_list() {

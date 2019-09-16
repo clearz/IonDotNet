@@ -34,7 +34,7 @@ namespace IonLang
         {
             public Typespec** args;
             public int num_args;
-            public bool variadic;
+            public bool has_varargs;
             public Typespec* ret;
         }
 
@@ -91,7 +91,7 @@ namespace IonLang
         {
             public FuncParam* @params;
             public int num_params;
-            public bool variadic;
+            public bool has_varargs;
             public Typespec* ret_type;
             public StmtList block;
         }

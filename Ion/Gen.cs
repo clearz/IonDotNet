@@ -204,7 +204,7 @@ namespace IonLang
 
                             type_to_cdecl(type->func.@params[i], null);
                         }
-                    if (type->func.variadic) {
+                    if (type->func.has_varargs) {
                         buf_write(',');
                         buf_write(' ');
                         buf_write('.');
@@ -358,7 +358,7 @@ namespace IonLang
                             typespec_to_cdecl(typespec->func.args[i], null);
                         }
 
-                        if (typespec->func.variadic) {
+                        if (typespec->func.has_varargs) {
                             c_write(',');
                             c_write(' ');
                             c_write('.');
@@ -424,7 +424,7 @@ namespace IonLang
                     typespec_to_cdecl(param->type, param->name);
                     c_write(cdecl_buffer, _pos);
                 }
-            if (decl->func.variadic) {
+            if (decl->func.has_varargs) {
                 c_write(',');
                 c_write(' ');
                 c_write('.');
