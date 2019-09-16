@@ -1138,12 +1138,22 @@ namespace IonLang
             assert(decl->kind == DECL_FUNC);
             var @params = PtrBuffer.GetPooledBuffer();
             try {
-                for (var i = 0; i < decl->func.num_params; i++)
-                    @params->Add(resolve_typespec(decl->func.@params[i].type));
+                for (var i = 0; i < decl->func.num_params; i++) {
+                    Type *param = resolve_typespec(decl->func.@params[i].type);
+                    complete_type(param);
+                    if (param->size == 0) {
+                        fatal_error(decl->pos, "Function parameter type cannot have size 0");
+                    }
+                    @params->Add(param);
+                }
                 var ret_type = type_void;
-                if (decl->func.ret_type != null)
+                if (decl->func.ret_type != null) {
                     ret_type = resolve_typespec(decl->func.ret_type);
-
+                    complete_type(ret_type);
+                }
+                if (is_array_type(ret_type)) {
+                    fatal_error(decl->pos, "Function return type cannot be array");
+                }
                 return type_func((Type**)@params->_begin, @params->count, ret_type, decl->func.variadic);
             }
             finally {

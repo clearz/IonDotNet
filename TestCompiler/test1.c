@@ -61,9 +61,6 @@ struct Vector {
 #line 45
 typedef IntOrPtr U;
 
-#line 31
-int g(U u);
-
 #line 51
 union IntOrPtr {
     #line 52
@@ -72,7 +69,9 @@ union IntOrPtr {
     int (*p);
 };
 
-#line 35
+#line 31
+int g(U u);
+
 void k(void (*vp), int (*ip));
 
 #line 40
