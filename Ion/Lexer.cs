@@ -132,11 +132,6 @@ namespace IonLang
             init_tokens();
             init_keywords();
 
-            char_to_escape['\n'] = 'n';
-            char_to_escape['\\'] = '\\';
-            char_to_escape['"'] = '"';
-            char_to_escape['\''] = '\'';
-
             char_to_digit['0'] = 0;
             char_to_digit['1'] = 1;
             char_to_digit['2'] = 2;
@@ -323,6 +318,8 @@ namespace IonLang
 
             token.kind = TOKEN_INT;
             token.int_val = val;
+
+            scan_sufffix();
         }
 
         private void scan_float()
@@ -351,6 +348,7 @@ namespace IonLang
             token.kind = TOKEN_FLOAT;
             token.float_val = val;
 
+            scan_sufffix();
         }
 
         void scan_sufffix() {

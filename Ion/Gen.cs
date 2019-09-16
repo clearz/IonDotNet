@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -10,6 +11,7 @@ namespace IonLang
     using static StmtKind;
     using static TypeKind;
     using static TypespecKind;
+    using static TokenMod;
 
 
     unsafe partial class Ion
@@ -19,7 +21,7 @@ namespace IonLang
         private readonly char* cdecl_buffer = xmalloc<char>(_1MB);
         // private Buffer<char> gen_buf = Buffer<char>.Create(_1MB, 4);
         StringBuilder gen_buf = new StringBuilder();
-        private readonly char[] char_to_escape = new char[256];
+        private readonly char[] char_to_escape  = new char[256];
         private readonly string preamble = "// Preamble\n#include <stdio.h>\n#include <math.h>\n#include <stdbool.h>\n\n"+
                                             "typedef unsigned char uchar;\n"+
                                             "typedef signed char schar;\n"+
@@ -230,17 +232,24 @@ namespace IonLang
             c_write('\"');
             while (*str != 0) {
                 var start = str;
-                while (*str != 0 && char_to_escape[*str] == 0)
+                while (*str != 0 && !Char.IsControl(*str) && char_to_escape[*str] == 0)
                     str++;
                 if (start != str)
                     c_write(start, (int)(str - start));
-                if (*str != 0 && char_to_escape[*str] != 0) {
-                    c_write('\\');
-                    c_write(char_to_escape[*str]);
+                if (*str != 0) {
+                    if (char_to_escape[*str] != 0) {
+                        c_write('\\');
+                        c_write(char_to_escape[*str]);
+                    } else {
+                        assert(Char.IsControl(*str));
+
+                        c_write('\\');
+                        c_write('x');
+                        c_write(Convert.ToString((int)*str, 16).ToPtr());
+                    }
                     str++;
                 }
             }
-
             c_write('\"');
         }
 
@@ -534,17 +543,56 @@ namespace IonLang
             }
             c_write('}');
         }
+
+        void gen_char(char c) {
+            c_write('\'');
+            if (char_to_escape[c] != 0) {
+                c_write('\\');
+                c_write(char_to_escape[c]);
+            }
+            else if (!Char.IsControl(c)) {
+                c_write(c);
+            }
+            else {
+                c_write('\\');
+                c_write('x');
+                c_write(((ulong)c).itoa(16));
+            }
+            c_write('\'');
+        }
+
         private void gen_expr(Expr* expr) {
             switch (expr->kind) {
                 case EXPR_NULL:
                     c_write(null_upper);
                     break;
-                case EXPR_INT:
-                    c_write(expr->name);
-                    c_write(token_suffix_names[(int)expr->int_lit.suffix]);
-                    break;
+                case EXPR_INT: {
+                    char *suffix_name = token_suffix_names[(int)expr->int_lit.suffix];
+                    switch (expr->int_lit.mod) {
+                        case MOD_BIN:
+                        case MOD_HEX:
+                            c_write('0');
+                            c_write('x');
+                            c_write(expr->int_lit.val.itoa(16));
+                            c_write(suffix_name);
+                            break;
+                        case MOD_OCT:
+                            c_write('0');
+                            c_write(expr->int_lit.val.itoa(8));
+                            c_write(suffix_name);
+                            break;
+                        case MOD_CHAR:
+                            gen_char((char)expr->int_lit.val);
+                            break;
+                        default:
+                            c_write(expr->int_lit.val.itoa());
+                            c_write(suffix_name);
+                            break;
+                    }
+                }
+                break;
                 case EXPR_FLOAT:
-                    c_write(expr->name);
+                    c_write(expr->float_lit.val.ToString("0.0###############", CultureInfo.InvariantCulture).ToPtr());
                     if (expr->float_lit.suffix != TokenSuffix.SUFFIX_D)
                         c_write('f');
                     break;
@@ -932,6 +980,7 @@ namespace IonLang
         private readonly char* function_declarations = "// Function declarations".ToPtr();
 
         private void gen_all() {
+            init_chars();
             c_write(preamble.ToPtr(), preamble.Length);
             c_write(forward_declarations);
             gen_forward_decls();
@@ -942,6 +991,19 @@ namespace IonLang
             gen_func_defs();
         }
 
+        private void init_chars() {            
+            // TODO: Need to expand this and also deal with non-printable chars via \x
+            char_to_escape['\0'] = '0';
+            char_to_escape['\n'] = 'n';
+            char_to_escape['\r'] = 'r';
+            char_to_escape['\t'] = 't';
+            char_to_escape['\v'] = 'v';
+            char_to_escape['\b'] = 'b';
+            char_to_escape['\a'] = 'a';
+            char_to_escape['\\'] = '\\';
+            char_to_escape['"'] = '"';
+            char_to_escape['\''] = '\'';
+        }
 
         private void cdecl_test() {
             var c = 'x';

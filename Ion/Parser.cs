@@ -157,27 +157,18 @@ namespace IonLang
         private Expr* parse_expr_operand() {
             var pos = token.pos;
             if (is_token(TOKEN_INT)) {
-                int len = (int)(token.end - token.start);
-                char* name = xmalloc<char>(len+1);
-                Unsafe.CopyBlock(name, token.start, (uint)len << 1);
-                name[len] = '\0';
                 var val = token.int_val;
-                scan_sufffix();
-                TokenSuffix suffix = token.suffix;
+                var suffix = token.suffix;
+                var mod = token.mod;
                 next_token();
-                return expr_int(pos, val, suffix, name);
+                return expr_int(pos, val, mod, suffix);
             }
 
             if (is_token(TOKEN_FLOAT)) {
                 double val = token.float_val;
-                scan_sufffix();
                 TokenSuffix suffix = token.suffix;
-                int len = (int)(token.end - token.start);
-                char* name = xmalloc<char>(len+1);
-                Unsafe.CopyBlock(name, token.start, (uint)len << 1);
-                name[len] = '\0';
                 next_token();
-                return expr_float(pos, val, suffix, name);
+                return expr_float(pos, val, suffix);
             }
 
             if (is_token(TOKEN_STR)) {

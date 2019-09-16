@@ -166,31 +166,32 @@ namespace IonLang
         [FieldOffset(4)] public SrcPos pos;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Type* type;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* name;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public _int_lit int_lit;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public _float_lit float_lit;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public char* str_val;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public Expr* sizeof_expr;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public Typespec* sizeof_type;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public CompoundExpr compound;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public CastExpr cast;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public UnaryExpr unary;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public BinaryExpr binary;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public TernaryExpr ternary;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public CallExpr call;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public IndexExpr index;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public FieldExpr field;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public _int_lit int_lit;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public _float_lit float_lit;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* str_val;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Expr* sizeof_expr;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Typespec* sizeof_type;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public CompoundExpr compound;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public CastExpr cast;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public UnaryExpr unary;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public BinaryExpr binary;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public TernaryExpr ternary;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public CallExpr call;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public IndexExpr index;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public FieldExpr field;
 
         internal struct _int_lit
         {
-            public TokenSuffix suffix;
             public ulong val;
+            public TokenMod mod;
+            public TokenSuffix suffix;
         }
 
 
         internal struct _float_lit
         {
-            public TokenSuffix suffix;
             public double val;
+            public TokenSuffix suffix;
         }
 
         internal struct CompoundExpr

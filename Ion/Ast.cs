@@ -187,21 +187,20 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_int(SrcPos pos, ulong val, TokenSuffix suffix, char* name)
+        private Expr* expr_int(SrcPos pos, ulong val, TokenMod mod, TokenSuffix suffix)
         {
             var e = expr_new(EXPR_INT, pos);
-            e->name = name;
             e->int_lit.val = val;
+            e->int_lit.mod = mod;
             e->int_lit.suffix = suffix;
             return e;
         }
 
-        private Expr* expr_float(SrcPos pos, double val, TokenSuffix suffix, char* name)
+        private Expr* expr_float(SrcPos pos, double val, TokenSuffix suffix)
         {
             var e = expr_new(EXPR_FLOAT, pos);
             e->float_lit.val = val;
             e->float_lit.suffix = suffix;
-            e->name = name;
             return e;
         }
 

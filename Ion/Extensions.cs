@@ -52,9 +52,14 @@ namespace IonLang
                 return c;
             }
         }
+        #region Numeric Conversion
 
+        static char* ZERO = "0".ToPtr();
         static char* tmp = Ion.xmalloc<char>(24);
+        static char[] num_vals = { '0', '1',  '2',  '3',  '4',  '5',  '6',  '7',  '8',  '9',  'A',  'B',  'C',  'D',  'E',  'F' };
         public static char* itoa(this int i) {
+            if (i == 0)
+                return ZERO;
             int pos = 11;
 
             tmp[pos] = '\0';
@@ -72,6 +77,8 @@ namespace IonLang
 
         }
         public static char* itoa(this uint i) {
+            if (i == 0)
+                return ZERO;
             int pos = 11;
 
             tmp[pos] = '\0';
@@ -84,6 +91,8 @@ namespace IonLang
 
         }
         public static char* itoa(this long i) {
+            if (i == 0)
+                return ZERO;
             int pos = 11;
 
             tmp[pos] = '\0';
@@ -100,18 +109,21 @@ namespace IonLang
             return tmp + pos;
 
         }
-        public static char* itoa(this ulong i) {
+        public static char* itoa(this ulong i, ulong @base = 10) {
+            if (i == 0)
+                return ZERO;
             int pos = 11;
 
             tmp[pos] = '\0';
             var j = i;
             while (j != 0) {
-                tmp[--pos] = (char)((j % 10) + 48);
-                j /= 10;
+                tmp[--pos] = num_vals[j % @base];
+                j /= @base;
             }
             return tmp + pos;
 
         }
+        #endregion;
     }
 
 
