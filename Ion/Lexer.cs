@@ -415,6 +415,9 @@ namespace IonLang
                         // TODO: Should probably just read files in text mode instead.
                         str_buf.Add(*stream);
                     }
+                    if (*stream == '\n') {
+                        token.pos.line++;
+                    }
                     stream++;
                 }
                 if (*stream == 0) {

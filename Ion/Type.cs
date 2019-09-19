@@ -38,12 +38,6 @@ namespace IonLang
         NUM_TYPE_KINDS,
     }
 
-    internal unsafe struct EnumField
-    {
-        public char *name;
-        public Val val;
-    }
-
     internal unsafe struct TypeField
     {
         public char* name;
@@ -60,7 +54,6 @@ namespace IonLang
         [FieldOffset(20)] public bool nonmodifiable;
         [FieldOffset(24)] public Sym* sym;
         [FieldOffset(    Ion.PTR_SIZE + 24)] public Type* @base;
-        [FieldOffset(2 * Ion.PTR_SIZE + 24)] public _enum_type enum_type;
         [FieldOffset(2 * Ion.PTR_SIZE + 24)] public _aggregate aggregate;
         [FieldOffset(2 * Ion.PTR_SIZE + 24)] public _func func;
         [FieldOffset(2 * Ion.PTR_SIZE + 24)] public int num_elems;
@@ -69,11 +62,6 @@ namespace IonLang
         {
             public TypeField* fields;
             public long num_fields;
-        }
-        internal struct _enum_type
-        {
-            public EnumField *fields;
-            public int num_fields;
         }
 
         internal struct _func
@@ -211,10 +199,8 @@ namespace IonLang
             return type->align;
         }
 
-        Type* type_enum(EnumField* fields, int num_fields) {
+        Type* type_enum() {
             Type *type = type_alloc(TYPE_ENUM);
-            type->enum_type.fields = (EnumField*)memdup(fields, num_fields * PTR_SIZE);
-            type->enum_type.num_fields = num_fields;
             return type;
         }
 

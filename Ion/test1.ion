@@ -302,10 +302,23 @@ func test_cast() {
     p = (:int*)a;
 }
 
+enum Color {
+    COLOR_NONE,
+    COLOR_RED,
+    COLOR_GREEN,
+    COLOR_BLUE,
+}
+
+func test_enum() {
+    c: Color = COLOR_RED;
+    printf("%d %d %d %d\n", COLOR_NONE, COLOR_RED, COLOR_GREEN, COLOR_BLUE);
+}
+
 func main(argc: int, argv: char const**): int {
     if (argv == NULL) {
         printf("argv is null\n");
     }
+	test_enum();
     test_arrays();
     test_cast();
     test_init();

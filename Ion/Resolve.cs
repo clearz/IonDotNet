@@ -13,18 +13,17 @@ namespace IonLang
     using static CompoundFieldKind;
     using static TokenSuffix;
 
-    unsafe partial class Ion
-    {
+    unsafe partial class Ion {
         public const int MAX_LOCAL_SYMS = 1024;
         private Map global_syms_map;
         private readonly PtrBuffer* global_syms_buf = PtrBuffer.Create();
         private Buffer<Sym> local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
 
-        const ulong INT_MAX = int.MaxValue, 
-                    UINT_MAX = uint.MaxValue, 
-                    LONG_MAX = int.MaxValue, 
-                    ULONG_MAX = uint.MaxValue, 
-                    LLONG_MAX = long.MaxValue, 
+        const ulong INT_MAX = int.MaxValue,
+                    UINT_MAX = uint.MaxValue,
+                    LONG_MAX = int.MaxValue,
+                    ULONG_MAX = uint.MaxValue,
+                    LLONG_MAX = long.MaxValue,
                     ULLONG_MAX = ulong.MaxValue;
 
 #if X64
@@ -79,16 +78,12 @@ namespace IonLang
             return sym;
         }
 
-        private Sym* sym_enum_const(char* name, Decl* decl) {
-            return sym_new(SYM_ENUM_CONST, name, decl);
-        }
-
         private Sym* sym_get_local(char* name) {
             for (var sym = local_syms._top - 1; sym >= local_syms._begin; sym--)
                 if (sym->name == name)
                     return sym;
 
-            return null; 
+            return null;
         }
         Sym* sym_get(char* name) {
             Sym *sym = sym_get_local(name);
@@ -141,9 +136,18 @@ namespace IonLang
             var sym = sym_decl(decl);
             sym_global_put(sym);
             decl->sym = sym;
-            if (decl->kind == DECL_ENUM)
-                for (var i = 0; i < decl->enum_decl.num_items; i++)
-                    sym_global_put(sym_enum_const(decl->enum_decl.items[i].name, decl));
+            if (decl->kind == DECL_ENUM) {
+                sym->state = SYM_RESOLVED;
+                sym->type = type_int;
+                sorted_syms->Add(sym);
+                for (int i = 0; i < decl->enum_decl.num_items; i++) {
+                    EnumItem item = decl->enum_decl.items[i];
+                    if (item.init != null) {
+                        fatal_error(item.pos, "Explicit enum constant initializers are not currently supported");
+                    }
+                    sym_global_const(item.name, type_int, new Val { i = i });
+                }
+            }
             return sym;
         }
 
@@ -2286,8 +2290,7 @@ namespace IonLang
         SYM_VAR,
         SYM_CONST,
         SYM_FUNC,
-        SYM_TYPE,
-        SYM_ENUM_CONST
+        SYM_TYPE
     }
 
     internal enum SymState

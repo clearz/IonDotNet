@@ -482,6 +482,17 @@ namespace IonLang
                         c_write(name);
                         c_write(';');
                         break;
+                    case DECL_ENUM:
+                        genln();
+                        c_write(typedef_keyword, 7);
+                        c_write(' ');
+                        c_write(enum_keyword, 4);
+                        c_write(' ');
+                        c_write(sym->name);
+                        c_write(' ');
+                        c_write(sym->name);
+                        c_write(';');
+                        break;
                 }
             }
         }
@@ -932,7 +943,25 @@ namespace IonLang
             }
         }
 
-
+        void gen_enum(Decl* decl) {
+            assert(decl->kind == DECL_ENUM);
+            genln();
+            c_write(enum_keyword, 4);
+            c_write(' ');
+            c_write(decl->name);
+            c_write(' ');
+            c_write('{');
+            gen_indent++;
+            for (var i = 0; i < decl->enum_decl.num_items; i++) {
+                genln();
+                c_write(decl->enum_decl.items[i].name);
+                c_write(',');
+            }
+            gen_indent--;
+            genln();
+            c_write('}');
+            c_write(';');
+        }
 
         private void gen_decl(Sym* sym) {
             var decl = sym->decl;
@@ -982,6 +1011,9 @@ namespace IonLang
                 case DECL_STRUCT:
                 case DECL_UNION:
                     gen_aggregate(decl);
+                    break;
+                case DECL_ENUM:
+                    gen_enum(decl);
                     break;
                 case DECL_TYPEDEF:
                     genln();
