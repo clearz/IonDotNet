@@ -220,7 +220,7 @@ void test_cast(void);
 #line 312
 void test_enum(void);
 
-#line 317
+#line 321
 int main(int argc, const char ((*(*argv))));
 
 // Function declarations
@@ -559,48 +559,56 @@ void test_cast(void) {
 #line 312
 void test_enum(void) {
     #line 313
-    Color c = COLOR_RED;
+    Color a = COLOR_RED;
     #line 314
+    Color b = COLOR_RED;
+    #line 315
+    int c = (a) + (b);
+    #line 316
+    int i = a;
+    #line 317
+    a = i;
+    #line 318
     (printf)("%d %d %d %d\n", COLOR_NONE, COLOR_RED, COLOR_GREEN, COLOR_BLUE);
 }
 
-#line 317
+#line 321
 int main(int argc, const char ((*(*argv)))) {
-    #line 318
+    #line 322
     if ((argv) == (NULL)) {
-        #line 319
+        #line 323
         (printf)("argv is null\n");
     }
-    #line 321
-    (test_enum)();
-    #line 322
-    (test_arrays)();
-    #line 323
-    (test_cast)();
-    #line 324
-    (test_init)();
     #line 325
-    (test_lits)();
+    (test_enum)();
     #line 326
-    (test_const)();
+    (test_arrays)();
     #line 327
-    (test_bool)();
+    (test_cast)();
     #line 328
-    (test_ops)();
+    (test_init)();
     #line 329
-    int b = (example_test)();
+    (test_lits)();
     #line 330
-    (puts)("Hello, world!");
+    (test_const)();
     #line 331
-    int c = (getchar)();
+    (test_bool)();
     #line 332
-    (printf)("You wrote \'%c\'\n", c);
+    (test_ops)();
     #line 333
-    (va_test)(1);
+    int b = (example_test)();
     #line 334
-    (va_test)(1, 2);
+    (puts)("Hello, world!");
     #line 335
-    argv = NULL;
+    int c = (getchar)();
     #line 336
+    (printf)("You wrote \'%c\'\n", c);
+    #line 337
+    (va_test)(1);
+    #line 338
+    (va_test)(1, 2);
+    #line 339
+    argv = NULL;
+    #line 340
     return 0;
 }

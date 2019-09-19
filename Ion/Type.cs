@@ -25,6 +25,7 @@ namespace IonLang
         TYPE_ULONG,
         TYPE_LLONG,
         TYPE_ULLONG,
+        TYPE_ENUM,
         TYPE_FLOAT,
         TYPE_DOUBLE,
 
@@ -33,7 +34,6 @@ namespace IonLang
         TYPE_ARRAY,
         TYPE_STRUCT,
         TYPE_UNION,
-        TYPE_ENUM,
         TYPE_CONST,
         NUM_TYPE_KINDS,
     }
@@ -105,7 +105,7 @@ namespace IonLang
         }
 
         bool is_integer_type(Type* type) {
-            return TYPE_BOOL <= type->kind && type->kind <= TYPE_ULLONG;
+            return TYPE_BOOL <= type->kind && type->kind <= TYPE_ENUM;
         }
 
         bool is_floating_type(Type* type) {
@@ -199,8 +199,11 @@ namespace IonLang
             return type->align;
         }
 
-        Type* type_enum() {
+        Type* type_enum(Sym* sym) {
             Type *type = type_alloc(TYPE_ENUM);
+            type->sym = sym;
+            type->size = type_int->size;
+            type->align = type_int->align;
             return type;
         }
 
@@ -363,13 +366,6 @@ namespace IonLang
         private Type* type_incomplete(Sym* sym) {
             var type = type_alloc(TYPE_INCOMPLETE);
             type->sym = sym;
-            return type;
-        }
-        Type* type_enum(Sym* sym) {
-            Type *type = type_alloc(TYPE_ENUM);
-            type->sym = sym;
-            type->size = type_int->size;
-            type->align = type_int->align;
             return type;
         }
     }

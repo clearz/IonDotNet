@@ -138,14 +138,14 @@ namespace IonLang
             decl->sym = sym;
             if (decl->kind == DECL_ENUM) {
                 sym->state = SYM_RESOLVED;
-                sym->type = type_int;
+                sym->type = type_enum(sym);
                 sorted_syms->Add(sym);
                 for (int i = 0; i < decl->enum_decl.num_items; i++) {
                     EnumItem item = decl->enum_decl.items[i];
                     if (item.init != null) {
                         fatal_error(item.pos, "Explicit enum constant initializers are not currently supported");
                     }
-                    sym_global_const(item.name, type_int, new Val { i = i });
+                    sym_global_const(item.name, sym->type, new Val { i = i });
                 }
             }
             return sym;
@@ -312,6 +312,9 @@ namespace IonLang
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
                                         break;
+                                    case TYPE_ENUM:
+                                        operand->val.i = (int)p;
+                                        break;
                                     case TYPE_FLOAT:
                                     case TYPE_DOUBLE:
                                         break;
@@ -368,6 +371,9 @@ namespace IonLang
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
+                                        break;
+                                    case TYPE_ENUM:
+                                        operand->val.i = (int)p;
                                         break;
                                     case TYPE_FLOAT:
                                     case TYPE_DOUBLE:
@@ -426,6 +432,9 @@ namespace IonLang
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
                                         break;
+                                    case TYPE_ENUM:
+                                        operand->val.i = (int)p;
+                                        break;
                                     case TYPE_FLOAT:
                                     case TYPE_DOUBLE:
                                         break;
@@ -482,6 +491,9 @@ namespace IonLang
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
+                                        break;
+                                    case TYPE_ENUM:
+                                        operand->val.i = (int)p;
                                         break;
                                     case TYPE_FLOAT:
                                     case TYPE_DOUBLE:
@@ -540,6 +552,9 @@ namespace IonLang
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
                                         break;
+                                    case TYPE_ENUM:
+                                        operand->val.i = (int)p;
+                                        break;
                                     case TYPE_FLOAT:
                                     case TYPE_DOUBLE:
                                         break;
@@ -596,6 +611,9 @@ namespace IonLang
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
+                                        break;
+                                    case TYPE_ENUM:
+                                        operand->val.i = (int)p;
                                         break;
                                     case TYPE_FLOAT:
                                     case TYPE_DOUBLE:
@@ -654,6 +672,9 @@ namespace IonLang
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
                                         break;
+                                    case TYPE_ENUM:
+                                        operand->val.i = (int)p;
+                                        break;
                                     case TYPE_FLOAT:
                                     case TYPE_DOUBLE:
                                         break;
@@ -710,6 +731,9 @@ namespace IonLang
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
+                                        break;
+                                    case TYPE_ENUM:
+                                        operand->val.i = (int)p;
                                         break;
                                     case TYPE_FLOAT:
                                     case TYPE_DOUBLE:
@@ -768,6 +792,9 @@ namespace IonLang
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
                                         break;
+                                    case TYPE_ENUM:
+                                        operand->val.i = (int)p;
+                                        break;
                                     case TYPE_FLOAT:
                                     case TYPE_DOUBLE:
                                         break;
@@ -824,6 +851,9 @@ namespace IonLang
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
+                                        break;
+                                    case TYPE_ENUM:
+                                        operand->val.i = (int)p;
                                         break;
                                     case TYPE_FLOAT:
                                     case TYPE_DOUBLE:
@@ -882,6 +912,69 @@ namespace IonLang
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
                                         break;
+                                    case TYPE_ENUM:
+                                        operand->val.i = (int)p;
+                                        break;
+                                    case TYPE_FLOAT:
+                                    case TYPE_DOUBLE:
+                                        break;
+                                    case TYPE_PTR:
+                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
+                                            operand->val.p = (void*)p;
+                                        }
+                                        else {
+                                            operand->is_const = false;
+                                        }
+                                        break;
+                                    default:
+                                        operand->is_const = false;
+                                        break;
+                                }
+
+                                break;
+                            }
+                            case TYPE_ENUM: {
+                                var p = operand->val.i;
+                                switch (type->kind) {
+                                    case TYPE_BOOL:
+                                        operand->val.b = p != 0;
+                                        break;
+                                    case TYPE_CHAR:
+                                        operand->val.c = (char)p;
+                                        break;
+                                    case TYPE_UCHAR:
+                                        operand->val.uc = (byte)p;
+                                        break;
+                                    case TYPE_SCHAR:
+                                        operand->val.sc = (sbyte)p;
+                                        break;
+                                    case TYPE_SHORT:
+                                        operand->val.s = (short)p;
+                                        break;
+                                    case TYPE_USHORT:
+                                        operand->val.us = (ushort)p;
+                                        break;
+                                    case TYPE_INT:
+                                        operand->val.i = (int)p;
+                                        break;
+                                    case TYPE_UINT:
+                                        operand->val.u = (uint)p;
+                                        break;
+                                    case TYPE_LONG:
+                                        operand->val.l = (int)p;
+                                        break;
+                                    case TYPE_ULONG:
+                                        operand->val.ul = (uint)p;
+                                        break;
+                                    case TYPE_LLONG:
+                                        operand->val.ll = (long)p;
+                                        break;
+                                    case TYPE_ULLONG:
+                                        operand->val.ull = (ulong)p;
+                                        break;
+                                    case TYPE_ENUM:
+                                        operand->val.i = (int)p;
+                                        break;
                                     case TYPE_FLOAT:
                                     case TYPE_DOUBLE:
                                         break;
@@ -934,6 +1027,7 @@ namespace IonLang
                 case TYPE_UCHAR:
                 case TYPE_SHORT:
                 case TYPE_USHORT:
+                case TYPE_ENUM:
                     cast_operand(operand, type_int);
                     break;
                 default:
