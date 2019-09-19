@@ -19,7 +19,7 @@ namespace IonLang
 
         private char** token_kind_names;
         char*[] token_suffix_names;
-    void init_tokens() {
+        void init_tokens() {
             token_kind_names = (char**)xmalloc((int)TOKEN_SIZE * sizeof(char**));
             token_suffix_names = new char*[7];
 
@@ -103,7 +103,6 @@ namespace IonLang
         private char* line_start;
         private char* return_keyword;
         private char* sizeof_keyword;
-        private char* null_keyword;
 
         private Buffer<char> str_buf;
         private char* stream;
@@ -120,8 +119,7 @@ namespace IonLang
         char *foreign_name;
 
 
-        public void lex_init()
-        {
+        public void lex_init() {
             if (inited)
                 return;
             keywords = PtrBuffer.Create();
@@ -164,8 +162,7 @@ namespace IonLang
             inited = true;
         }
 
-        private void init_keywords()
-        {
+        private void init_keywords() {
             typedef_keyword = _I("typedef");
             keywords->Add(typedef_keyword);
 
@@ -225,86 +222,74 @@ namespace IonLang
             default_keyword = _I("default");
             keywords->Add(default_keyword);
 
-            null_keyword = _I("null");
-            keywords->Add(null_keyword);
-
             foreign_name = _I("foreign");
-            keywords->Add(foreign_name);
 
 
             assert(intern_arena->end == arena_end);
 
             first_keyword = typedef_keyword;
-            last_keyword = null_keyword;
+            last_keyword = default_keyword;
         }
 
-        private bool is_keyword_name(char* name)
-        {
+        private bool is_keyword_name(char* name) {
             return first_keyword <= name && name <= last_keyword;
         }
 
-        private string token_kind_name(TokenKind kind)
-        {
+        private string token_kind_name(TokenKind kind) {
             if (kind < TOKEN_SIZE)
                 return new string(token_kind_names[(int)kind]);
             return "<unknown>";
         }
 
-        private char* _token_kind_name(TokenKind kind)
-        {
+        private char* _token_kind_name(TokenKind kind) {
             if (kind < TOKEN_SIZE)
-                return *(token_kind_names + (long) kind);
+                return *(token_kind_names + (long)kind);
             return _I("<unknown>");
         }
 
-        private string token_info()
-        {
+        private string token_info() {
             if (token.kind == TOKEN_NAME || token.kind == TOKEN_KEYWORD)
                 return new string(token.name);
 
             return token_kind_name(token.kind);
         }
 
-        private void scan_int()
-        {
+        private void scan_int() {
             ulong @base = 10;
-            if (*stream == '0')
-            {
+            if (*stream == '0') {
                 stream++;
-                if (char.ToLower(*stream) == 'x')
-                {
+                if (char.ToLower(*stream) == 'x') {
                     stream++;
                     token.mod = MOD_HEX;
                     @base = 16;
                 }
-                else if (char.ToLower(*stream) == 'b')
-                {
+                else if (char.ToLower(*stream) == 'b') {
                     stream++;
                     token.mod = MOD_BIN;
                     @base = 2;
                 }
-                else if (char.IsDigit(*stream))
-                {
+                else if (char.IsDigit(*stream)) {
                     token.mod = MOD_OCT;
                     @base = 8;
                 }
             }
 
             ulong val = 0;
-            for (;;)
+            for (; ; )
             {
                 ulong digit = (ulong)char_to_digit[*stream];
-                if (digit == 0 && *stream != '0') break;
+                if (digit == 0 && *stream != '0')
+                    break;
 
-                if (digit >= @base)
-                {
-                    syntax_error("Digit '{0}' out of range for base {1}", *stream, @base);
+                if (digit >= @base) {
+                    error_here("Digit '{0}' out of range for base {1}", *stream, @base);
                     digit = 0;
                 }
 
                 if (val > (ulong.MaxValue - (digit) / @base)) {
-                    syntax_error("Integer literal overflow");
-                    while (char.IsDigit(*stream)) stream++;
+                    error_here("Integer literal overflow");
+                    while (char.IsDigit(*stream))
+                        stream++;
 
                     val = 0;
                     break;
@@ -320,28 +305,32 @@ namespace IonLang
             scan_sufffix();
         }
 
-        private void scan_float()
-        {
+        private void scan_float() {
             var start = stream;
-            while (char.IsDigit(*stream)) stream++;
-
-            if (*stream == '.') stream++;
-
-            while (char.IsDigit(*stream)) stream++;
-
-            if (char.ToLower(*stream) == 'e')
-            {
+            while (char.IsDigit(*stream))
                 stream++;
-                if (*stream == '+' || *stream == '-') stream++;
+
+            if (*stream == '.')
+                stream++;
+
+            while (char.IsDigit(*stream))
+                stream++;
+
+            if (char.ToLower(*stream) == 'e') {
+                stream++;
+                if (*stream == '+' || *stream == '-')
+                    stream++;
 
                 if (!char.IsDigit(*stream))
-                    syntax_error("Expected digit after float literal exponent, found '%c'.", *stream);
+                    error_here("Expected digit after float literal exponent, found '%c'.", *stream);
 
-                while (char.IsDigit(*stream)) stream++;
+                while (char.IsDigit(*stream))
+                    stream++;
             }
 
             var val = double.Parse(new string(start, 0, (int) (stream - start)));
-            if (double.IsPositiveInfinity(val)) syntax_error("Float literal overflow");
+            if (double.IsPositiveInfinity(val))
+                error_here("Float literal overflow");
 
             token.kind = TOKEN_FLOAT;
             token.float_val = val;
@@ -376,36 +365,32 @@ namespace IonLang
             }
         }
 
-        private void scan_char()
-        {
+        private void scan_char() {
             assert(*stream == '\'');
             stream++;
             var val = '\0';
-            if (*stream == '\'')
-            {
-                syntax_error("Char literal cannot be empty");
+            if (*stream == '\'') {
+                error_here("Char literal cannot be empty");
                 stream++;
             }
-            else if (*stream == '\n')
-            {
-                syntax_error("Char literal cannot contain newline");
+            else if (*stream == '\n') {
+                error_here("Char literal cannot contain newline");
             }
-            else if (*stream == '\\')
-            {
+            else if (*stream == '\\') {
                 stream++;
                 val = escape_to_char[*stream];
-                if (val == 0 && *stream != '0') syntax_error("Invalid char literal escape '\\%c'", *stream);
+                if (val == 0 && *stream != '0')
+                    error_here("Invalid char literal escape '\\%c'", *stream);
 
                 stream++;
             }
-            else
-            {
+            else {
                 val = *stream;
                 stream++;
             }
 
             if (*stream != '\'')
-                syntax_error("Expected closing char quote, got '%c'", *stream);
+                error_here("Expected closing char quote, got '%c'", *stream);
             else
                 stream++;
 
@@ -414,40 +399,35 @@ namespace IonLang
             token.mod = MOD_CHAR;
         }
 
-        private void scan_str()
-        {
+        private void scan_str() {
             assert(*stream == '"');
             stream++;
             var start = stream;
             str_buf = Buffer<char>.Create(256);
-            while (*stream != 0 && *stream != '"')
-            {
+            while (*stream != 0 && *stream != '"') {
                 var val = *stream;
-                if (val == '\n')
-                {
-                    syntax_error("String literal cannot contain newline");
+                if (val == '\n') {
+                    error_here("String literal cannot contain newline");
                     break;
                 }
 
-                if (val == '\\')
-                {
+                if (val == '\\') {
                     stream++;
                     val = escape_to_char[*stream];
-                    if (val == 0 && *stream != '0') syntax_error("Invalid string literal escape '\\%c'", *stream);
+                    if (val == 0 && *stream != '0')
+                        error_here("Invalid string literal escape '\\%c'", *stream);
                 }
 
                 str_buf.Add(val);
                 stream++;
             }
 
-            if (*stream != 0)
-            {
+            if (*stream != 0) {
                 assert(*stream == '"');
                 stream++;
             }
-            else
-            {
-                syntax_error("Unexpected end of file within string literal");
+            else {
+                error_here("Unexpected end of file within string literal");
             }
 
             str_buf.Add('\0');
@@ -456,22 +436,19 @@ namespace IonLang
             token.str_val = str_buf._begin;
         }
 
-        private void next_token()
-        {
-            repeat:
+        private void next_token() {
+repeat:
             token.start = stream;
             token.suffix = 0;
             token.mod = 0;
-            switch (*stream)
-            {
+            switch (*stream) {
                 case ' ':
                 case '\n':
                 case '\r':
                 case '\t':
                 case '\v':
                     while (char.IsWhiteSpace(*stream))
-                        if (*stream++ == '\n')
-                        {
+                        if (*stream++ == '\n') {
                             line_start = stream + 1;
                             token.pos.line++;
                         }
@@ -507,7 +484,8 @@ namespace IonLang
                 case '7':
                 case '8':
                 case '9':
-                    while (char.IsDigit(*stream)) stream++;
+                    while (char.IsDigit(*stream))
+                        stream++;
 
                     var c = *stream;
                     stream = token.start;
@@ -571,53 +549,46 @@ namespace IonLang
                 case 'Y':
                 case 'Z':
                 case '_':
-                    while (char.IsLetterOrDigit(*stream) || *stream == '_') stream++;
+                    while (char.IsLetterOrDigit(*stream) || *stream == '_')
+                        stream++;
 
                     token.name = Intern.InternRange(token.start, stream);
                     token.kind = is_keyword_name(token.name) ? TOKEN_KEYWORD : TOKEN_NAME;
                     break;
                 case '<':
                     stream++;
-                    if (*stream == '<')
-                    {
+                    if (*stream == '<') {
                         token.kind = TOKEN_LSHIFT;
                         stream++;
-                        if (*stream == '=')
-                        {
+                        if (*stream == '=') {
                             token.kind = TOKEN_LSHIFT_ASSIGN;
                             stream++;
                         }
                     }
-                    else if (*stream == '=')
-                    {
+                    else if (*stream == '=') {
                         token.kind = TOKEN_LTEQ;
                         stream++;
                     }
-                    else
-                    {
+                    else {
                         token.kind = TOKEN_LT;
                     }
 
                     break;
                 case '>':
                     stream++;
-                    if (*stream == '>')
-                    {
+                    if (*stream == '>') {
                         token.kind = TOKEN_RSHIFT;
                         stream++;
-                        if (*stream == '=')
-                        {
+                        if (*stream == '=') {
                             token.kind = TOKEN_RSHIFT_ASSIGN;
                             stream++;
                         }
                     }
-                    else if (*stream == '=')
-                    {
+                    else if (*stream == '=') {
                         token.kind = TOKEN_GTEQ;
                         stream++;
                     }
-                    else
-                    {
+                    else {
                         token.kind = TOKEN_GT;
                     }
 
@@ -675,96 +646,82 @@ namespace IonLang
                 // CASE2
                 case ':':
                     stream++;
-                    if (*stream == '=')
-                    {
+                    if (*stream == '=') {
                         token.kind = TOKEN_COLON_ASSIGN;
                         stream++;
                     }
-                    else
-                    {
+                    else {
                         token.kind = TOKEN_COLON;
                     }
 
                     break;
                 case '!':
                     stream++;
-                    if (*stream == '=')
-                    {
+                    if (*stream == '=') {
                         token.kind = TOKEN_NOTEQ;
                         stream++;
                     }
-                    else
-                    {
+                    else {
                         token.kind = TOKEN_NOT;
                     }
 
                     break;
                 case '=':
                     stream++;
-                    if (*stream == '=')
-                    {
+                    if (*stream == '=') {
                         token.kind = TOKEN_EQ;
                         stream++;
                     }
-                    else
-                    {
+                    else {
                         token.kind = TOKEN_ASSIGN;
                     }
 
                     break;
                 case '^':
                     stream++;
-                    if (*stream == '=')
-                    {
+                    if (*stream == '=') {
                         token.kind = TOKEN_XOR_ASSIGN;
                         stream++;
                     }
-                    else
-                    {
+                    else {
                         token.kind = TOKEN_XOR;
                     }
 
                     break;
                 case '*':
                     stream++;
-                    if (*stream == '=')
-                    {
+                    if (*stream == '=') {
                         token.kind = TOKEN_MUL_ASSIGN;
                         stream++;
                     }
-                    else
-                    {
+                    else {
                         token.kind = TOKEN_MUL;
                     }
 
                     break;
                 case '/':
-                    if (*++stream == '=')
-                    {
+                    if (*++stream == '=') {
                         token.kind = TOKEN_DIV_ASSIGN;
                         stream++;
                     }
-                    else if (*stream == '/')
-                    {
+                    else if (*stream == '/') {
                         stream++;
-                        while (*stream != 0 && *stream != '\n') stream++;
+                        while (*stream != 0 && *stream != '\n')
+                            stream++;
                         goto repeat;
                     }
-                    else
-                    {
+                    else {
                         token.kind = TOKEN_DIV;
                     }
 
                     break;
                 case '%':
                     stream++;
-                    if (*stream == '=')
-                    {
+                    if (*stream == '=') {
                         token.kind = TOKEN_MOD_ASSIGN;
                         stream++;
                     }
-                    else
-                    {
+                    else {
                         token.kind = TOKEN_MOD;
                     }
 
@@ -773,78 +730,66 @@ namespace IonLang
                 // CASE3 Types
                 case '+':
                     stream++;
-                    if (*stream == '=')
-                    {
+                    if (*stream == '=') {
                         token.kind = TOKEN_ADD_ASSIGN;
                         stream++;
                     }
-                    else if (*stream == '+')
-                    {
+                    else if (*stream == '+') {
                         token.kind = TOKEN_INC;
                         stream++;
                     }
-                    else
-                    {
+                    else {
                         token.kind = TOKEN_ADD;
                     }
 
                     break;
                 case '-':
                     stream++;
-                    if (*stream == '=')
-                    {
+                    if (*stream == '=') {
                         token.kind = TOKEN_SUB_ASSIGN;
                         stream++;
                     }
-                    else if (*stream == '-')
-                    {
+                    else if (*stream == '-') {
                         token.kind = TOKEN_DEC;
                         stream++;
                     }
-                    else
-                    {
+                    else {
                         token.kind = TOKEN_SUB;
                     }
 
                     break;
                 case '&':
                     stream++;
-                    if (*stream == '=')
-                    {
+                    if (*stream == '=') {
                         token.kind = TOKEN_AND_ASSIGN;
                         stream++;
                     }
-                    else if (*stream == '&')
-                    {
+                    else if (*stream == '&') {
                         token.kind = TOKEN_AND_AND;
                         stream++;
                     }
-                    else
-                    {
+                    else {
                         token.kind = TOKEN_AND;
                     }
 
                     break;
                 case '|':
                     stream++;
-                    if (*stream == '=')
-                    {
+                    if (*stream == '=') {
                         token.kind = TOKEN_OR_ASSIGN;
                         stream++;
                     }
-                    else if (*stream == '|')
-                    {
+                    else if (*stream == '|') {
                         token.kind = TOKEN_OR_OR;
                         stream++;
                     }
-                    else
-                    {
+                    else {
                         token.kind = TOKEN_OR;
                     }
 
                     break;
                 default:
-                    syntax_error("Invalid '{0}' token, skipping", *stream);
+                    error_here("Invalid '{0}' token, skipping", *stream);
                     stream++;
                     goto repeat;
             }
@@ -853,44 +798,36 @@ namespace IonLang
             token.pos.col = stream - line_start;
         }
 
-        private void init_stream(string buf, string name = "<anonymous>")
-        {
+        private void init_stream(string buf, string name = "<anonymous>") {
             init_stream(buf.ToPtr(), $"\"{name}\"".ToPtr());
         }
 
-        private void init_stream(char* str, char* name = null)
-        {
+        private void init_stream(char* str, char* name = null) {
             token.pos.name = name != null ? name : "<string>".ToPtr();
             token.pos.line = token.pos.col = 1;
             stream = str;
             next_token();
         }
 
-        private bool is_token(TokenKind kind)
-        {
+        private bool is_token(TokenKind kind) {
             return token.kind == kind;
         }
 
 
-        private bool is_token_eof()
-        {
+        private bool is_token_eof() {
             return token.kind == TOKEN_EOF;
         }
 
-        private bool is_token_name(char* name)
-        {
+        private bool is_token_name(char* name) {
             return token.kind == TOKEN_NAME && token.name == name;
         }
 
-        private bool is_keyword(char* name)
-        {
+        private bool is_keyword(char* name) {
             return is_token(TOKEN_KEYWORD) && token.name == name;
         }
 
-        private bool match_keyword(char* name)
-        {
-            if (is_keyword(name))
-            {
+        private bool match_keyword(char* name) {
+            if (is_keyword(name)) {
                 next_token();
                 return true;
             }
@@ -898,10 +835,8 @@ namespace IonLang
             return false;
         }
 
-        private bool match_token(TokenKind kind)
-        {
-            if (is_token(kind))
-            {
+        private bool match_token(TokenKind kind) {
+            if (is_token(kind)) {
                 next_token();
                 return true;
             }
@@ -909,122 +844,15 @@ namespace IonLang
             return false;
         }
 
-        private bool expect_token(TokenKind kind)
-        {
-            if (is_token(kind))
-            {
+        private bool expect_token(TokenKind kind) {
+            if (is_token(kind)) {
                 next_token();
                 return true;
             }
 
-            syntax_error("Expected token {0}, got {1}", new string(token_kind_names[(int)kind]), token_info());
+            error_here("Expected token {0}, got {1}", new string(token_kind_names[(int)kind]), token_info());
             return false;
         }
-
-        private void keyword_test()
-        {
-            lex_init();
-            assert(is_keyword_name(first_keyword));
-            assert(is_keyword_name(last_keyword));
-            for (var it = (char**) keywords->_begin; it != keywords->_top; it++) assert(is_keyword_name(*it));
-
-            assert(!is_keyword_name(_I("foo")));
-        }
-
-        private void assert_token(TokenKind x)
-        {
-            assert(match_token(x));
-        }
-
-        private void assert_token_name(string x)
-        {
-            assert(token.name == _I(x) && match_token(TOKEN_NAME));
-        }
-
-        private void assert_token_int(ulong x)
-        {
-            assert((ulong) token.int_val == x && match_token(TOKEN_INT));
-        }
-
-        private void assert_token_float(double x)
-        {
-            assert(token.float_val == x && match_token(TOKEN_FLOAT));
-        }
-
-        private void assert_token_str(char* x)
-        {
-            assert(strcmp(token.str_val, x) == 0 && match_token(TOKEN_STR));
-        }
-
-        private void assert_token_eof()
-        {
-            assert(is_token(0));
-        }
-
-        public void lex_test()
-        {
-            keyword_test();
-
-            // Integer literal tests
-            init_stream("0 18446744073709551615 0xffffffffffffffff 042 0b1111");
-            assert_token_int(0);
-            assert_token_int(18446744073709551615L);
-            assert(token.mod == MOD_HEX);
-            assert_token_int(0xffffffffffffffffL);
-            assert(token.mod == MOD_OCT);
-            assert_token_int(34);
-            assert(token.mod == MOD_BIN);
-            assert_token_int(0b1111);
-            assert_token_eof();
-
-            // Float literal tests
-            init_stream("3.14 .123 42. 3e10");
-            assert_token_float(3.14);
-            assert_token_float(.123);
-            assert_token_float(42.0);
-            assert_token_float(3e10);
-            assert_token_eof();
-
-            // Char literal tests
-            init_stream("'a' '\\n'");
-            assert_token_int('a');
-            assert_token_int('\n');
-            assert_token_eof();
-
-            // String literal tests
-            init_stream("\"foo\" \"a\\nb\"");
-            assert_token_str("foo".ToPtr());
-            assert_token_str("a\nb".ToPtr());
-            assert_token_eof();
-
-            // Operator tests
-            init_stream(": := + += ++ < <= << <<=");
-            assert_token(TOKEN_COLON);
-            assert_token(TOKEN_COLON_ASSIGN);
-            assert_token(TOKEN_ADD);
-            assert_token(TOKEN_ADD_ASSIGN);
-            assert_token(TOKEN_INC);
-            assert_token(TOKEN_LT);
-            assert_token(TOKEN_LTEQ);
-            assert_token(TOKEN_LSHIFT);
-            assert_token(TOKEN_LSHIFT_ASSIGN);
-            assert_token_eof();
-
-            // Misc tests
-            init_stream("XY+(XY)_HELLO1,234+994");
-            assert_token_name("XY");
-            assert_token(TOKEN_ADD);
-            assert_token(TOKEN_LPAREN);
-            assert_token_name("XY");
-            assert_token(TOKEN_RPAREN);
-            assert_token_name("_HELLO1");
-            assert_token(TOKEN_COMMA);
-            assert_token_int(234);
-            assert_token(TOKEN_ADD);
-            assert_token_int(994);
-            assert_token_eof();
-        }
-
 
         [StructLayout(LayoutKind.Explicit)]
         private struct Token

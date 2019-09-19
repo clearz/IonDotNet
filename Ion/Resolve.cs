@@ -1116,7 +1116,7 @@ namespace IonLang
             Type* type = null;
             if (decl->var.type != null)
                 type = resolve_typespec(decl->var.type);
-            if (decl->var.expr != null && decl->var.expr->kind != EXPR_NULL) {
+            if (decl->var.expr != null) {
                 Operand operand = resolve_expected_expr(decl->var.expr, type);
                 if (type != null) {
                     if (is_incomplete_array_type(type) && is_array_type(operand.type)) {
@@ -2111,9 +2111,6 @@ namespace IonLang
         private Operand resolve_expected_expr(Expr* expr, Type* expected_type) {
             Operand result;
             switch (expr->kind) {
-                case EXPR_NULL:
-                    result = operand_const(type_ptr(type_void), new Val { p = null });
-                    break;
                 case EXPR_INT:
                     result = resolve_expr_int(expr);
                     break;
@@ -2203,22 +2200,6 @@ namespace IonLang
                 sym_global_decl(declset->decls[i]);
         }
 
-        private readonly string[] code =
-        {
-            "var u2 = (:int*)42",
-           /* "union IntOrPtr { i: int; p: int*; }",
-        "var u1 = IntOrPtr{i = 42}",
-        "var u2 = IntOrPtr{p = (:int*)42}",
-        "var i: int",
-        "struct Vector { x, y: int; }",
-        "func f1() { v := Vector{1, 2}; j := i; i++; j++; v.x = 2*j; }",
-        "func f2(n: int): int { return 2*n; }",
-        "func f3(x: int): int { if (x) { return -x; } else if (x % 2 == 0) { return 42; } else { return -1; } }",
-        "func f4(n: int): int { for (i := 0; i < n; i++) { if (i % 3 == 0) { return n; } } return 0; }",
-        "func f5(x: int): int { switch(x) { case 0, 1: return 42; case 3: default: return -1; } }",
-        "func f6(n: int): int { p := 1; while (n) { p *= 2; n--; } return p; }",
-        "func f7(n: int): int { p := 1; do { p *= 2; n--; } while (n); return p; }",*/
-        };
 
         private void init_builtins() {
             type_ranks[(int)TYPE_BOOL] = 1;
@@ -2278,6 +2259,7 @@ namespace IonLang
 
             sym_global_const("true".ToPtr(), type_bool, new Val { b = true });
             sym_global_const("false".ToPtr(), type_bool, new Val { b = false });
+            sym_global_const("NULL".ToPtr(), type_const(type_ptr(type_void)), new Val { p = null });
         }
 
         private void finalize_syms() {
@@ -2286,78 +2268,6 @@ namespace IonLang
                 if (sym->decl != null)
                     finalize_sym(sym);
             }
-        }
-
-        private void resolve_test() {
-            init_builtins();
-            assert(promote_type(type_char) == type_int);
-            assert(promote_type(type_schar) == type_int);
-            assert(promote_type(type_uchar) == type_int);
-            assert(promote_type(type_short) == type_int);
-            assert(promote_type(type_ushort) == type_int);
-            assert(promote_type(type_int) == type_int);
-            assert(promote_type(type_uint) == type_uint);
-            assert(promote_type(type_long) == type_long);
-            assert(promote_type(type_ulong) == type_ulong);
-            assert(promote_type(type_llong) == type_llong);
-            assert(promote_type(type_ullong) == type_ullong);
-
-            assert(unify_arithmetic_types(type_char, type_char) == type_int);
-            assert(unify_arithmetic_types(type_char, type_ushort) == type_int);
-            assert(unify_arithmetic_types(type_int, type_uint) == type_uint);
-            assert(unify_arithmetic_types(type_int, type_long) == type_long);
-            assert(unify_arithmetic_types(type_ulong, type_long) == type_ulong);
-            assert(unify_arithmetic_types(type_long, type_uint) == type_ulong);
-            assert(unify_arithmetic_types(type_llong, type_ulong) == type_llong);
-
-            assert(convert_const(type_int, type_char, new Val { c = (char)100 }).i == 100);
-            assert(convert_const(type_uint, type_int, new Val { i = -1 }).u == uint.MaxValue);
-            assert(convert_const(type_uint, type_ullong, new Val { ull = ulong.MaxValue }).u == uint.MaxValue);
-            assert(convert_const(type_int, type_schar, new Val { sc = -1 }).i == -1);
-
-            type_int->align = type_float->align = type_int->size = type_float->size = 4;
-            type_void->size = 0;
-            type_char->size = type_char->align = 2;
-
-            var int_ptr = type_ptr(type_int);
-            assert(type_ptr(type_int) == int_ptr);
-            var float_ptr = type_ptr(type_float);
-            assert(type_ptr(type_float) == float_ptr);
-            assert(int_ptr != float_ptr);
-            var int_ptr_ptr = type_ptr(type_ptr(type_int));
-            assert(type_ptr(type_ptr(type_int)) == int_ptr_ptr);
-            var float4_array = type_array(type_float, 4);
-            assert(type_array(type_float, 4) == float4_array);
-            var float3_array = type_array(type_float, 3);
-            assert(type_array(type_float, 3) == float3_array);
-            assert(float4_array != float3_array);
-            fixed (Type** t = &type_int) {
-                var int_int_func = type_func(t, 1, type_int);
-                assert(type_func(t, 1, type_int) == int_int_func);
-
-                var int_func = type_func((Type**) null, 0, type_int);
-                assert(int_int_func != int_func);
-                assert(int_func == type_func((Type**)null, 0, type_int));
-            }
-
-            for (var i = 0; i < code.Length; i++) {
-                init_stream(code[i].ToPtr(), null);
-                var decl = parse_decl();
-                sym_global_decl(decl);
-            }
-
-            finalize_syms();
-            Console.WriteLine();
-            for (var sym = (Sym**)sorted_syms->_begin; sym != sorted_syms->_top; sym++) {
-                if ((*sym)->decl != null)
-                    print_decl((*sym)->decl);
-                else
-                    printf("{0}", (*sym)->name);
-
-                printf("\n");
-            }
-
-            Console.WriteLine();
         }
     }
 

@@ -155,14 +155,18 @@ namespace IonLang
                     break;
                 case TYPE_CONST:
                     if (str != null) {
-                        type_to_cdecl(type->@base, const_keyword);
+                        c_write(const_keyword);
+                        c_write(' ');
+                        type_to_cdecl(type->@base, null);
                         buf_write(' ');
                         buf_write('(');
                         buf_write(str);
                         buf_write(')');
                     }
                     else {
-                        type_to_cdecl(type->@base, const_keyword);
+                        c_write(const_keyword);
+                        c_write(' ');
+                        type_to_cdecl(type->@base, null);
                     }
                     break;
                 case TYPE_ARRAY:
@@ -285,14 +289,18 @@ namespace IonLang
                     break;
                 case TYPESPEC_CONST:
                     if (str != null) {
-                        typespec_to_cdecl(typespec->@base, const_keyword);
+                        c_write(const_keyword);
+                        c_write(' ');
+                        typespec_to_cdecl(typespec->@base, null);
                         c_write(' ');
                         c_write('(');
                         c_write(str);
                         c_write(')');
                     }
                     else {
-                        typespec_to_cdecl(typespec->@base, const_keyword);
+                        c_write(const_keyword);
+                        c_write(' ');
+                        typespec_to_cdecl(typespec->@base, null);
                     }
                     break;
                 case TYPESPEC_PTR:
@@ -564,9 +572,6 @@ namespace IonLang
 
         private void gen_expr(Expr* expr) {
             switch (expr->kind) {
-                case EXPR_NULL:
-                    c_write(null_upper);
-                    break;
                 case EXPR_INT: {
                     char *suffix_name = token_suffix_names[(int)expr->int_lit.suffix];
                     switch (expr->int_lit.mod) {

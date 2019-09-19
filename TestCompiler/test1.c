@@ -58,7 +58,7 @@ struct S1 {
     #line 22
     int a;
     #line 23
-    int const (b);
+    const int (b);
 };
 
 #line 26
@@ -115,7 +115,7 @@ int fact_rec(int n);
 int fact_iter(int n);
 
 #line 89
-char const (escape_to_char[256]) = {['n'] = '\n', ['r'] = '\r', ['t'] = '\t', ['v'] = '\v', ['b'] = '\b', ['a'] = '\a', ['0'] = 0};
+const char (escape_to_char[256]) = {['n'] = '\n', ['r'] = '\r', ['t'] = '\t', ['v'] = '\v', ['b'] = '\b', ['a'] = '\a', ['0'] = 0};
 
 #line 99
 int (a2[11]) = {1, 2, 3, [10] = 4};
@@ -164,27 +164,27 @@ void test_bool(void);
 int test_ctrl(void);
 
 #line 229
-int const (j);
+const int (j);
 
 #line 230
-int const ((*q));
+const int ((*q));
 
 #line 231
-Vector const (cv);
+const Vector (cv);
 
 #line 233
-void f4(char const ((*x)));
+void f4(const char ((*x)));
 
 #line 236
 struct ConstVector {
     #line 237
-    int const (x);
+    const int (x);
     #line 237
-    int const (y);
+    const int (y);
 };
 
 #line 240
-void f5(int const ((*p)));
+void f5(const int ((*p)));
 
 #line 243
 void test_convert(void);
@@ -199,7 +199,7 @@ void test_init(void);
 void test_cast(void);
 
 #line 296
-int main(int argc, char const ((*(*argv))));
+int main(int argc, const char ((*(*argv))));
 
 // Function declarations
 #line 30
@@ -460,17 +460,17 @@ int test_ctrl(void) {
 }
 
 #line 233
-void f4(char const ((*x))) {
+void f4(const char ((*x))) {
 }
 
 #line 240
-void f5(int const ((*p))) {
+void f5(const int ((*p))) {
 }
 
 #line 243
 void test_convert(void) {
     #line 244
-    int const ((*a)) = 0;
+    const int ((*a)) = 0;
     #line 245
     int (*b) = 0;
     #line 246
@@ -493,14 +493,14 @@ void test_const(void) {
     char c = escape_to_char[0];
     (f4)(escape_to_char);
     #line 263
-    char const ((*p)) = (char const *)(0);
+    const char ((*p)) = (const char *)(0);
     #line 264
     p = (escape_to_char) + (1);
     #line 265
     char (*q) = (char *)(escape_to_char);
     #line 266
     c = q['n'];
-    p = (char const *)(1);
+    p = (const char *)(1);
     #line 271
     i = (int)((ullong)(p));
 }
@@ -508,7 +508,7 @@ void test_const(void) {
 #line 274
 void test_init(void) {
     #line 275
-    int x = (int const)(0);
+    int x = (const int)(0);
     #line 276
     int y;
     #line 277
@@ -535,9 +535,9 @@ void test_cast(void) {
 }
 
 #line 296
-int main(int argc, char const ((*(*argv)))) {
+int main(int argc, const char ((*(*argv)))) {
     #line 297
-    if ((argv) == (0)) {
+    if ((argv) == (NULL)) {
         #line 298
         (printf)("argv is null\n");
     }

@@ -16,7 +16,7 @@ namespace IonLang
             sym_global_decls(ds);
             finalize_syms();
             gen_all();
-            return false;
+            return true;
             //Console.WriteLine("Path: " + new string(path));
             var c_path = replace_ext(spath.ToPtr(), "c".ToPtr());
             if (c_path == null)

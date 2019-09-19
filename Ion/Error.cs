@@ -26,7 +26,7 @@ namespace IonLang
         }
 
         [DebuggerHidden]
-        private void syntax_error(string format, params object[] pmz)
+        private void error_here(string format, params object[] pmz)
         {
             error(token.pos, format, pmz);
         }
@@ -35,7 +35,7 @@ namespace IonLang
         [DebuggerHidden]
         private void fatal_error_here(string format, params object[] pmz)
         {
-            syntax_error(format, pmz);
+            error_here(format, pmz);
             Exit();
         }
 

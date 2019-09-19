@@ -117,9 +117,9 @@ namespace IonLang
 
 
             private static ulong hash_uint64(ulong x) {
-                x *= 0xff51afd7ed558ccd;
-                x ^= x >> 32;
-                return x;
+                ulong a = x * 0xff51afd7ed558ccd;
+                ulong b = a ^ (x >> 32);
+                return b;
             }
 
 
@@ -406,6 +406,7 @@ namespace IonLang
 
             public void free() {
                 xfree(_begin);
+                this = default;
             }
 
             public void clear() {

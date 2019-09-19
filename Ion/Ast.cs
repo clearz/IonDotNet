@@ -217,11 +217,6 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_null(SrcPos pos) {
-            var e = expr_new(EXPR_NULL, pos);
-            return e;
-        }
-
         private Expr* expr_compound(SrcPos pos, Typespec* type, CompoundField* fields, int num_fields)
         {
             var e = expr_new(EXPR_COMPOUND, pos);
