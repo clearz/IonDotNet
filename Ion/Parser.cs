@@ -171,9 +171,10 @@ namespace IonLang
             }
 
             if (is_token(TOKEN_STR)) {
+                var mod = token.mod;
                 var val = token.str_val;
                 next_token();
-                return expr_str(pos, val);
+                return expr_str(pos, val, mod);
             }
 
             if (is_token(TOKEN_NAME)) {

@@ -101,7 +101,7 @@ namespace IonLang
                     printf("{0}", e->float_lit.val);
                     break;
                 case EXPR_STR:
-                    printf("\"{0}\"", e->str_val);
+                    printf("\"{0}\"", e->str_lit.val);
                     break;
                 case EXPR_NAME:
                     printf("{0}", e->name);

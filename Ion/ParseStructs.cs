@@ -168,7 +168,7 @@ namespace IonLang
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* name;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public _int_lit int_lit;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public _float_lit float_lit;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* str_val;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public _str_lit str_lit;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Expr* sizeof_expr;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Typespec* sizeof_type;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public CompoundExpr compound;
@@ -192,6 +192,12 @@ namespace IonLang
         {
             public double val;
             public TokenSuffix suffix;
+        }
+
+        internal struct _str_lit
+        {
+            public char* val;
+            public TokenMod mod;
         }
 
         internal struct CompoundExpr

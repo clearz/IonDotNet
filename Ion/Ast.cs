@@ -204,10 +204,11 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_str(SrcPos pos, char* str_val)
+        private Expr* expr_str(SrcPos pos, char* val, TokenMod mod)
         {
             var e = expr_new(EXPR_STR, pos);
-            e->str_val = str_val;
+            e->str_lit.val = val;
+            e->str_lit.mod = mod;
             return e;
         }
 

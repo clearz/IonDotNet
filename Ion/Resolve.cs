@@ -230,10 +230,10 @@ namespace IonLang
             if (is_convertible(operand, dest)) {
                 return true;
             }
-            else if (is_arithmetic_type(dest)) {
+            else if (is_integer_type(dest)) {
                 return is_ptr_type(src);
             }
-            else if (is_arithmetic_type(src)) {
+            else if (is_integer_type(src)) {
                 return is_ptr_type(dest);
             }
             else if (is_ptr_type(dest) && is_ptr_type(src)) {
@@ -1926,10 +1926,10 @@ namespace IonLang
 
             for (var i = 0; i < num_params; i++) {
                 var param_type = func.type->func.@params[i];
+                var arg = resolve_expected_expr_rvalue(expr->call.args[i], param_type);
                 if (is_array_type(param_type)) {
                     param_type = type_ptr(param_type->@base);
                 }
-                var arg = resolve_expected_expr_rvalue(expr->call.args[i], param_type);
                 if (!convert_operand(&arg, param_type)) {
                     fatal_error(expr->call.args[i]->pos, "Invalid type in function call argument");
                 }

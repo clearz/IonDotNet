@@ -404,32 +404,51 @@ namespace IonLang
             stream++;
             var start = stream;
             str_buf = Buffer<char>.Create(256);
-            while (*stream != 0 && *stream != '"') {
-                var val = *stream;
-                if (val == '\n') {
-                    error_here("String literal cannot contain newline");
-                    break;
-                }
-
-                if (val == '\\') {
+            if (stream[0] == '"' && stream[1] == '"') {
+                stream += 2;
+                while (*stream != 0) {
+                    if (stream[0] == '"' && stream[1] == '"' && stream[2] == '"') {
+                        stream += 3;
+                        break;
+                    }
+                    if (*stream != '\r') {
+                        // TODO: Should probably just read files in text mode instead.
+                        str_buf.Add(*stream);
+                    }
                     stream++;
-                    val = escape_to_char[*stream];
-                    if (val == 0 && *stream != '0')
-                        error_here("Invalid string literal escape '\\%c'", *stream);
                 }
-
-                str_buf.Add(val);
-                stream++;
-            }
-
-            if (*stream != 0) {
-                assert(*stream == '"');
-                stream++;
+                if (*stream == 0) {
+                    error_here("Unexpected end of file within multi-line string literal");
+                }
+                token.mod = MOD_MULTILINE;
             }
             else {
-                error_here("Unexpected end of file within string literal");
-            }
+                while (*stream != 0 && *stream != '"') {
+                    var val = *stream;
+                    if (val == '\n') {
+                        error_here("String literal cannot contain newline");
+                        break;
+                    }
 
+                    if (val == '\\') {
+                        stream++;
+                        val = escape_to_char[*stream];
+                        if (val == 0 && *stream != '0')
+                            error_here("Invalid string literal escape '\\%c'", *stream);
+                    }
+
+                    str_buf.Add(val);
+                    stream++;
+                }
+                if (*stream != 0) {
+                    assert(*stream == '"');
+                    stream++;
+                }
+                else {
+                    error_here("Unexpected end of file within string literal");
+                }
+
+            }
             str_buf.Add('\0');
 
             token.kind = TOKEN_STR;
@@ -952,7 +971,8 @@ repeat:
         MOD_HEX,
         MOD_BIN,
         MOD_OCT,
-        MOD_CHAR
+        MOD_CHAR,
+        MOD_MULTILINE,
     }
 
     enum TokenSuffix : byte

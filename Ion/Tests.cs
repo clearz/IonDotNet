@@ -319,7 +319,7 @@ namespace IonLang
             Expr*[] exprs = {
                 expr_binary(default, TOKEN_ADD, expr_int(default, 1, 0, 0), expr_int(default, 2, 0, 0)),
                 expr_unary(default, TOKEN_SUB, expr_float(default, 3.14, 0)),
-                expr_ternary(default, expr_name(default, "flag".ToPtr()), expr_str(default, "true".ToPtr()), expr_str(default, "false".ToPtr())),
+                expr_ternary(default, expr_name(default, "flag".ToPtr()), expr_str(default, "true".ToPtr(), 0), expr_str(default, "false".ToPtr(), 0)),
                 expr_field(default, expr_name(default, "person".ToPtr()), "name".ToPtr()),
                 expr_call(default, expr_name(default, "fact".ToPtr()), (Expr**) CreateArray(expr_int(default, 42, 0, 0)), 1),
                 expr_index(default, expr_field(default, expr_name(default, "person".ToPtr()), "siblings".ToPtr()), expr_int(default, 3, 0, 0)),

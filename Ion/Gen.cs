@@ -232,7 +232,11 @@ namespace IonLang
             }
         }
 
-        private void gen_str(char* str) {
+        private void gen_str(char* str, bool multiline) {
+            if (multiline) {
+                gen_indent++;
+                genln();
+            }
             c_write('\"');
             while (*str != 0) {
                 var start = str;
@@ -244,6 +248,10 @@ namespace IonLang
                     if (char_to_escape[*str] != 0) {
                         c_write('\\');
                         c_write(char_to_escape[*str]);
+                        if (str[0] == '\n' && str[1] != 0) {
+                            c_write('\"');
+                            genlnf('\"');
+                        }
                     } else {
                         assert(Char.IsControl(*str));
 
@@ -255,6 +263,9 @@ namespace IonLang
                 }
             }
             c_write('\"');
+            if (multiline) {
+                gen_indent--;
+            }
         }
 
         private void gen_sync_pos(SrcPos pos) {
@@ -265,9 +276,7 @@ namespace IonLang
                 c_write(pos.line.itoa());
                 if (gen_pos.name != pos.name) {
                     c_write(' ');
-                    c_write('"');
-                    c_write(pos.name);
-                    c_write('"');
+                    gen_str(pos.name, false);
                 }
                 gen_pos = pos;
             }
@@ -603,7 +612,7 @@ namespace IonLang
                         c_write('f');
                     break;
                 case EXPR_STR:
-                    gen_str(expr->str_val);
+                    gen_str(expr->str_lit.val, expr->str_lit.mod == MOD_MULTILINE);
                     break;
                 case EXPR_NAME:
                     c_write(expr->name);
