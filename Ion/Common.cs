@@ -8,7 +8,35 @@ namespace IonLang
     unsafe partial class Ion
     {
         private static Map interns;
-        private static readonly MemArena* intern_arena = MemArena.Create();
+        private static MemArena intern_arena;
+
+        private void initialise() {
+
+            if (false) {
+                interns.free();
+                global_syms_buf->free();
+                local_syms.free();
+                sorted_syms->free();
+                intern_arena.free();
+                cached_array_types.free();
+                cached_func_types.free();
+                ast_arena.free();
+                global_syms_map.free();
+            }
+
+            global_syms_buf = PtrBuffer.Create();
+            local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
+            sorted_syms = PtrBuffer.Create(capacity: 256);
+            cached_array_types = Buffer<CachedArrayType>.Create();
+            cached_func_types = Buffer<CachedFuncType>.Create();
+            ast_arena = MemArena.Create();
+            intern_arena = MemArena.Create();
+            init_builtins();
+            lex_init();
+            init_chars();
+
+            inited = true;
+        }
 
         public static void Write<T>(void* p, ref T value) where T : unmanaged {
             *(T*)p = value;
@@ -35,7 +63,7 @@ namespace IonLang
             return Intern.InternRange(s, s + len);
         }
 
-        internal struct MemArena
+        internal class MemArena
         {
             internal byte* ptr;
             internal byte* end;
@@ -55,13 +83,13 @@ namespace IonLang
                 arenas->Add(ptr);
             }
 
-            public static MemArena* Create() {
-                var arena = (MemArena*) xmalloc(sizeof(MemArena));
-                arena->arenas = PtrBuffer.Create();
-                arena->ptr = (byte*)xmalloc(ARENA_BLOCK_SIZE);
-                assert(arena->ptr == ALIGN_DOWN_PTR(arena->ptr, ARENA_ALIGNMENT));
-                arena->end = arena->ptr + ARENA_BLOCK_SIZE;
-                arena->arenas->Add(arena->ptr);
+            public static MemArena Create() {
+                var arena = new MemArena();
+                arena.arenas = PtrBuffer.Create();
+                arena.ptr = (byte*)xmalloc(ARENA_BLOCK_SIZE);
+                assert(arena.ptr == ALIGN_DOWN_PTR(arena.ptr, ARENA_ALIGNMENT));
+                arena.end = arena.ptr + ARENA_BLOCK_SIZE;
+                arena.arenas->Add(arena.ptr);
                 return arena;
             }
 
@@ -77,6 +105,13 @@ namespace IonLang
                 assert(ptr <= end);
                 assert(new_ptr == ALIGN_DOWN_PTR(new_ptr, ARENA_ALIGNMENT));
                 return new_ptr;
+            }
+
+            internal void free() {
+                for (int i = 0; i < arenas->count; i++) {
+                    byte* p = *((byte**)arenas->_begin) + (PTR_SIZE * i);
+                    xfree(p);
+                }
             }
         }
 
@@ -95,12 +130,12 @@ namespace IonLang
                 if (intern != null)
                     return intern->str;
 
-                var new_intern = (Intern*) intern_arena->Alloc(sizeof(Intern));
+                var new_intern = (Intern*) intern_arena.Alloc(sizeof(Intern));
                 new_intern->len = len;
                 new_intern->next = intern;
 
                 var len_bytes = len << 1;
-                new_intern->str = (char*)intern_arena->Alloc(len_bytes + 2);
+                new_intern->str = (char*)intern_arena.Alloc(len_bytes + 2);
                 Unsafe.CopyBlock(new_intern->str, start, (uint)len_bytes);
                 *(new_intern->str + len) = '\0';
                 interns.map_put(key, new_intern);
@@ -216,6 +251,14 @@ namespace IonLang
             }
 
             internal bool exists(char* key) => map_get(hash_ptr(key)) != null;
+
+            internal void free() {
+                xfree(keys);
+                xfree(vals);
+                len = cap = 0;
+                keys = null;
+                vals = null;
+            }
         }
 
         #region Macros*
@@ -359,6 +402,19 @@ namespace IonLang
 
             public static implicit operator T*(Buffer<T> b) {
                 return b._begin;
+            }
+            public static Buffer<T>* CreateP(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
+                assert(capacity >= START_CAPACITY);
+                assert(multiplier > 1);
+                var b = xmalloc<Buffer<T>>();
+                b->item_size = sizeof(T);
+                b->_capacity = capacity;
+                b->_multiplier = multiplier;
+                b->count = 0;
+                b->buffer_size = b->_capacity * b->item_size;
+                b->_begin = (T*)xmalloc(b->buffer_size);
+                b->_top = b->_begin;
+                return b;
             }
 
             public static Buffer<T> Create(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {

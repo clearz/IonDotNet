@@ -9,12 +9,12 @@ namespace IonLang
 
     public unsafe partial class Ion
     {
-        private readonly MemArena* ast_arena = MemArena.Create();
+        private MemArena ast_arena;
 
         private void* ast_alloc(int size)
         {
             assert(size != 0);
-            var ptr = ast_arena->Alloc(size);
+            var ptr = ast_arena.Alloc(size);
             Unsafe.InitBlock(ptr, 0, (uint) size);
             return ptr;
         }
@@ -23,7 +23,7 @@ namespace IonLang
         {
             if (size == 0) return null;
 
-            var ptr = ast_arena->Alloc(size);
+            var ptr = ast_arena.Alloc(size);
             Unsafe.CopyBlock(ptr, src, (uint) size);
             return ptr;
         }

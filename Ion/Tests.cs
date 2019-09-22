@@ -231,6 +231,55 @@ namespace IonLang
             "func f7(n: int): int { p := 1; do { p *= 2; n--; } while (n); return p; }",
         };
 
+
+
+        private void cdecl_test() {
+            var c = 'a';
+            init_builtins();
+            type_to_cdecl(type_int, &c);
+            cdecl_buffer[_pos] = (char)0;
+            Console.WriteLine(new string(cdecl_buffer) + ";");
+            _pos = 0;
+            type_to_cdecl(type_ptr(type_int), &c);
+            c++;
+            cdecl_buffer[_pos] = (char)0;
+            Console.WriteLine(new string(cdecl_buffer) + ";");
+            _pos = 0;
+            type_to_cdecl(type_array(type_int, 10), &c);
+            c++;
+            cdecl_buffer[_pos] = (char)0;
+            Console.WriteLine(new string(cdecl_buffer) + ";");
+            _pos = 0;
+            type_to_cdecl(type_func(new[] { type_int }, 1, type_int), &c);
+            c++;
+            cdecl_buffer[_pos] = (char)0;
+            Console.WriteLine(new string(cdecl_buffer) + ";");
+            _pos = 0;
+            type_to_cdecl(type_array(type_func(new[] { type_int }, 1, type_int), 10), &c);
+            c++;
+            cdecl_buffer[_pos] = (char)0;
+            Console.WriteLine(new string(cdecl_buffer) + ";");
+            _pos = 0;
+            type_to_cdecl(type_func(new[] { type_ptr(type_int) }, 1, type_int), &c);
+            c++;
+            cdecl_buffer[_pos] = (char)0;
+            Console.WriteLine(new string(cdecl_buffer) + ";");
+            _pos = 0;
+            var type1 = type_func(new[] {type_array(type_int, 10)}, 1, type_int);
+            type_to_cdecl(type1, &c);
+            Console.WriteLine(new string(cdecl_buffer) + ";");
+            cdecl_buffer[_pos] = (char)0;
+            _pos = 0;
+            c++;
+            type_to_cdecl(type_func((Type**)null, 0, type1), &c);
+            c++;
+            cdecl_buffer[_pos] = (char)0;
+            Console.WriteLine(new string(cdecl_buffer) + ";");
+            _pos = 0;
+            type_to_cdecl(type_func((Type**)null, 0, type_array(type_func((Type**)null, 0, type_int), 10)), &c);
+            _pos = 0;
+        }
+
         private void resolve_test() {
             init_builtins();
             assert(promote_type(type_char) == type_int);

@@ -314,16 +314,19 @@ namespace IonLang
                     break;
                 case TYPESPEC_PTR:
                     if (str != null) {
-                        buf_write('(');
-                        buf_write('*');
-                        buf_write(str);
-                        buf_write(')');
-                        typespec_to_cdecl(typespec->@base, copy_buf());
+                        typespec_to_cdecl(typespec->@base, null);
+                        c_write('(');
+                        c_write('*');
+                        c_write(str);
+                        c_write(')');
                     }
                     else {
-                        buf_write(typespec->name);
-                        buf_write(' ');
-                        buf_write('*');
+                        if(typespec->@base != null)
+                            typespec_to_cdecl(typespec->@base, null);
+                        if (typespec->name != null)
+                            c_write(typespec->name);
+                        c_write(' ');
+                        c_write('*');
                     }
 
                     break;
@@ -458,6 +461,9 @@ namespace IonLang
                 var decl = sym->decl;
                 if (decl == null)
                     continue;
+                if (is_decl_foreign(decl))
+                    continue;
+                
                 var name = sym->name;
                 switch (decl->kind) {
                     case DECL_STRUCT:
@@ -480,17 +486,6 @@ namespace IonLang
                         c_write(name);
                         c_write(' ');
                         c_write(name);
-                        c_write(';');
-                        break;
-                    case DECL_ENUM:
-                        genln();
-                        c_write(typedef_keyword, 7);
-                        c_write(' ');
-                        c_write(enum_keyword, 4);
-                        c_write(' ');
-                        c_write(sym->name);
-                        c_write(' ');
-                        c_write(sym->name);
                         c_write(';');
                         break;
                 }
@@ -946,6 +941,8 @@ namespace IonLang
         void gen_enum(Decl* decl) {
             assert(decl->kind == DECL_ENUM);
             genln();
+            c_write(typedef_keyword, 7);
+            c_write(' ');
             c_write(enum_keyword, 4);
             c_write(' ');
             c_write(decl->name);
@@ -960,6 +957,7 @@ namespace IonLang
             gen_indent--;
             genln();
             c_write('}');
+            c_write(decl->name);
             c_write(';');
         }
 
@@ -1045,7 +1043,6 @@ namespace IonLang
         private readonly char* function_declarations = "// Function declarations".ToPtr();
 
         private void gen_all() {
-            init_chars();
             c_write(preamble.ToPtr(), preamble.Length);
             c_write(forward_declarations);
             gen_forward_decls();
@@ -1068,40 +1065,6 @@ namespace IonLang
             char_to_escape['\\'] = '\\';
             char_to_escape['"'] = '"';
             char_to_escape['\''] = '\'';
-        }
-
-        private void cdecl_test() {
-            var c = 'x';
-            _pos = 0;
-            lex_init();
-            init_builtins();
-            type_to_cdecl(type_int, &c);
-            Console.WriteLine(new string(cdecl_buffer));
-            _pos = 0;
-            type_to_cdecl(type_ptr(type_int), &c);
-            Console.WriteLine(new string(cdecl_buffer));
-            _pos = 0;
-            type_to_cdecl(type_array(type_int, 10), &c);
-            Console.WriteLine(new string(cdecl_buffer));
-            _pos = 0;
-            type_to_cdecl(type_func(new[] { type_int }, 1, type_int), &c);
-            Console.WriteLine(new string(cdecl_buffer));
-            _pos = 0;
-            type_to_cdecl(type_array(type_func(new[] { type_int }, 1, type_int), 10), &c);
-            Console.WriteLine(new string(cdecl_buffer));
-            _pos = 0;
-            type_to_cdecl(type_func(new[] { type_ptr(type_int) }, 1, type_int), &c);
-            Console.WriteLine(new string(cdecl_buffer));
-            _pos = 0;
-            var type1 = type_func(new[] {type_array(type_int, 10)}, 1, type_int);
-            type_to_cdecl(type1, &c);
-            Console.WriteLine(new string(cdecl_buffer));
-            _pos = 0;
-            type_to_cdecl(type_func((Type**)null, 0, type1), &c);
-            Console.WriteLine(new string(cdecl_buffer));
-            _pos = 0;
-            type_to_cdecl(type_func((Type**)null, 0, type_array(type_func((Type**)null, 0, type_int), 10)), &c);
-            Console.WriteLine(new string(copy_buf()));
         }
     }
 }

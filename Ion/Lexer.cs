@@ -20,7 +20,7 @@ namespace IonLang
         private char** token_kind_names;
         char*[] token_suffix_names;
         void init_tokens() {
-            token_kind_names = (char**)xmalloc((int)TOKEN_SIZE * sizeof(char**));
+            token_kind_names = (char**)xmalloc((int)NUM_TOKEN_KINDS * sizeof(char**));
             token_suffix_names = new char*[7];
 
             token_suffix_names[(int)SUFFIX_NONE] = "".ToPtr();
@@ -118,12 +118,22 @@ namespace IonLang
 
         char *foreign_name;
 
+        TokenKind[] assign_token_to_binary_token = new TokenKind[(int)NUM_TOKEN_KINDS];
 
         public void lex_init() {
-            if (inited)
-                return;
+
             keywords = PtrBuffer.Create();
 
+            assign_token_to_binary_token[(int)TOKEN_ADD_ASSIGN] = TOKEN_ADD;
+            assign_token_to_binary_token[(int)TOKEN_SUB_ASSIGN] = TOKEN_SUB;
+            assign_token_to_binary_token[(int)TOKEN_OR_ASSIGN] = TOKEN_OR;
+            assign_token_to_binary_token[(int)TOKEN_AND_ASSIGN] = TOKEN_AND;
+            assign_token_to_binary_token[(int)TOKEN_XOR_ASSIGN] = TOKEN_XOR;
+            assign_token_to_binary_token[(int)TOKEN_LSHIFT_ASSIGN] = TOKEN_LSHIFT;
+            assign_token_to_binary_token[(int)TOKEN_RSHIFT_ASSIGN] = TOKEN_RSHIFT;
+            assign_token_to_binary_token[(int)TOKEN_MUL_ASSIGN] = TOKEN_MUL;
+            assign_token_to_binary_token[(int)TOKEN_DIV_ASSIGN] = TOKEN_DIV;
+            assign_token_to_binary_token[(int)TOKEN_MOD_ASSIGN] = TOKEN_MOD;
 
             init_tokens();
             init_keywords();
@@ -159,14 +169,13 @@ namespace IonLang
             escape_to_char['a'] = '\a';
             escape_to_char['0'] = '\0';
 
-            inited = true;
         }
 
         private void init_keywords() {
             typedef_keyword = _I("typedef");
             keywords->Add(typedef_keyword);
 
-            var arena_end = intern_arena->end;
+            var arena_end = intern_arena.end;
 
             enum_keyword = _I("enum");
             keywords->Add(enum_keyword);
@@ -225,7 +234,7 @@ namespace IonLang
             foreign_name = _I("foreign");
 
 
-            assert(intern_arena->end == arena_end);
+            assert(intern_arena.end == arena_end);
 
             first_keyword = typedef_keyword;
             last_keyword = default_keyword;
@@ -236,13 +245,13 @@ namespace IonLang
         }
 
         private string token_kind_name(TokenKind kind) {
-            if (kind < TOKEN_SIZE)
+            if (kind < NUM_TOKEN_KINDS)
                 return new string(token_kind_names[(int)kind]);
             return "<unknown>";
         }
 
         private char* _token_kind_name(TokenKind kind) {
-            if (kind < TOKEN_SIZE)
+            if (kind < NUM_TOKEN_KINDS)
                 return *(token_kind_names + (long)kind);
             return _I("<unknown>");
         }
@@ -964,7 +973,7 @@ repeat:
         TOKEN_INC,
         TOKEN_DEC,
         TOKEN_COLON_ASSIGN,
-        TOKEN_SIZE,
+        NUM_TOKEN_KINDS,
 
     }
 

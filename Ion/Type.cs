@@ -75,10 +75,9 @@ namespace IonLang
 
     unsafe partial class Ion
     {
-
         private Map cached_ptr_types;
-        private Buffer<CachedArrayType> cached_array_types = Buffer<CachedArrayType>.Create();
-        private Buffer<CachedFuncType> cached_func_types = Buffer<CachedFuncType>.Create();
+        private Buffer<CachedArrayType> cached_array_types;
+        private Buffer<CachedFuncType> cached_func_types;
 
         private static readonly Type* type_void    = basic_type_alloc(TYPE_VOID, 0, 1);
         private static readonly Type* type_bool    = basic_type_alloc(TYPE_BOOL, 1, 1);

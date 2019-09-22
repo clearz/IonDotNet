@@ -1,20 +1,19 @@
-﻿using static System.Console;
+﻿using System.Runtime.CompilerServices;
+using static System.Console;
 namespace IonLang
 {
     unsafe partial class Ion
     {
-        private static void Main(string[] args) {
-
-            Ion ion = new Ion();
+        private static int Main(string[] args) {
+            var ion = new Ion();
             if (args.Length > 0)
                 ion.ion_main(args);
             else {
-                Timer.Time(() => ion.ion_compile_file("test1.ion"));
+                Timer.Time(() => ion.ion_test(), 1);
                 WriteLine(ion.gen_buf);
                 ReadKey();
             }
-
+            return 0;
         }
-
     }
 }

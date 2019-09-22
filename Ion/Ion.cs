@@ -7,11 +7,9 @@ namespace IonLang
     public unsafe partial class Ion
     {
         private bool ion_compile_file(string spath) {
-            lex_init();
+            initialise();
             var path = spath.ToPtr();
-            lex_init();
             init_stream(read_file(spath), $"{spath}".ToPtr());
-            init_builtins();
             var ds = parse_file();
             sym_global_decls(ds);
             finalize_syms();
@@ -27,9 +25,8 @@ namespace IonLang
         }
 
         private char* ion_compile_str(string path) {
-            lex_init();
+            initialise();
             init_stream(read_file(path), $"{path}".ToPtr());
-            init_builtins();
             sym_global_decls(parse_file());
             finalize_syms();
             gen_all();

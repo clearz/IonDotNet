@@ -16,8 +16,9 @@ namespace IonLang
     unsafe partial class Ion {
         public const int MAX_LOCAL_SYMS = 1024;
         private Map global_syms_map;
-        private readonly PtrBuffer* global_syms_buf = PtrBuffer.Create();
-        private Buffer<Sym> local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
+        private PtrBuffer* global_syms_buf;
+        private Buffer<Sym> local_syms;
+        private PtrBuffer* sorted_syms;
 
         const ulong INT_MAX = int.MaxValue,
                     UINT_MAX = uint.MaxValue,
@@ -1163,8 +1164,6 @@ namespace IonLang
             return result;
         }
 
-        private readonly PtrBuffer* sorted_syms = PtrBuffer.Create(capacity: 256);
-
         private void complete_type(Type* type) {
             if (type->kind == TYPE_COMPLETING) {
                 fatal_error(type->sym->decl->pos, "Type completion cycle");
@@ -1296,17 +1295,42 @@ namespace IonLang
             if (!left.is_lvalue) {
                 fatal_error(stmt->pos, "Cannot assign to non-lvalue");
             }
+            if (is_array_type(left.type)) {
+                fatal_error(stmt->pos, "Cannot assign to array");
+            }
             if (left.type->nonmodifiable) {
                 fatal_error(stmt->pos, "Left-hand side of assignment has non-modifiable type");
             }
             if (stmt->assign.right != null) {
+                var assign_op_name = token_kind_name(stmt->assign.op);
+                TokenKind binary_op = assign_token_to_binary_token[(int)stmt->assign.op];
                 Operand right = resolve_expected_expr_rvalue(stmt->assign.right, left.type);
-                if (!convert_operand(&right, left.type)) {
-                    if (is_arithmetic_type(left.type) && is_null_ptr(right)) {
-                        fatal_error(stmt->pos, "Cannot assign null to non-pointer");
+                Operand result;
+                if (stmt->assign.op == TOKEN_ASSIGN) {
+                    result = right;
+                }
+                else if (stmt->assign.op == TOKEN_ADD_ASSIGN || stmt->assign.op == TOKEN_SUB_ASSIGN) {
+                    if (left.type->kind == TYPE_PTR && is_integer_type(right.type)) {
+                        result = operand_rvalue(left.type);
                     }
-                    else
-                        fatal_error(stmt->pos, "Invalid type in assignment");
+                    else if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
+                        result = resolve_expr_binary_op(binary_op, ref assign_op_name, stmt->pos, left, right);
+                    }
+                    else {
+                        fatal_error(stmt->pos, "Invalid operand types for %s", assign_op_name);
+                    }
+                }
+                else {
+                    result = resolve_expr_binary_op(binary_op, ref assign_op_name, stmt->pos, left, right);
+                }
+                if (!convert_operand(&result, left.type)) {
+                    fatal_error(stmt->pos, "Invalid type in assignment");
+                }
+            }
+            else {
+                assert(stmt->assign.op == TOKEN_INC || stmt->assign.op == TOKEN_DEC);
+                if (!(is_integer_type(left.type) || left.type->kind == TYPE_PTR)) {
+                    fatal_error(stmt->pos, "%s only valid for integer and pointer types", token_kind_name(stmt->assign.op));
                 }
             }
         }
@@ -1757,28 +1781,24 @@ namespace IonLang
             return resolve_binary_op(op, left, right);
         }
 
-        private Operand resolve_expr_binary(Expr* expr) {
-            assert(expr->kind == EXPR_BINARY);
-            var left = resolve_expr_rvalue(expr->binary.left);
-            var right = resolve_expr_rvalue(expr->binary.right);
-            TokenKind op = expr->binary.op;
-            var op_name = token_kind_name(op);
+        private Operand resolve_expr_binary_op(TokenKind op, ref string op_name, SrcPos pos, Operand left, Operand right) {
+
             switch (op) {
                 case TOKEN_MUL:
                 case TOKEN_DIV:
                     if (!is_arithmetic_type(left.type)) {
-                        fatal_error(expr->binary.left->pos, "Left operand of {0} must have arithmetic type", op_name);
+                        fatal_error(pos, "Left operand of {0} must have arithmetic type", op_name);
                     }
                     if (!is_arithmetic_type(right.type)) {
-                        fatal_error(expr->binary.right->pos, "Right operand of {0} must have arithmetic type", op_name);
+                        fatal_error(pos, "Right operand of {0} must have arithmetic type", op_name);
                     }
                     return resolve_binary_arithmetic_op(op, left, right);
                 case TOKEN_MOD:
                     if (!is_integer_type(left.type)) {
-                        fatal_error(expr->binary.left->pos, "Left operand of %% must have integer type");
+                        fatal_error(pos, "Left operand of % must have integer type");
                     }
                     if (!is_integer_type(right.type)) {
-                        fatal_error(expr->binary.right->pos, "Right operand of %% must have integer type");
+                        fatal_error(pos, "Right operand of % must have integer type");
                     }
                     return resolve_binary_arithmetic_op(op, left, right);
                 case TOKEN_ADD:
@@ -1792,7 +1812,7 @@ namespace IonLang
                         return operand_rvalue(right.type);
                     }
                     else {
-                        fatal_error(expr->pos, "Operands of + must both have arithmetic type, or pointer and integer type");
+                        fatal_error(pos, "Operands of + must both have arithmetic type, or pointer and integer type");
                     }
                     break;
                 case TOKEN_SUB:
@@ -1804,12 +1824,12 @@ namespace IonLang
                     }
                     else if (is_ptr_type(left.type) && is_ptr_type(right.type)) {
                         if (left.type->@base != right.type->@base) {
-                            fatal_error(expr->pos, "Cannot subtract pointers to different types");
+                            fatal_error(pos, "Cannot subtract pointers to different types");
                         }
                         return operand_rvalue(type_ssize);
                     }
                     else {
-                        fatal_error(expr->pos, "Operands of - must both have arithmetic type, pointer and integer type, or compatible pointer types");
+                        fatal_error(pos, "Operands of - must both have arithmetic type, pointer and integer type, or compatible pointer types");
                     }
                     break;
                 case TOKEN_LSHIFT:
@@ -1832,7 +1852,7 @@ namespace IonLang
                         return result;
                     }
                     else {
-                        fatal_error(expr->pos, "Operands of {0} must both have integer type", op_name);
+                        fatal_error(pos, "Operands of %s must both have integer type", op_name);
                     }
                     break;
                 case TOKEN_LT:
@@ -1847,8 +1867,8 @@ namespace IonLang
                         return result;
                     }
                     else if (is_ptr_type(left.type) && is_ptr_type(right.type)) {
-                        if ((left.type->@base != right.type->@base) && !is_null_ptr(right) && !is_null_ptr(left)) {
-                            fatal_error(expr->pos, "Cannot compare pointers to different types");
+                        if (left.type->@base != right.type->@base) {
+                            fatal_error(pos, "Cannot compare pointers to different types");
                         }
                         return operand_rvalue(type_int);
                     }
@@ -1856,7 +1876,7 @@ namespace IonLang
                         return operand_rvalue(type_int);
                     }
                     else {
-                        fatal_error(expr->pos, "Operands of {0} must be arithmetic types or compatible pointer types", op_name);
+                        fatal_error(pos, "Operands of %s must be arithmetic types or compatible pointer types", op_name);
                     }
                     break;
                 case TOKEN_AND:
@@ -1866,12 +1886,11 @@ namespace IonLang
                         return resolve_binary_arithmetic_op(op, left, right);
                     }
                     else {
-                        fatal_error(expr->pos, "Operands of {0} must have arithmetic types", op_name);
+                        fatal_error(pos, "Operands of %s must have arithmetic types", op_name);
                     }
                     break;
                 case TOKEN_AND_AND:
                 case TOKEN_OR_OR:
-                    // TODO: const expr evaluation
                     if (is_scalar_type(left.type) && is_scalar_type(right.type)) {
                         if (left.is_const && right.is_const) {
                             cast_operand(&left, type_bool);
@@ -1891,16 +1910,26 @@ namespace IonLang
                         }
                     }
                     else {
-                        fatal_error(expr->pos, "Operands of {0} must have scalar types", op_name);
+                        fatal_error(pos, "Operands of %s must have scalar types", op_name);
                     }
                     break;
                 default:
-                    assert(false);
+                    assert(0);
                     break;
             }
 
             return default;
         }
+
+        Operand resolve_expr_binary(Expr* expr) {
+            assert(expr->kind == EXPR_BINARY);
+            Operand left = resolve_expr_rvalue(expr->binary.left);
+            Operand right = resolve_expr_rvalue(expr->binary.right);
+            TokenKind op = expr->binary.op;
+            var op_name = token_kind_name(op);
+            return resolve_expr_binary_op(op, ref op_name, expr->pos, left, right);
+        }
+
         private int aggregate_field_index(Type* type, char* name) {
             assert(type->kind == TYPE_STRUCT || type->kind == TYPE_UNION);
             for (var i = 0; i < type->aggregate.num_fields; i++)
@@ -2299,7 +2328,8 @@ namespace IonLang
         }
 
 
-        private void init_builtins() {
+        private void init_builtins()
+        {
             type_ranks[(int)TYPE_BOOL] = 1;
             type_ranks[(int)TYPE_CHAR] = 2;
             type_ranks[(int)TYPE_SCHAR] = 2;
