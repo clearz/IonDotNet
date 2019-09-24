@@ -320,12 +320,7 @@ namespace IonLang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
-                                            operand->val.p = (void*)p;
-                                        }
-                                        else {
-                                            operand->is_const = false;
-                                        }
+                                        operand->val.p = (void*)p;
                                         break;
                                     default:
                                         operand->is_const = false;
@@ -380,12 +375,7 @@ namespace IonLang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
-                                            operand->val.p = (void*)(int)p;
-                                        }
-                                        else {
-                                            operand->is_const = false;
-                                        }
+                                        operand->val.p = (void*)(int)p;
                                         break;
                                     default:
                                         operand->is_const = false;
@@ -440,12 +430,7 @@ namespace IonLang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
-                                            operand->val.p = (void*)p;
-                                        }
-                                        else {
-                                            operand->is_const = false;
-                                        }
+                                        operand->val.p = (void*)p;
                                         break;
                                     default:
                                         operand->is_const = false;
@@ -500,12 +485,7 @@ namespace IonLang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
-                                            operand->val.p = (void*)p;
-                                        }
-                                        else {
-                                            operand->is_const = false;
-                                        }
+                                        operand->val.p = (void*)p;
                                         break;
                                     default:
                                         operand->is_const = false;
@@ -560,12 +540,7 @@ namespace IonLang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
-                                            operand->val.p = (void*)p;
-                                        }
-                                        else {
-                                            operand->is_const = false;
-                                        }
+                                        operand->val.p = (void*)p;
                                         break;
                                     default:
                                         operand->is_const = false;
@@ -620,12 +595,7 @@ namespace IonLang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
-                                            operand->val.p = (void*)p;
-                                        }
-                                        else {
-                                            operand->is_const = false;
-                                        }
+                                        operand->val.p = (void*)p;
                                         break;
                                     default:
                                         operand->is_const = false;
@@ -680,12 +650,7 @@ namespace IonLang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
-                                            operand->val.p = (void*)p;
-                                        }
-                                        else {
-                                            operand->is_const = false;
-                                        }
+                                        operand->val.p = (void*)p;
                                         break;
                                     default:
                                         operand->is_const = false;
@@ -740,12 +705,7 @@ namespace IonLang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
-                                            operand->val.p = (void*)p;
-                                        }
-                                        else {
-                                            operand->is_const = false;
-                                        }
+                                        operand->val.p = (void*)p;
                                         break;
                                     default:
                                         operand->is_const = false;
@@ -800,12 +760,7 @@ namespace IonLang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
-                                            operand->val.p = (void*)p;
-                                        }
-                                        else {
-                                            operand->is_const = false;
-                                        }
+                                        operand->val.p = (void*)p;
                                         break;
                                     default:
                                         operand->is_const = false;
@@ -860,12 +815,7 @@ namespace IonLang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
-                                            operand->val.p = (void*)p;
-                                        }
-                                        else {
-                                            operand->is_const = false;
-                                        }
+                                        operand->val.p = (void*)p;
                                         break;
                                     default:
                                         operand->is_const = false;
@@ -920,12 +870,7 @@ namespace IonLang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
-                                            operand->val.p = (void*)p;
-                                        }
-                                        else {
-                                            operand->is_const = false;
-                                        }
+                                        operand->val.p = (void*)p;
                                         break;
                                     default:
                                         operand->is_const = false;
@@ -980,12 +925,7 @@ namespace IonLang
                                     case TYPE_DOUBLE:
                                         break;
                                     case TYPE_PTR:
-                                        if (is_ptr_type(operand->type) || is_null_ptr(*operand)) {
-                                            operand->val.p = (void*)p;
-                                        }
-                                        else {
-                                            operand->is_const = false;
-                                        }
+                                        operand->val.p = (void*)p;
                                         break;
                                     default:
                                         operand->is_const = false;
@@ -1238,7 +1178,7 @@ namespace IonLang
         private Type* resolve_decl_const(Decl* decl, Val* val) {
             assert(decl->kind == DECL_CONST);
             Operand result = resolve_const_expr(decl->const_decl.expr);
-            if (!is_arithmetic_type(result.type))
+            if (!is_scalar_type(result.type))
                 fatal_error(decl->pos, "Const declarations must have arithmetic type");
             *val = result.val;
             return result.type;
