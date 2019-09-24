@@ -1179,7 +1179,7 @@ namespace IonLang
             assert(decl->kind == DECL_CONST);
             Operand result = resolve_const_expr(decl->const_decl.expr);
             if (!is_scalar_type(result.type))
-                fatal_error(decl->pos, "Const declarations must have arithmetic type");
+                fatal_error(decl->pos, "Const declarations must have scalar type");
             *val = result.val;
             return result.type;
         }
@@ -1697,10 +1697,14 @@ namespace IonLang
                         return resolve_unary_op(expr->unary.op, operand);
                     case TOKEN_NEG:
                         if (!is_integer_type(type)) {
-                            fatal_error(expr->pos, "Can only use ~ with integer types", token_kind_name(expr->unary.op));
+                            fatal_error(expr->pos, "Can only use ~ with integer types");
                         }
                         return resolve_unary_op(expr->unary.op, operand);
-                    default:
+                    case TOKEN_NOT:
+                        if (!is_scalar_type(type)) {
+                            fatal_error(expr->pos, " Can only use ! with scalar types");
+                        }
+                        return resolve_unary_op(expr->unary.op, operand);
                         assert(0);
                         break;
                 }

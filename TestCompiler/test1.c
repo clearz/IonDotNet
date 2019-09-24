@@ -27,6 +27,7 @@ typedef union IntOrPtr IntOrPtr;
 typedef struct Vector Vector;
 typedef struct T T;
 typedef struct ConstVector ConstVector;
+typedef struct UartCtrl UartCtrl;
 
 // Sorted declarations
 #line 161 "test1.ion"
@@ -227,6 +228,24 @@ void test_init(void);
 void test_cast(void);
 
 #line 352
+struct UartCtrl {
+    #line 353
+    bool tx_enable;
+    #line 353
+    bool rx_enable;
+};
+
+#line 356
+#define UART_CTRL ((uint *)(0x12345678))
+
+#line 358
+uint32 pack(UartCtrl ctrl);
+
+UartCtrl unpack(uint32 word);
+
+void test_uart(void);
+
+#line 375
 int main(int argc, const char *(*argv));
 
 // Function declarations
@@ -614,47 +633,73 @@ void test_cast(void) {
     p = (int *)(a);
 }
 
-#line 352
+#line 358
+uint32 pack(UartCtrl ctrl) {
+    #line 359
+    return ((ctrl.tx_enable) & (1)) | (((ctrl.rx_enable) & (1)) << (1));
+}
+
+#line 362
+UartCtrl unpack(uint32 word) {
+    #line 363
+    return (UartCtrl){.tx_enable = (word) & (0x1), .rx_enable = ((word) & (0x2)) >> (1)};
+}
+
+#line 366
+void test_uart(void) {
+    #line 367
+    bool tx_enable = (unpack)(*(UART_CTRL)).tx_enable;
+    #line 368
+    *(UART_CTRL) = (pack)((UartCtrl){.tx_enable = !(tx_enable), .rx_enable = false});
+    #line 369
+    UartCtrl ctrl = (unpack)(*(UART_CTRL));
+    #line 370
+    ctrl.rx_enable = true;
+    #line 371
+    *(UART_CTRL) = (pack)(ctrl);
+}
+
+#line 375
 int main(int argc, const char *(*argv)) {
-    #line 353
+    #line 376
     if ((argv) == (0)) {
-        #line 354
+        #line 377
         (printf)("argv is null\n");
     }
-    #line 356
+    #line 379
     const char(*ab) = NULL;
-    #line 357
+    #line 380
     (test_assign)();
-    #line 358
+    #line 381
     (test_enum)();
-    #line 359
+    #line 382
     (test_arrays)();
-    #line 360
+    #line 383
     (test_cast)();
-    #line 361
+    #line 384
     (test_init)();
-    #line 362
+    #line 385
     (test_lits)();
-    #line 363
+    #line 386
     (test_const)();
-    #line 364
+    #line 387
     (test_bool)();
-    #line 365
+    #line 388
     (test_ops)();
-    #line 366
+    #line 389
     int b = (example_test)();
-    #line 367
+    #line 390
     (puts)("Hello, world!");
-    #line 368
+    #line 391
     int c = (getchar)();
-    #line 369
+    #line 392
     (printf)("You wrote \'%c\'\n", c);
-    #line 370
+    #line 393
     (va_test)(1);
-    #line 371
+    #line 394
     (va_test)(1, 2);
-    #line 372
+    #line 395
     argv = NULL;
-    #line 373
+    #line 396
     return 0;
 }
