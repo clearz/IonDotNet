@@ -540,7 +540,7 @@ namespace IonLang
             else {
                 c_write('(');
                 reset_pos();
-                type_to_cdecl(expr->type, null);
+                type_to_cdecl(get_resolved_type(expr), null);
                 c_write(cdecl_buffer, _pos);
                 c_write(')');
                 c_write('{');
@@ -632,7 +632,7 @@ namespace IonLang
                 case EXPR_CAST:
                     c_write('(');
                     reset_pos();
-                    type_to_cdecl(expr->cast.type->type, null);
+                    type_to_cdecl(get_resolved_type(expr->cast.type), null);
                     c_write(cdecl_buffer, _pos);
                     c_write(')');
                     c_write('(');
@@ -663,7 +663,7 @@ namespace IonLang
                     break;
                 case EXPR_FIELD:
                     gen_expr(expr->field.expr);
-                    if (expr->field.expr->type->kind == TYPE_PTR) {
+                    if (get_resolved_type(expr->field.expr)->kind == TYPE_PTR) {
 
                         c_write('-');
                         c_write('>');
@@ -715,7 +715,7 @@ namespace IonLang
                     c_write(sizeof_keyword);
                     c_write('(');
                     reset_pos();
-                    type_to_cdecl(expr->sizeof_type->type, null);
+                    type_to_cdecl(get_resolved_type(expr->sizeof_type), null);
                     c_write(cdecl_buffer, _pos);
                     c_write(')');
                     break;
@@ -757,7 +757,7 @@ namespace IonLang
       
                     if (stmt->init.type != null) {
                         if (is_incomplete_array_typespec(stmt->init.type)) {
-                            type_to_cdecl(stmt->init.expr->type, stmt->init.name);
+                            type_to_cdecl(get_resolved_type(stmt->init.expr), stmt->init.name);
                         }
                         else {
                             typespec_to_cdecl(stmt->init.type, stmt->init.name);
@@ -771,7 +771,7 @@ namespace IonLang
                         }
                     }
                     else {
-                        type_to_cdecl(unqualify_type(stmt->init.expr->type), stmt->init.name);
+                        type_to_cdecl(unqualify_type(get_resolved_type(stmt->init.expr)), stmt->init.name);
                         c_write(cdecl_buffer, _pos);
                         c_write(' ');
                         c_write('=');

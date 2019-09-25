@@ -785,7 +785,7 @@ namespace IonLang
             return new_note(pos, name, args, args.count);
         }
 
-        NoteList parse_note_list() {
+        Notes parse_note_list() {
             var buf = Buffer<Note>.Create();
             while (match_token(TOKEN_AT)) {
                 buf.Add(parse_note());
@@ -819,7 +819,7 @@ namespace IonLang
         }
 
         private Decl* parse_decl() {
-            NoteList notes = parse_note_list();
+            Notes notes = parse_note_list();
             var decl = parse_decl_opt();
             if (decl == null)
                 fatal_error_here("Expected declaration keyword, got {0}", token_info());

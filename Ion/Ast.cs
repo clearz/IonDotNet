@@ -28,8 +28,8 @@ namespace IonLang
             return new Note { pos = pos, name = name, args = (NoteArg*)ast_dup(args, num_args * sizeof(NoteArg)), num_args = num_args };
         }
 
-        NoteList new_note_list(Note* notes, int num_notes) {
-            return new NoteList {notes = (Note*)ast_dup(notes, num_notes * sizeof(Note)), num_notes = num_notes};
+        Notes new_note_list(Note* notes, int num_notes) {
+            return new Notes {notes = (Note*)ast_dup(notes, num_notes * sizeof(Note)), num_notes = num_notes};
         }
 
         Note* get_decl_note(Decl* decl, char* name) {

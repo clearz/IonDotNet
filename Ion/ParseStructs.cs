@@ -23,11 +23,10 @@ namespace IonLang
     {
         [FieldOffset(0)] public TypespecKind kind;
         [FieldOffset(4)] public SrcPos pos;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public Type* type;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Typespec* @base;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public char* name;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public FuncTypespec func;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public Expr *num_elems;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* @base;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* name;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public FuncTypespec func;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Expr *num_elems;
 
 
         internal struct FuncTypespec
@@ -77,15 +76,14 @@ namespace IonLang
         [FieldOffset(0)] public DeclKind kind;
         [FieldOffset(4)] public char* name;
         [FieldOffset(4 + Ion.PTR_SIZE)] public SrcPos pos;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Sym* sym;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public NoteList notes; 
-        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public Note note;
-        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public EnumDecl enum_decl;
-        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public AggregateDecl aggregate;
-        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public FuncDecl func;
-        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public TypedefDecl typedef_decl;
-        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public VarDecl var;
-        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public ConstDecl const_decl;
+        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Notes notes; 
+        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public Note note;
+        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public EnumDecl enum_decl;
+        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public AggregateDecl aggregate;
+        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public FuncDecl func;
+        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public TypedefDecl typedef_decl;
+        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public VarDecl var;
+        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public ConstDecl const_decl;
 
 
         internal struct FuncDecl
@@ -146,7 +144,7 @@ namespace IonLang
     }
 
     //[StructLayout(LayoutKind.Sequential, Size=16)]
-    unsafe struct NoteList
+    unsafe struct Notes
     {
         public Note *notes;
         public int num_notes;
@@ -175,21 +173,20 @@ namespace IonLang
     {
         [FieldOffset(0)] public ExprKind kind;
         [FieldOffset(4)] public SrcPos pos;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public Type* type;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* name;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public _int_lit int_lit;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public _float_lit float_lit;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public _str_lit str_lit;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Expr* sizeof_expr;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Typespec* sizeof_type;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public CompoundExpr compound;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public CastExpr cast;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public UnaryExpr unary;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public BinaryExpr binary;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public TernaryExpr ternary;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public CallExpr call;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public IndexExpr index;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public FieldExpr field;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public char* name;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public _int_lit int_lit;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public _float_lit float_lit;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public _str_lit str_lit;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public Expr* sizeof_expr;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* sizeof_type;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public CompoundExpr compound;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public CastExpr cast;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public UnaryExpr unary;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public BinaryExpr binary;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public TernaryExpr ternary;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public CallExpr call;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public IndexExpr index;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public FieldExpr field;
 
         internal struct _int_lit
         {
@@ -293,7 +290,7 @@ namespace IonLang
     {
         [FieldOffset(0)] public StmtKind kind;
         [FieldOffset(4)] public SrcPos pos;
-        [FieldOffset(20)] public NoteList notes;
+        [FieldOffset(20)] public Notes notes;
         [FieldOffset(36)] public IfStmt if_stmt;
         [FieldOffset(36)] public WhileStmt while_stmt;
         [FieldOffset(36)] public ForStmt for_stmt;

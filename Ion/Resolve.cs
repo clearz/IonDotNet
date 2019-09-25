@@ -137,7 +137,6 @@ namespace IonLang
         private Sym* sym_global_decl(Decl* decl) {
             var sym = sym_decl(decl);
             sym_global_put(sym);
-            decl->sym = sym;
             if (decl->kind == DECL_ENUM) {
                 sym->state = SYM_RESOLVED;
                 sym->type = type_enum(sym);
@@ -176,6 +175,17 @@ namespace IonLang
             sym->type = type;
             sym_global_put(sym);
         }
+
+        Map resolved_type_map;
+
+        Type* get_resolved_type(void* ptr) {
+            return resolved_type_map.map_get<Type>(ptr);
+        }
+
+        void set_resolved_type(void* ptr, Type* type) {
+            resolved_type_map.map_put(ptr, type);
+        }
+
 
         private Operand operand_rvalue(Type* type) {
             return new Operand { type = unqualify_type(type) };
@@ -1100,8 +1110,7 @@ namespace IonLang
                     return null;
             }
 
-            assert(typespec->type == null || typespec->type == result);
-            typespec->type = result;
+            set_resolved_type(typespec, result);
             return result;
         }
 
@@ -2263,8 +2272,8 @@ namespace IonLang
             }
 
             if (result.type != null) {
-                assert(expr->type == null || expr->type == result.type);
-                expr->type = result.type;
+                // assert(!expr->type || expr->type == result.type);
+                set_resolved_type(expr, result.type);
             }
 
             return result;
