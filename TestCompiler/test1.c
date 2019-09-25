@@ -252,6 +252,9 @@ void test_sizeof(void);
 void test_cast(void);
 
 #line 386
+void test_loops(void);
+
+#line 404
 int main(int argc, const char *(*argv));
 
 // Function declarations
@@ -681,46 +684,73 @@ void test_cast(void) {
 }
 
 #line 386
-int main(int argc, const char *(*argv)) {
+void test_loops(void) {
     #line 387
+    while (0) {
+    }
+    #line 389
+    for (int i = 0; (i) < (10); i++) {
+    }
+    #line 391
+    for (;;) {
+    }
+    #line 393
+    for (int i = 0;;) {
+    }
+    #line 395
+    for (; 0;) {
+    }
+    #line 397
+    for (int i = 0;; i++) {
+    }
+    #line 399
+    int i = 0;
+    #line 400
+    for (;; i++) {
+    }
+}
+
+#line 404
+int main(int argc, const char *(*argv)) {
+    #line 405
     if ((argv) == (0)) {
-        #line 388
+        #line 406
         (printf)("argv is null\n");
     }
-    #line 390
+    #line 408
     (test_sizeof)();
-    #line 391
+    #line 409
     (test_assign)();
-    #line 392
+    #line 410
     (test_enum)();
-    #line 393
+    #line 411
     (test_arrays)();
-    #line 394
+    #line 412
     (test_cast)();
-    #line 395
+    #line 413
     (test_init)();
-    #line 396
+    #line 414
     (test_lits)();
-    #line 397
+    #line 415
     (test_const)();
-    #line 398
+    #line 416
     (test_bool)();
-    #line 399
+    #line 417
     (test_ops)();
-    #line 400
+    #line 418
     int b = (example_test)();
-    #line 401
+    #line 419
     (puts)("Hello, world!");
-    #line 402
+    #line 420
     int c = (getchar)();
-    #line 403
+    #line 421
     (printf)("You wrote \'%c\'\n", c);
-    #line 404
+    #line 422
     (va_test)(1);
-    #line 405
+    #line 423
     (va_test)(1, 2);
-    #line 406
+    #line 424
     argv = NULL;
-    #line 407
+    #line 425
     return 0;
 }

@@ -1351,10 +1351,13 @@ namespace IonLang
                     return false;
                 case STMT_FOR: {
                     var sym = sym_enter();
-                    resolve_stmt(stmt->for_stmt.init, ret_type);
-                    resolve_cond_expr(stmt->for_stmt.cond);
+                    if (stmt->for_stmt.init != null)
+                        resolve_stmt(stmt->for_stmt.init, ret_type);
+                    if (stmt->for_stmt.cond != null)
+                        resolve_cond_expr(stmt->for_stmt.cond);
                     resolve_stmt_block(stmt->for_stmt.block, ret_type);
-                    resolve_stmt(stmt->for_stmt.next, ret_type);
+                    if (stmt->for_stmt.next != null)
+                        resolve_stmt(stmt->for_stmt.next, ret_type);
                     sym_leave(sym);
                     return false;
                 }
