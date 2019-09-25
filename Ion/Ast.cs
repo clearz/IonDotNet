@@ -7,28 +7,28 @@ namespace IonLang
     using static ExprKind;
     using static StmtKind;
 
-    public unsafe partial class Ion
-    {
+    public unsafe partial class Ion {
         private MemArena ast_arena;
 
-        private void* ast_alloc(int size)
-        {
+        private void* ast_alloc(int size) {
             assert(size != 0);
             var ptr = ast_arena.Alloc(size);
-            Unsafe.InitBlock(ptr, 0, (uint) size);
+            Unsafe.InitBlock(ptr, 0, (uint)size);
             return ptr;
         }
 
-        private void* ast_dup(void* src, int size)
-        {
+        private void* ast_dup(void* src, int size) {
             if (size == 0) return null;
 
             var ptr = ast_arena.Alloc(size);
-            Unsafe.CopyBlock(ptr, src, (uint) size);
+            Unsafe.CopyBlock(ptr, src, (uint)size);
             return ptr;
         }
+        Note new_note(SrcPos pos, char* name, NoteArg* args, int num_args) {
+            return new Note { pos = pos, name = name, args = (NoteArg*)ast_dup(args, num_args * sizeof(NoteArg)), num_args = num_args };
+        }
 
-        NoteList note_list(Note* notes, int num_notes) {
+        NoteList new_note_list(Note* notes, int num_notes) {
             return new NoteList {notes = (Note*)ast_dup(notes, num_notes * sizeof(Note)), num_notes = num_notes};
         }
 
@@ -58,21 +58,21 @@ namespace IonLang
             return t;
         }
 
-        private Typespec* typespec_name(SrcPos pos, char* name)
+        private Typespec* new_typespec_name(SrcPos pos, char* name)
         {
             var t = typespec_new(TYPESPEC_NAME, pos);
             t->name = name;
             return t;
         }
 
-        private Typespec* typespec_ptr(SrcPos pos, Typespec* @base)
+        private Typespec* new_typespec_ptr(SrcPos pos, Typespec* @base)
         {
             var t = typespec_new(TYPESPEC_PTR, pos);
             t->@base = @base;
             t->@base = @base;
             return t;
         }
-        Typespec* typespec_const(SrcPos pos, Typespec* @base) {
+        Typespec* new_typespec_const(SrcPos pos, Typespec* @base) {
             Typespec *t = typespec_new(TYPESPEC_CONST, pos);
             t->@base = @base;
             return t;
@@ -86,7 +86,7 @@ namespace IonLang
             return t;
         }
 
-        private Typespec* typespec_func(SrcPos pos, Typespec** args, int num_args, Typespec* ret, bool has_varargs)
+        private Typespec* new_typespec_func(SrcPos pos, Typespec** args, int num_args, Typespec* ret, bool has_varargs)
         {
             var t = typespec_new(TYPESPEC_FUNC, pos);
             t->func.args = (Typespec**) ast_dup(args, num_args * sizeof(Typespec*));
@@ -96,7 +96,7 @@ namespace IonLang
             return t;
         }
 
-        private Decl* decl_new(DeclKind kind, SrcPos pos, char* name)
+        private Decl* new_decl(DeclKind kind, SrcPos pos, char* name)
         {
             var d = (Decl*) ast_alloc(sizeof(Decl));
             d->pos = pos;
@@ -105,44 +105,44 @@ namespace IonLang
             return d;
         }
 
-        private DeclSet* declset_new(Decl** decls, int num_items)
+        private Decls* new_decls(Decl** decls, int num_items)
         {
-            var d = (DeclSet*) ast_alloc(sizeof(DeclSet));
+            var d = (Decls*) ast_alloc(sizeof(Decls));
             d->decls = (Decl**) ast_dup(decls, num_items * sizeof(Decl*));
             d->num_decls = num_items;
             return d;
         }
 
-        private Decl* decl_enum(SrcPos pos, char* name, EnumItem* items, int num_items)
+        private Decl* new_decl_enum(SrcPos pos, char* name, EnumItem* items, int num_items)
         {
-            var d = decl_new(DECL_ENUM, pos, name);
+            var d = new_decl(DECL_ENUM, pos, name);
             d->enum_decl.items = (EnumItem*) ast_dup(items, num_items * sizeof(EnumItem));
             ;
             d->enum_decl.num_items = num_items;
             return d;
         }
 
-        private Decl* decl_aggregate(SrcPos pos, DeclKind kind, char* name, AggregateItem* items, int num_items)
+        private Decl* new_decl_aggregate(SrcPos pos, DeclKind kind, char* name, AggregateItem* items, int num_items)
         {
             assert(kind == DECL_STRUCT || kind == DECL_UNION);
-            var d = decl_new(kind, pos, name);
+            var d = new_decl(kind, pos, name);
             d->aggregate.items = (AggregateItem*) ast_dup(items, num_items * sizeof(AggregateItem));
             d->aggregate.num_items = num_items;
             return d;
         }
 
 
-        private Decl* decl_var(SrcPos pos, char* name, Typespec* type, Expr* expr)
+        private Decl* new_decl_var(SrcPos pos, char* name, Typespec* type, Expr* expr)
         {
-            var d = decl_new(DECL_VAR, pos, name);
+            var d = new_decl(DECL_VAR, pos, name);
             d->var.type = type;
             d->var.expr = expr;
             return d;
         }
 
-        private Decl* decl_func(SrcPos pos, char* name, FuncParam* @params, int num_params, Typespec* ret_type, bool has_varargs, StmtList block)
+        private Decl* new_decl_func(SrcPos pos, char* name, FuncParam* @params, int num_params, Typespec* ret_type, bool has_varargs, StmtList block)
         {
-            var d = decl_new(DECL_FUNC, pos, name);
+            var d = new_decl(DECL_FUNC, pos, name);
             d->func.@params = (FuncParam*) ast_dup(@params, num_params * sizeof(FuncParam));
             d->func.num_params = num_params;
             d->func.ret_type = ret_type;
@@ -151,17 +151,23 @@ namespace IonLang
             return d;
         }
 
-        private Decl* decl_const(SrcPos pos, char* name, Expr* expr)
+        private Decl* new_decl_const(SrcPos pos, char* name, Expr* expr)
         {
-            var d = decl_new(DECL_CONST, pos, name);
+            var d = new_decl(DECL_CONST, pos, name);
             d->const_decl.expr = expr;
             return d;
         }
 
-        private Decl* decl_typedef(SrcPos pos, char* name, Typespec* type)
+        private Decl* new_decl_typedef(SrcPos pos, char* name, Typespec* type)
         {
-            var d = decl_new(DECL_TYPEDEF, pos, name);
+            var d = new_decl(DECL_TYPEDEF, pos, name);
             d->typedef_decl.type = type;
+            return d;
+        }
+
+        Decl* new_decl_note(SrcPos pos, Note note) {
+            Decl *d = new_decl(DECL_NOTE, pos, null);
+            d->note = note;
             return d;
         }
 
@@ -173,21 +179,21 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_sizeof_expr(SrcPos pos, Expr* expr)
+        private Expr* new_expr_sizeof_expr(SrcPos pos, Expr* expr)
         {
             var e = expr_new(EXPR_SIZEOF_EXPR, pos);
             e->sizeof_expr = expr;
             return e;
         }
 
-        private Expr* expr_sizeof_type(SrcPos pos, Typespec* type)
+        private Expr* new_expr_sizeof_type(SrcPos pos, Typespec* type)
         {
             var e = expr_new(EXPR_SIZEOF_TYPE, pos);
             e->sizeof_type = type;
             return e;
         }
 
-        private Expr* expr_int(SrcPos pos, ulong val, TokenMod mod, TokenSuffix suffix)
+        private Expr* new_expr_int(SrcPos pos, ulong val, TokenMod mod, TokenSuffix suffix)
         {
             var e = expr_new(EXPR_INT, pos);
             e->int_lit.val = val;
@@ -196,7 +202,7 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_float(SrcPos pos, double val, TokenSuffix suffix)
+        private Expr* new_expr_float(SrcPos pos, double val, TokenSuffix suffix)
         {
             var e = expr_new(EXPR_FLOAT, pos);
             e->float_lit.val = val;
@@ -204,7 +210,7 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_str(SrcPos pos, char* val, TokenMod mod)
+        private Expr* new_expr_str(SrcPos pos, char* val, TokenMod mod)
         {
             var e = expr_new(EXPR_STR, pos);
             e->str_lit.val = val;
@@ -212,13 +218,13 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_name(SrcPos pos, char* name) {
+        private Expr* new_expr_name(SrcPos pos, char* name) {
             var e = expr_new(EXPR_NAME, pos);
             e->name = name;
             return e;
         }
 
-        private Expr* expr_compound(SrcPos pos, Typespec* type, CompoundField* fields, int num_fields)
+        private Expr* new_expr_compound(SrcPos pos, Typespec* type, CompoundField* fields, int num_fields)
         {
             var e = expr_new(EXPR_COMPOUND, pos);
             e->compound.type = type;
@@ -227,7 +233,7 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_cast(SrcPos pos, Typespec* type, Expr* expr)
+        private Expr* new_expr_cast(SrcPos pos, Typespec* type, Expr* expr)
         {
             var e = expr_new(EXPR_CAST, pos);
             e->cast.type = type;
@@ -235,7 +241,7 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_call(SrcPos pos, Expr* expr, Expr** args, int num_args)
+        private Expr* new_expr_call(SrcPos pos, Expr* expr, Expr** args, int num_args)
         {
             var e = expr_new(EXPR_CALL, pos);
             e->call.expr = expr;
@@ -244,7 +250,7 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_index(SrcPos pos, Expr* expr, Expr* index)
+        private Expr* new_expr_index(SrcPos pos, Expr* expr, Expr* index)
         {
             var e = expr_new(EXPR_INDEX, pos);
             e->index.expr = expr;
@@ -252,7 +258,7 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_field(SrcPos pos, Expr* expr, char* name)
+        private Expr* new_expr_field(SrcPos pos, Expr* expr, char* name)
         {
             var e = expr_new(EXPR_FIELD, pos);
             e->field.expr = expr;
@@ -260,7 +266,7 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_unary(SrcPos pos, TokenKind op, Expr* expr)
+        private Expr* new_expr_unary(SrcPos pos, TokenKind op, Expr* expr)
         {
             var e = expr_new(EXPR_UNARY, pos);
             e->unary.op = op;
@@ -268,7 +274,7 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_binary(SrcPos pos, TokenKind op, Expr* left, Expr* right)
+        private Expr* new_expr_binary(SrcPos pos, TokenKind op, Expr* left, Expr* right)
         {
             var e = expr_new(EXPR_BINARY, pos);
             e->binary.op = op;
@@ -277,7 +283,7 @@ namespace IonLang
             return e;
         }
 
-        private Expr* expr_ternary(SrcPos pos, Expr* cond, Expr* then_expr, Expr* else_expr)
+        private Expr* new_expr_ternary(SrcPos pos, Expr* cond, Expr* then_expr, Expr* else_expr)
         {
             var e = expr_new(EXPR_TERNARY, pos);
             e->ternary.cond = cond;
@@ -294,38 +300,38 @@ namespace IonLang
             return s;
         }
 
-        private Stmt* stmt_decl(SrcPos pos, Decl* decl)
+        private Stmt* new_stmt_decl(SrcPos pos, Decl* decl)
         {
             var s = stmt_new(STMT_DECL, pos);
             s->decl = decl;
             return s;
         }
 
-        private Stmt* stmt_return(SrcPos pos, Expr* expr)
+        private Stmt* new_stmt_return(SrcPos pos, Expr* expr)
         {
             var s = stmt_new(STMT_RETURN, pos);
             s->expr = expr;
             return s;
         }
 
-        private Stmt* stmt_break(SrcPos pos)
+        private Stmt* new_stmt_break(SrcPos pos)
         {
             return stmt_new(STMT_BREAK, pos);
         }
 
-        private Stmt* stmt_continue(SrcPos pos)
+        private Stmt* new_stmt_continue(SrcPos pos)
         {
             return stmt_new(STMT_CONTINUE, pos);
         }
 
-        private Stmt* stmt_block(SrcPos pos, StmtList block)
+        private Stmt* new_stmt_block(SrcPos pos, StmtList block)
         {
             var s = stmt_new(STMT_BLOCK, pos);
             s->block = block;
             return s;
         }
 
-        private Stmt* stmt_if(SrcPos pos, Expr* cond, StmtList then_block, ElseIf** elseifs, int num_elseifs,
+        private Stmt* new_stmt_if(SrcPos pos, Expr* cond, StmtList then_block, ElseIf** elseifs, int num_elseifs,
             StmtList else_block)
         {
             var s = stmt_new(STMT_IF, pos);
@@ -337,7 +343,7 @@ namespace IonLang
             return s;
         }
 
-        private Stmt* stmt_while(SrcPos pos, Expr* cond, StmtList block)
+        private Stmt* new_stmt_while(SrcPos pos, Expr* cond, StmtList block)
         {
             var s = stmt_new(STMT_WHILE, pos);
             s->while_stmt.cond = cond;
@@ -345,7 +351,7 @@ namespace IonLang
             return s;
         }
 
-        private Stmt* stmt_do_while(SrcPos pos, Expr* cond, StmtList block)
+        private Stmt* new_stmt_do_while(SrcPos pos, Expr* cond, StmtList block)
         {
             var s = stmt_new(STMT_DO_WHILE, pos);
             s->while_stmt.cond = cond;
@@ -353,7 +359,7 @@ namespace IonLang
             return s;
         }
 
-        private Stmt* stmt_for(SrcPos pos, Stmt* init, Expr* cond, Stmt* next, StmtList block)
+        private Stmt* new_stmt_for(SrcPos pos, Stmt* init, Expr* cond, Stmt* next, StmtList block)
         {
             var s = stmt_new(STMT_FOR, pos);
             s->for_stmt.init = init;
@@ -363,7 +369,7 @@ namespace IonLang
             return s;
         }
 
-        private Stmt* stmt_switch(SrcPos pos, Expr* expr, SwitchCase* cases, int num_cases)
+        private Stmt* new_stmt_switch(SrcPos pos, Expr* expr, SwitchCase* cases, int num_cases)
         {
             var s = stmt_new(STMT_SWITCH, pos);
             s->switch_stmt.expr = expr;
@@ -372,7 +378,7 @@ namespace IonLang
             return s;
         }
 
-        private Stmt* stmt_assign(SrcPos pos, TokenKind op, Expr* left, Expr* right)
+        private Stmt* new_stmt_assign(SrcPos pos, TokenKind op, Expr* left, Expr* right)
         {
             var s = stmt_new(STMT_ASSIGN, pos);
             s->assign.op = op;
@@ -381,7 +387,7 @@ namespace IonLang
             return s;
         }
 
-        private Stmt* stmt_init(SrcPos pos, char* name, Typespec* type, Expr* expr)
+        private Stmt* new_stmt_init(SrcPos pos, char* name, Typespec* type, Expr* expr)
         {
             var s = stmt_new(STMT_INIT, pos);
             s->init.name = name;
@@ -390,7 +396,7 @@ namespace IonLang
             return s;
         }
 
-        private Stmt* stmt_expr(SrcPos pos, Expr* expr)
+        private Stmt* new_stmt_expr(SrcPos pos, Expr* expr)
         {
             var s = stmt_new(STMT_EXPR, pos);
             s->expr = expr;

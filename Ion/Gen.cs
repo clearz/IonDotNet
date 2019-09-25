@@ -22,7 +22,8 @@ namespace IonLang
         // private Buffer<char> gen_buf = Buffer<char>.Create(_1MB, 4);
         StringBuilder gen_buf = new StringBuilder();
         private readonly char[] char_to_escape  = new char[256];
-        private readonly string preamble = "// Preamble\n#include <stdio.h>\n#include <math.h>\n#include <stdbool.h>\n\n"+
+        PtrBuffer* gen_headers_buf = PtrBuffer.Create();
+        private readonly string preamble = "// Preamble\n#include <stdbool.h>\n\n"+
                                             "typedef unsigned char uchar;\n"+
                                             "typedef signed char schar;\n"+
                                             "typedef unsigned short ushort;\n"+
@@ -122,6 +123,8 @@ namespace IonLang
             indent();
             gen_pos.line++;
         }
+
+
 
 
         private char* cdecl_name(Type* type) {
@@ -1038,11 +1041,53 @@ namespace IonLang
             }
         }
 
+        private readonly char* forward_includes     = "// Forward includes".ToPtr();
         private readonly char* forward_declarations = "// Forward declarations".ToPtr();
         private readonly char* sorted_declarations = "// Sorted declarations".ToPtr();
         private readonly char* function_declarations = "// Function declarations".ToPtr();
+        char* include_str = "#include ".ToPtr();
+        void gen_headers() {
+            char *foreign_include_name = _I("foreign_include");
+            for (var i = 0; i < global_decls->num_decls; i++) {
+                Decl *decl = global_decls->decls[i];
+                if (decl->kind != DECL_NOTE) {
+                    continue;
+                }
+                Note note = decl->note;
+                if (note.name == foreign_include_name) {
+                    if (note.num_args != 1) {
+                        fatal_error(decl->pos, "#foreign_include takes 1 argument");
+                        continue;
+                    }
+                    Expr *expr = note.args[0].expr;
+                    if (expr->kind != EXPR_STR) {
+                        fatal_error(decl->pos, "#foreign_include's argument must be a quoted string");
+                    }
+                    char *header_name = expr->name;
+                    bool found = false;
+                    for (void** it = gen_headers_buf->_begin;
+                    it != gen_headers_buf->_top;
+                    it++) {
+                        if (*it == header_name) {
+                            found = true;
+                        }
+                    }
+                    if (!found) {
+                        gen_headers_buf->Add(header_name);
+                        genlnf(include_str, 9);
+                        c_write(header_name);
+                    }
+                }
+            }
+        }
+
 
         private void gen_all() {
+            gen_buf.Clear();
+            _pos = 0;
+            c_write(forward_includes);
+            gen_headers();
+            genln();
             c_write(preamble.ToPtr(), preamble.Length);
             c_write(forward_declarations);
             gen_forward_decls();

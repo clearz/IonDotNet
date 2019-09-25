@@ -366,13 +366,13 @@ namespace IonLang
             use_print_buf = true;
             // Expressions
             Expr*[] exprs = {
-                expr_binary(default, TOKEN_ADD, expr_int(default, 1, 0, 0), expr_int(default, 2, 0, 0)),
-                expr_unary(default, TOKEN_SUB, expr_float(default, 3.14, 0)),
-                expr_ternary(default, expr_name(default, "flag".ToPtr()), expr_str(default, "true".ToPtr(), 0), expr_str(default, "false".ToPtr(), 0)),
-                expr_field(default, expr_name(default, "person".ToPtr()), "name".ToPtr()),
-                expr_call(default, expr_name(default, "fact".ToPtr()), (Expr**) CreateArray(expr_int(default, 42, 0, 0)), 1),
-                expr_index(default, expr_field(default, expr_name(default, "person".ToPtr()), "siblings".ToPtr()), expr_int(default, 3, 0, 0)),
-                expr_cast(default, typespec_ptr(default, typespec_name(default, "int".ToPtr())), expr_name(default, "void_ptr".ToPtr())),
+                new_expr_binary(default, TOKEN_ADD, new_expr_int(default, 1, 0, 0), new_expr_int(default, 2, 0, 0)),
+                new_expr_unary(default, TOKEN_SUB, new_expr_float(default, 3.14, 0)),
+                new_expr_ternary(default, new_expr_name(default, "flag".ToPtr()), new_expr_str(default, "true".ToPtr(), 0), new_expr_str(default, "false".ToPtr(), 0)),
+                new_expr_field(default, new_expr_name(default, "person".ToPtr()), "name".ToPtr()),
+                new_expr_call(default, new_expr_name(default, "fact".ToPtr()), (Expr**) CreateArray(new_expr_int(default, 42, 0, 0)), 1),
+                new_expr_index(default, new_expr_field(default, new_expr_name(default, "person".ToPtr()), "siblings".ToPtr()), new_expr_int(default, 3, 0, 0)),
+                new_expr_cast(default, new_typespec_ptr(default, new_typespec_name(default, "int".ToPtr())), new_expr_name(default, "void_ptr".ToPtr())),
             };
             foreach (Expr* it in exprs) {
                 print_expr(it);
@@ -381,10 +381,10 @@ namespace IonLang
 
             printf("\n\n");
             var elif = new ElseIf {
-                cond = expr_name(default, "flag2".ToPtr()),
+                cond = new_expr_name(default, "flag2".ToPtr()),
                 block = new StmtList {
                     stmts = (Stmt**)
-                        CreateArray(stmt_return(default, expr_int(default, 2, 0, 0))
+                        CreateArray(new_stmt_return(default, new_expr_int(default, 2, 0, 0))
                         ),
                     num_stmts = 1,
                 }
@@ -392,28 +392,28 @@ namespace IonLang
 
             // Statements
             Stmt*[] stmts = {
-                stmt_return(default, expr_int(default, 42, 0, 0)),
-                stmt_break(default),
-                stmt_continue(default),
-                stmt_block(
+                new_stmt_return(default, new_expr_int(default, 42, 0, 0)),
+                new_stmt_break(default),
+                new_stmt_continue(default),
+                new_stmt_block(
                     default,
                     new StmtList {
                         stmts = (Stmt**)
                             CreateArray(
-                                stmt_break(default),
-                                stmt_continue(default)
+                                new_stmt_break(default),
+                                new_stmt_continue(default)
                             ),
                         num_stmts = 2,
                     }
                 ),
-                stmt_expr(default, expr_call(default, expr_name(default, "print".ToPtr()), (Expr**) CreateArray(expr_int(default, 1, 0, 0), expr_int(default, 2, 0, 0)), 2)),
-                stmt_init(default, "x".ToPtr(), null, expr_int(default, 42, 0, 0)),
-                stmt_if(default,
-                    expr_name(default, "flag1".ToPtr()),
+                new_stmt_expr(default, new_expr_call(default, new_expr_name(default, "print".ToPtr()), (Expr**) CreateArray(new_expr_int(default, 1, 0, 0), new_expr_int(default, 2, 0, 0)), 2)),
+                new_stmt_init(default, "x".ToPtr(), null, new_expr_int(default, 42, 0, 0)),
+                new_stmt_if(default,
+                    new_expr_name(default, "flag1".ToPtr()),
                     new StmtList {
                         stmts = (Stmt**)
                             CreateArray(
-                                stmt_return(default, expr_int(default, 1, 0, 0))
+                                new_stmt_return(default, new_expr_int(default, 1, 0, 0))
                             ),
                         num_stmts = 1,
                     },
@@ -421,39 +421,39 @@ namespace IonLang
                     1,
                     new StmtList {
                         stmts = (Stmt**)
-                            CreateArray(stmt_return(default, expr_int(default, 3, 0, 0))
+                            CreateArray(new_stmt_return(default, new_expr_int(default, 3, 0, 0))
                             ),
                         num_stmts = 1,
                     }
                 ),
-                stmt_while(default, 
-                    expr_name(default, "running".ToPtr()),
+                new_stmt_while(default, 
+                    new_expr_name(default, "running".ToPtr()),
                     new StmtList {
                         stmts = (Stmt**)
-                            CreateArray(stmt_assign(default, TOKEN_ADD_ASSIGN, expr_name(default, "i".ToPtr()), expr_int(default, 16, 0, 0))),
+                            CreateArray(new_stmt_assign(default, TOKEN_ADD_ASSIGN, new_expr_name(default, "i".ToPtr()), new_expr_int(default, 16, 0, 0))),
                         num_stmts = 1,
                     }
                 ),
-                stmt_switch(default,
-                    expr_name(default, "val".ToPtr()),
+                new_stmt_switch(default,
+                    new_expr_name(default, "val".ToPtr()),
                     (SwitchCase*) new[] {
                         new SwitchCase {
-                            exprs = (Expr**) CreateArray(expr_int(default, 3, 0, 0), expr_int(default, 4, 0, 0)),
+                            exprs = (Expr**) CreateArray(new_expr_int(default, 3, 0, 0), new_expr_int(default, 4, 0, 0)),
                             num_exprs = 2,
                             is_default = false,
                             block = new StmtList {
                                 stmts = (Stmt**)
-                                    CreateArray(stmt_return(default, expr_name(default, "val".ToPtr()))),
+                                    CreateArray(new_stmt_return(default, new_expr_name(default, "val".ToPtr()))),
                                 num_stmts = 1,
                             },
                         },
                         new SwitchCase {
-                            exprs = (Expr**) CreateArray(expr_int(default, 1, 0, 0)),
+                            exprs = (Expr**) CreateArray(new_expr_int(default, 1, 0, 0)),
                             num_exprs = 1,
                             is_default = true,
                             block = new StmtList {
                                 stmts = (Stmt**)
-                                    CreateArray(stmt_return(default, expr_int(default, 0, 0, 0))),
+                                    CreateArray(new_stmt_return(default, new_expr_int(default, 0, 0, 0))),
                                 num_stmts = 1,
                             },
                         }

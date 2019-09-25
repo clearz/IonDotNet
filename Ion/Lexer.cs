@@ -42,6 +42,7 @@ namespace IonLang
             token_kind_names[(int)TOKEN_COMMA] = ";".ToPtr();
             token_kind_names[(int)TOKEN_DOT] = ".".ToPtr();
             token_kind_names[(int)TOKEN_AT] = "@".ToPtr();
+            token_kind_names[(int)TOKEN_POUND] = "#".ToPtr();
             token_kind_names[(int)TOKEN_QUESTION] = "?".ToPtr();
             token_kind_names[(int)TOKEN_ELLIPSIS] = "...".ToPtr();
             token_kind_names[(int)TOKEN_SEMICOLON] = ";".ToPtr();
@@ -672,6 +673,10 @@ repeat:
                     token.kind = TOKEN_AT;
                     stream++;
                     break;
+                case '#':
+                    token.kind = TOKEN_POUND;
+                    stream++;
+                    break;
 
 
                 // CASE2
@@ -915,6 +920,7 @@ repeat:
         TOKEN_COMMA,
         TOKEN_DOT,
         TOKEN_AT,
+        TOKEN_POUND,
         TOKEN_ELLIPSIS,
         TOKEN_QUESTION,
         TOKEN_SEMICOLON,

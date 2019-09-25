@@ -1,3 +1,5 @@
+#foreign_include("<stdio.h>")
+
 @foreign
 func printf(fmt: char const*, ...): int { return 0; }
 
@@ -22,8 +24,8 @@ var code = """
 #include <stdio.h>
 
 int main(int argc, char **argv) {
-	printf("Hello, world!\n");
-	return 0;
+    printf("Hello, world!\n");
+    return 0;
 }
 """;
 
@@ -55,6 +57,28 @@ func test_nonmodifiable() {
     // s2.s1.b = 0;
     // s2.s1 = {};
     // s2 = {};
+}
+
+struct UartCtrl {
+    tx_enable, rx_enable: bool;
+}
+
+const UART_CTRL_REG = (:uint32*)0x12345678;
+
+func pack(ctrl: UartCtrl): uint32 {
+    return (ctrl.tx_enable & 1u) | ((ctrl.rx_enable & 1u) << 1);
+}
+
+func unpack(word: uint32): UartCtrl {
+    return {tx_enable = word & 0b01, rx_enable = (word & 0b10) >> 1};
+}
+
+func test_uart() {
+    tx_enable := unpack(*UART_CTRL_REG).tx_enable;
+    *UART_CTRL_REG = pack({tx_enable = !tx_enable, rx_enable = false});
+    ctrl := unpack(*UART_CTRL_REG);
+    ctrl.rx_enable = true;
+    *UART_CTRL_REG = pack(ctrl);
 }
 
 func h(): uchar {
@@ -340,6 +364,14 @@ func test_init() {
     }
 }
 
+func test_sizeof() {
+    i := 0;
+    n := sizeof(i);
+    n = sizeof(int);
+    n = sizeof(:int);
+    n = sizeof(:int*);
+}
+
 func test_cast() {
     p: int* = 0;
     a: uint64 = 0;
@@ -349,44 +381,11 @@ func test_cast() {
     p = (:int*)a;
 }
 
-struct UartCtrl {
-    tx_enable, rx_enable: bool;
-}
-
-const UART_CTRL_REG  = (:uint32*)0x12345678;
-
-func pack(ctrl: UartCtrl): uint32 {
-    return (ctrl.tx_enable & 1u) | ((ctrl.rx_enable & 1u) << 1);
-}
-
-func unpack(word: uint32): UartCtrl {
-    return {tx_enable = word & 0b01, rx_enable = (word & 0b10) >> 1};
-}
-
-func test_uart() {
-    tx_enable := unpack(*UART_CTRL_REG).tx_enable;
-    *UART_CTRL_REG = pack({tx_enable = !tx_enable, rx_enable = false});
-    ctrl := unpack(*UART_CTRL_REG);
-    ctrl.rx_enable = true;
-    *UART_CTRL_REG = pack(ctrl);
-}
-
-func test_sizeof() {
-    i := 0;
-    n := sizeof(i);
-    n = sizeof(int);
-    n = sizeof(:int);
-    n = sizeof(:int*);
-}
-
-
-
 func main(argc: int, argv: char const**): int {
     if (argv == 0) {
         printf("argv is null\n");
     }
-	ab : char const* = NULL;
-	test_sizeof();
+    test_sizeof();
     test_assign();
     test_enum();
     test_arrays();

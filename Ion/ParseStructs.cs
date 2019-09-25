@@ -64,7 +64,7 @@ namespace IonLang
         public SrcPos pos;
     }
 
-    internal unsafe struct DeclSet
+    internal unsafe struct Decls
     {
         public Decl** decls;
         public int num_decls;
@@ -78,7 +78,8 @@ namespace IonLang
         [FieldOffset(4)] public char* name;
         [FieldOffset(4 + Ion.PTR_SIZE)] public SrcPos pos;
         [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Sym* sym;
-        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public NoteList notes;
+        [FieldOffset(20 + 3 * Ion.PTR_SIZE)] public NoteList notes; 
+        [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public Note note;
         [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public EnumDecl enum_decl;
         [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public AggregateDecl aggregate;
         [FieldOffset(36 + 3 * Ion.PTR_SIZE)] public FuncDecl func;
@@ -128,13 +129,21 @@ namespace IonLang
             public Expr* expr;
         }
     }
-
+    unsafe struct NoteArg
+    {
+        public SrcPos pos;
+        public char *name;
+        public Expr *expr;
+    }
     unsafe struct Note
     {
         public SrcPos pos;
         public char *name;
+        public NoteArg *args;
+        public int num_args;
     }
 
+    //[StructLayout(LayoutKind.Sequential, Size=16)]
     unsafe struct NoteList
     {
         public Note *notes;
@@ -364,7 +373,8 @@ namespace IonLang
         DECL_VAR,
         DECL_CONST,
         DECL_TYPEDEF,
-        DECL_FUNC
+        DECL_FUNC,
+        DECL_NOTE,
     }
 
     internal enum ExprKind

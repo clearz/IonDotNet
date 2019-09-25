@@ -10,8 +10,8 @@ namespace IonLang
             initialise();
             var path = spath.ToPtr();
             init_stream(read_file(spath), $"{spath}".ToPtr());
-            var ds = parse_file();
-            sym_global_decls(ds);
+            global_decls = parse_file();
+            sym_global_decls();
             finalize_syms();
             gen_all();
             return true;
@@ -27,7 +27,8 @@ namespace IonLang
         private char* ion_compile_str(string path) {
             initialise();
             init_stream(read_file(path), $"{path}".ToPtr());
-            sym_global_decls(parse_file());
+            global_decls = parse_file();
+            sym_global_decls();
             finalize_syms();
             gen_all();
             return gen_buf.ToString().ToPtr();

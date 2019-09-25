@@ -9,7 +9,7 @@ namespace IonLang
     using static CompoundFieldKind;
 
     public unsafe partial class Ion {
-        internal DeclSet* parse_file() {
+        internal Decls* parse_file() {
             var buf = PtrBuffer.GetPooledBuffer();
             try {
                 while (!is_token(TOKEN_EOF)) {
@@ -18,7 +18,7 @@ namespace IonLang
                     buf->Add(decl);
                 }
 
-                return declset_new((Decl**)buf->_begin, buf->count);
+                return new_decls((Decl**)buf->_begin, buf->count);
             }
             finally {
                 buf->Release();
@@ -54,7 +54,7 @@ namespace IonLang
                 if (match_token(TOKEN_COLON))
                     ret = parse_type();
 
-                return typespec_func(pos, (Typespec**)buf->_begin, buf->count, ret, has_varargs);
+                return new_typespec_func(pos, (Typespec**)buf->_begin, buf->count, ret, has_varargs);
             }
             finally {
                 buf->Release();
@@ -66,7 +66,7 @@ namespace IonLang
             if (is_token(TOKEN_NAME)) {
                 var name = token.name;
                 next_token();
-                return typespec_name(pos, name);
+                return new_typespec_name(pos, name);
             }
 
             if (match_keyword(func_keyword))
@@ -96,12 +96,12 @@ namespace IonLang
 
                 }
                 else if (match_keyword(const_keyword)) {
-                    type = typespec_const(pos, type);
+                    type = new_typespec_const(pos, type);
                 }
                 else {
                     assert(is_token(TOKEN_MUL));
                     next_token();
-                    type = typespec_ptr(pos, type);
+                    type = new_typespec_ptr(pos, type);
                 }
 
             return type;
@@ -150,7 +150,7 @@ namespace IonLang
             }
 
             expect_token(TOKEN_RBRACE);
-            return expr_compound(pos, type, buf, buf.count);
+            return new_expr_compound(pos, type, buf, buf.count);
         }
 
         private Expr* parse_expr_operand() {
@@ -160,29 +160,29 @@ namespace IonLang
                 var suffix = token.suffix;
                 var mod = token.mod;
                 next_token();
-                return expr_int(pos, val, mod, suffix);
+                return new_expr_int(pos, val, mod, suffix);
             }
 
             if (is_token(TOKEN_FLOAT)) {
                 double val = token.float_val;
                 TokenSuffix suffix = token.suffix;
                 next_token();
-                return expr_float(pos, val, suffix);
+                return new_expr_float(pos, val, suffix);
             }
 
             if (is_token(TOKEN_STR)) {
                 var mod = token.mod;
                 var val = token.str_val;
                 next_token();
-                return expr_str(pos, val, mod);
+                return new_expr_str(pos, val, mod);
             }
 
             if (is_token(TOKEN_NAME)) {
                 var name = token.name;
                 next_token();
                 if (is_token(TOKEN_LBRACE))
-                    return parse_expr_compound(typespec_name(pos, name));
-                return expr_name(pos, name);
+                    return parse_expr_compound(new_typespec_name(pos, name));
+                return new_expr_name(pos, name);
             }
 
 
@@ -191,12 +191,12 @@ namespace IonLang
                 if (match_token(TOKEN_COLON)) {
                     var type = parse_type();
                     expect_token(TOKEN_RPAREN);
-                    return expr_sizeof_type(pos, type);
+                    return new_expr_sizeof_type(pos, type);
                 }
 
                 var expr = parse_expr();
                 expect_token(TOKEN_RPAREN);
-                return expr_sizeof_expr(pos, expr);
+                return new_expr_sizeof_expr(pos, expr);
             }
 
             if (is_token(TOKEN_LBRACE))
@@ -208,7 +208,7 @@ namespace IonLang
                     expect_token(TOKEN_RPAREN);
                     if (is_token(TOKEN_LBRACE))
                         return parse_expr_compound(type);
-                    return expr_cast(pos, type, parse_expr_unary());
+                    return new_expr_cast(pos, type, parse_expr_unary());
                 }
 
                 var expr = parse_expr();
@@ -235,7 +235,7 @@ namespace IonLang
                         }
 
                         expect_token(TOKEN_RPAREN);
-                        expr = expr_call(pos, expr, (Expr**)buf->_begin, buf->count);
+                        expr = new_expr_call(pos, expr, (Expr**)buf->_begin, buf->count);
                     }
                     finally {
                         buf->Release();
@@ -244,14 +244,14 @@ namespace IonLang
                 else if (match_token(TOKEN_LBRACKET)) {
                     var index = parse_expr();
                     expect_token(TOKEN_RBRACKET);
-                    expr = expr_index(pos, expr, index);
+                    expr = new_expr_index(pos, expr, index);
                 }
                 else {
                     assert(is_token(TOKEN_DOT));
                     next_token();
                     var field = token.name;
                     expect_token(TOKEN_NAME);
-                    expr = expr_field(pos, expr, field);
+                    expr = new_expr_field(pos, expr, field);
                 }
 
             return expr;
@@ -267,7 +267,7 @@ namespace IonLang
             if (is_unary_op()) {
                 var op = token.kind;
                 next_token();
-                return expr_unary(pos, op, parse_expr_unary());
+                return new_expr_unary(pos, op, parse_expr_unary());
             }
 
             return parse_expr_base();
@@ -283,7 +283,7 @@ namespace IonLang
             while (is_mul_op()) {
                 var op = token.kind;
                 next_token();
-                expr = expr_binary(pos, op, expr, parse_expr_unary());
+                expr = new_expr_binary(pos, op, expr, parse_expr_unary());
             }
 
             return expr;
@@ -299,7 +299,7 @@ namespace IonLang
             while (is_add_op()) {
                 var op = token.kind;
                 next_token();
-                expr = expr_binary(pos, op, expr, parse_expr_mul());
+                expr = new_expr_binary(pos, op, expr, parse_expr_mul());
             }
 
             return expr;
@@ -315,7 +315,7 @@ namespace IonLang
             while (is_cmp_op()) {
                 var op = token.kind;
                 next_token();
-                expr = expr_binary(pos, op, expr, parse_expr_add());
+                expr = new_expr_binary(pos, op, expr, parse_expr_add());
             }
 
             return expr;
@@ -325,7 +325,7 @@ namespace IonLang
             var pos = token.pos;
             var expr = parse_expr_cmp();
             while (match_token(TOKEN_AND_AND))
-                expr = expr_binary(pos, TOKEN_AND_AND, expr, parse_expr_cmp());
+                expr = new_expr_binary(pos, TOKEN_AND_AND, expr, parse_expr_cmp());
 
             return expr;
         }
@@ -334,7 +334,7 @@ namespace IonLang
             var pos = token.pos;
             var expr = parse_expr_and();
             while (match_token(TOKEN_OR_OR))
-                expr = expr_binary(pos, TOKEN_OR_OR, expr, parse_expr_and());
+                expr = new_expr_binary(pos, TOKEN_OR_OR, expr, parse_expr_and());
 
             return expr;
         }
@@ -346,7 +346,7 @@ namespace IonLang
                 var then_expr = parse_expr_ternary();
                 expect_token(TOKEN_COLON);
                 var else_expr = parse_expr_ternary();
-                expr = expr_ternary(pos, expr, then_expr, else_expr);
+                expr = new_expr_ternary(pos, expr, then_expr, else_expr);
             }
 
             return expr;
@@ -401,7 +401,7 @@ namespace IonLang
                     buf->Add(elif);
                 }
 
-                return stmt_if(pos, cond, then_block, (ElseIf**)buf->_begin, buf->count,
+                return new_stmt_if(pos, cond, then_block, (ElseIf**)buf->_begin, buf->count,
                     else_block);
             }
             finally {
@@ -411,7 +411,7 @@ namespace IonLang
 
         private Stmt* parse_stmt_while(SrcPos pos) {
             var cond = parse_paren_expr();
-            return stmt_while(pos, cond, parse_stmt_block());
+            return new_stmt_while(pos, cond, parse_stmt_block());
         }
 
         private Stmt* parse_stmt_do_while(SrcPos pos) {
@@ -421,7 +421,7 @@ namespace IonLang
                 return null;
             }
 
-            var stmt = stmt_do_while(pos, parse_paren_expr(), block);
+            var stmt = new_stmt_do_while(pos, parse_paren_expr(), block);
             expect_token(TOKEN_SEMICOLON);
             return stmt;
         }
@@ -440,7 +440,7 @@ namespace IonLang
                     return null;
                 }
 
-                stmt = stmt_init(pos, expr->name, null, parse_expr());
+                stmt = new_stmt_init(pos, expr->name, null, parse_expr());
             }
             else if (match_token(TOKEN_COLON)) {
                 if (expr->kind != EXPR_NAME) {
@@ -455,20 +455,20 @@ namespace IonLang
                 else
                     expr = null;
 
-                stmt = stmt_init(pos, name, type, expr);
+                stmt = new_stmt_init(pos, name, type, expr);
             }
             else if (is_assign_op()) {
                 var op = token.kind;
                 next_token();
-                stmt = stmt_assign(pos, op, expr, parse_expr());
+                stmt = new_stmt_assign(pos, op, expr, parse_expr());
             }
             else if (is_token(TOKEN_INC) || is_token(TOKEN_DEC)) {
                 var op = token.kind;
                 next_token();
-                stmt = stmt_assign(pos, op, expr, null);
+                stmt = new_stmt_assign(pos, op, expr, null);
             }
             else {
-                stmt = stmt_expr(pos, expr);
+                stmt = new_stmt_expr(pos, expr);
             }
 
             return stmt;
@@ -494,7 +494,7 @@ namespace IonLang
             }
 
             expect_token(TOKEN_RPAREN);
-            return stmt_for(pos, init, cond, next, parse_stmt_block());
+            return new_stmt_for(pos, init, cond, next, parse_stmt_block());
         }
 
         private SwitchCase parse_stmt_switch_case() {
@@ -555,7 +555,7 @@ namespace IonLang
                 buf.Add(parse_stmt_switch_case());
 
             expect_token(TOKEN_RBRACE);
-            return stmt_switch(pos, expr, buf, buf.count);
+            return new_stmt_switch(pos, expr, buf, buf.count);
         }
 
         private Stmt* parse_stmt() {
@@ -576,16 +576,16 @@ namespace IonLang
                 return parse_stmt_switch(pos);
 
             else if(is_token(TOKEN_LBRACE))
-                return stmt_block(pos, parse_stmt_block());
+                return new_stmt_block(pos, parse_stmt_block());
 
             else if(match_keyword(break_keyword)) {
                 expect_token(TOKEN_SEMICOLON);
-                return stmt_break(pos);
+                return new_stmt_break(pos);
             }
 
             else if(match_keyword(continue_keyword)) {
                 expect_token(TOKEN_SEMICOLON);
-                return stmt_continue(pos);
+                return new_stmt_continue(pos);
             }
 
             else if(match_keyword(return_keyword)) {
@@ -594,7 +594,7 @@ namespace IonLang
                     expr = parse_expr();
 
                 expect_token(TOKEN_SEMICOLON);
-                return stmt_return(pos, expr);
+                return new_stmt_return(pos, expr);
             }
             else {
                 Stmt *stmt = parse_simple_stmt();
@@ -631,7 +631,7 @@ namespace IonLang
             }
 
             expect_token(TOKEN_RBRACE);
-            return decl_enum(pos, name, buf._begin, buf.count);
+            return new_decl_enum(pos, name, buf._begin, buf.count);
         }
 
         private AggregateItem parse_decl_aggregate_item() {
@@ -667,7 +667,7 @@ namespace IonLang
                 buf.Add(parse_decl_aggregate_item());
 
             expect_token(TOKEN_RBRACE);
-            return decl_aggregate(pos, kind, name, buf, buf.count);
+            return new_decl_aggregate(pos, kind, name, buf, buf.count);
         }
 
         private Decl* parse_decl_var(SrcPos pos) {
@@ -675,7 +675,7 @@ namespace IonLang
             if (match_token(TOKEN_ASSIGN)) {
                 Expr *expr = parse_expr();
                 expect_token(TOKEN_SEMICOLON);
-                return decl_var(pos, name, null, expr);
+                return new_decl_var(pos, name, null, expr);
             }
             else if (match_token(TOKEN_COLON)) {
                 Typespec *type = parse_type();
@@ -684,7 +684,7 @@ namespace IonLang
                     expr = parse_expr();
                 }
                 expect_token(TOKEN_SEMICOLON);
-                return decl_var(pos, name, type, expr);
+                return new_decl_var(pos, name, type, expr);
             }
             else { 
                 fatal_error_here("Expected : or = after var, got {0}", token_info());
@@ -697,7 +697,7 @@ namespace IonLang
             expect_token(TOKEN_ASSIGN);
             Expr *expr = parse_expr();
             expect_token(TOKEN_SEMICOLON);
-            return decl_const(pos, name, expr);
+            return new_decl_const(pos, name, expr);
         }
 
         private Decl* parse_decl_typedef(SrcPos pos) {
@@ -705,7 +705,7 @@ namespace IonLang
             expect_token(TOKEN_ASSIGN);
             Typespec *type = parse_type();
             expect_token(TOKEN_SEMICOLON);
-            return decl_typedef(pos, name, type);
+            return new_decl_typedef(pos, name, type);
         }
 
         private FuncParam parse_decl_func_param() {
@@ -750,15 +750,46 @@ namespace IonLang
             //}
 
             var block = parse_stmt_block();
-            return decl_func(pos, name, buf, buf.count, ret_type, has_varargs, block);
+            return new_decl_func(pos, name, buf, buf.count, ret_type, has_varargs, block);
+        }
+        NoteArg parse_note_arg() {
+            SrcPos pos = token.pos;
+            Expr *expr = parse_expr();
+            char *name = null;
+            if (match_token(TOKEN_ASSIGN)) {
+                if (expr->kind != EXPR_NAME) {
+                    fatal_error_here("Left operand of = in note argument must be a name");
+                }
+                name = expr->name;
+                expr = parse_expr();
+            }
+            return new NoteArg { pos = pos, name = name, expr = expr };
+        }
+
+        Note parse_note() {
+            SrcPos pos = token.pos;
+            char *name = parse_name();
+            var args = Buffer<NoteArg>.Create();
+            if (match_token(TOKEN_LPAREN)) {
+                args.Add(parse_note_arg());
+                while (match_token(TOKEN_COMMA)) {
+                    args.Add(parse_note_arg());
+                }
+                expect_token(TOKEN_RPAREN);
+            }
+            return new_note(pos, name, args, args.count);
         }
 
         NoteList parse_note_list() {
             var buf = Buffer<Note>.Create();
             while (match_token(TOKEN_AT)) {
-                buf.Add(new Note { pos = token.pos, name = parse_name() });
+                buf.Add(parse_note());
             }
-            return note_list(buf, buf.count);
+            return new_note_list(buf, buf.count);
+        }
+
+        Decl* parse_decl_note(SrcPos pos) {
+            return new_decl_note(pos, parse_note());
         }
 
         private Decl* parse_decl_opt() {
@@ -777,6 +808,8 @@ namespace IonLang
                 return parse_decl_typedef(pos);
             if (match_keyword(func_keyword))
                 return parse_decl_func(pos);
+            if (match_token(TOKEN_POUND))
+                return parse_decl_note(pos);
             return null;
         }
 

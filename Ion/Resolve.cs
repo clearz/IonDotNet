@@ -15,6 +15,7 @@ namespace IonLang
 
     unsafe partial class Ion {
         public const int MAX_LOCAL_SYMS = 1024;
+        Decls *global_decls;
         private Map global_syms_map;
         private PtrBuffer* global_syms_buf;
         private Buffer<Sym> local_syms;
@@ -117,7 +118,7 @@ namespace IonLang
             local_syms._top = sym;
         }
         void sym_global_typedef(char* name, Type* type) {
-            Sym *sym = sym_new(SYM_TYPE, _I(name), decl_typedef(pos_builtin, name, typespec_name(pos_builtin, name)));
+            Sym *sym = sym_new(SYM_TYPE, _I(name), new_decl_typedef(pos_builtin, name, new_typespec_name(pos_builtin, name)));
             sym->state = SYM_RESOLVED;
             sym->type = type;
             sym_global_put(sym);
@@ -2274,11 +2275,14 @@ namespace IonLang
             return operand_decay(resolve_expected_expr(expr, expected_type));
         }
 
-        internal void sym_global_decls(DeclSet* declset) {
-            for (var i = 0; i < declset->num_decls; i++)
-                sym_global_decl(declset->decls[i]);
+        internal void sym_global_decls() {
+            for (var i = 0; i < global_decls->num_decls; i++) {
+                Decl *decl = global_decls->decls[i];
+                if (decl->kind != DECL_NOTE) {
+                    sym_global_decl(global_decls->decls[i]);
+                }
+            }
         }
-
 
         private void init_builtins()
         {
