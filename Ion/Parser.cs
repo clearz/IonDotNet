@@ -9,13 +9,11 @@ namespace IonLang
     using static CompoundFieldKind;
 
     public unsafe partial class Ion {
-        internal Decls* parse_file() {
+        internal Decls* parse_decls() {
             var buf = PtrBuffer.GetPooledBuffer();
             try {
                 while (!is_token(TOKEN_EOF)) {
-                    var decl = parse_decl();
-                    assert(decl != null);
-                    buf->Add(decl);
+                    buf->Add(parse_decl());
                 }
 
                 return new_decls((Decl**)buf->_begin, buf->count);

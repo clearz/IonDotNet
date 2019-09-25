@@ -1221,8 +1221,8 @@ namespace IonLang
 
         private void resolve_cond_expr(Expr* expr) {
             var cond = resolve_expr(expr);
-            if (!is_arithmetic_type(cond.type) && cond.type->kind != TYPE_PTR) {
-                fatal_error(expr->pos, "Conditional expression must have arithmetic or pointer type");
+            if (!is_scalar_type(cond.type)) {
+                fatal_error(expr->pos, "Conditional expression must have arithmetic or operand type");
             }
         }
 
@@ -1363,7 +1363,10 @@ namespace IonLang
                 }
 
                 case STMT_SWITCH: {
-                    var result = resolve_expr(stmt->switch_stmt.expr);
+                    Operand operand = resolve_expr(stmt->switch_stmt.expr);
+                    if (!is_integer_type(operand.type)) {
+                        fatal_error(stmt->pos, "Switch expression must have integer type");
+                    }
                     bool returns = true;
                     bool has_default = false;
                     for (var i = 0; i < stmt->switch_stmt.num_cases; i++) {
@@ -1371,7 +1374,7 @@ namespace IonLang
                         for (var j = 0; j < switch_case.num_exprs; j++) {
                             Expr *case_expr = switch_case.exprs[j];
                             Operand case_operand = resolve_expr(case_expr);
-                            if (!convert_operand(&case_operand, case_expr->type)) {
+                            if (!convert_operand(&case_operand, operand.type)) {
                                 fatal_error(case_expr->pos, "Invalid type in switch case expression");
                             }
                             returns = resolve_stmt_block(switch_case.block, ret_type) && returns;

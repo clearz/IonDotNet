@@ -200,7 +200,7 @@ namespace IonLang
 
         internal void parse_test() {
             Console.WriteLine();
-            var ds = parse_file();
+            var ds = parse_decls();
             for (var i = 0; i < decls.Length; i++) {
                 var it = decls[i].ToPtr();
                 init_stream(it);
