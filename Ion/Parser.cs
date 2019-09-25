@@ -693,11 +693,15 @@ namespace IonLang
         }
 
         private Decl* parse_decl_const(SrcPos pos) {
+            Typespec *type = null;
             var name = parse_name();
+            if (match_token(TOKEN_COLON)) {
+                type = parse_type();
+            }
             expect_token(TOKEN_ASSIGN);
             Expr *expr = parse_expr();
             expect_token(TOKEN_SEMICOLON);
-            return new_decl_const(pos, name, expr);
+            return new_decl_const(pos, name, type, expr);
         }
 
         private Decl* parse_decl_typedef(SrcPos pos) {
@@ -720,7 +724,6 @@ namespace IonLang
             var name = parse_name();
             bool has_varargs = false;
             expect_token(TOKEN_LPAREN);
-            FuncParam* @params = null;
             var buf = Buffer<FuncParam>.Create();
             if (!is_token(TOKEN_RPAREN)) {
                 buf.Add(parse_decl_func_param());
@@ -745,12 +748,16 @@ namespace IonLang
             if (match_token(TOKEN_COLON))
                 ret_type = parse_type();
 
-            //if (match_token(TOKEN_SEMICOLON)) {
-            //    return decl_func(pos, name, buf, buf.count, ret_type, has_varargs, default);
-            //}
-
-            var block = parse_stmt_block();
-            return new_decl_func(pos, name, buf, buf.count, ret_type, has_varargs, block);
+            StmtList block = default;
+            bool is_incomplete = false;
+            if (is_token(TOKEN_LBRACE)) {
+                block = parse_stmt_block();
+            }
+            else {
+                expect_token(TOKEN_SEMICOLON);
+                is_incomplete = true;
+            }
+            return new_decl_func(pos, name, buf, buf.count, ret_type, is_incomplete, has_varargs, block);
         }
         NoteArg parse_note_arg() {
             SrcPos pos = token.pos;

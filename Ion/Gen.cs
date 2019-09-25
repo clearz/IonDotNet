@@ -406,6 +406,9 @@ namespace IonLang
                 Decl* decl = sym->decl;
 
                 if (decl != null && decl->kind == DECL_FUNC && !is_decl_foreign(decl)) {
+                    if (decl->func.is_incomplete) {
+                        fatal_error(decl->pos, "Incomplete function definition: {0}\n", new string(decl->name));
+                    }
                     gen_func_decl(decl);
                     c_write(' ');
                     gen_stmt_block(decl->func.block);
@@ -976,9 +979,15 @@ namespace IonLang
                     c_write(defineStr, 8);
                     c_write(sym->name);
                     c_write(' ');
-                    c_write('(');
+                    if (decl->const_decl.type != null) {
+                        c_write('(');
+                        typespec_to_cdecl(decl->const_decl.type, null);
+                        c_write(')');
+                        c_write('(');
+                    }
                     gen_expr(decl->const_decl.expr);
-                    c_write(')');
+                    if (decl->const_decl.type != null)
+                        c_write(')');
 
                     break;
                 case DECL_VAR:
@@ -1045,37 +1054,42 @@ namespace IonLang
         private readonly char* forward_declarations = "// Forward declarations".ToPtr();
         private readonly char* sorted_declarations = "// Sorted declarations".ToPtr();
         private readonly char* function_declarations = "// Function declarations".ToPtr();
-        char* include_str = "#include ".ToPtr();
+        char *include_name = null;
+
+
         void gen_headers() {
-            char *foreign_include_name = _I("foreign_include");
+            if(include_name == null)
+                include_name = _I("include");
             for (var i = 0; i < global_decls->num_decls; i++) {
                 Decl *decl = global_decls->decls[i];
                 if (decl->kind != DECL_NOTE) {
                     continue;
                 }
                 Note note = decl->note;
-                if (note.name == foreign_include_name) {
-                    if (note.num_args != 1) {
-                        fatal_error(decl->pos, "#foreign_include takes 1 argument");
-                        continue;
-                    }
-                    Expr *expr = note.args[0].expr;
-                    if (expr->kind != EXPR_STR) {
-                        fatal_error(decl->pos, "#foreign_include's argument must be a quoted string");
-                    }
-                    char *header_name = expr->name;
-                    bool found = false;
-                    for (void** it = gen_headers_buf->_begin;
-                    it != gen_headers_buf->_top;
-                    it++) {
-                        if (*it == header_name) {
-                            found = true;
+                if (note.name == foreign_name) {
+                    for (var j = 0; j < note.num_args; j++) {
+                        if (note.args[j].name != include_name) {
+                            continue;
                         }
-                    }
-                    if (!found) {
-                        gen_headers_buf->Add(header_name);
-                        genlnf(include_str, 9);
-                        c_write(header_name);
+                        Expr *expr = note.args[j].expr;
+                        if (expr->kind != EXPR_STR) {
+                            fatal_error(decl->pos, "#foreign_include's argument must be a quoted string");
+                        }
+                        char *header_name = expr->name;
+                        bool found = false;
+                        for (void** it = gen_headers_buf->_begin;  it != gen_headers_buf->_top;  it++) {
+                            if (*it == header_name) {
+                                found = true;
+                            }
+                        }
+                        if (!found) {
+                            gen_headers_buf->Add(header_name);
+                            genln();
+                            c_write('#');
+                            c_write(include_name, 7);
+                            c_write(' ');
+                            c_write(header_name);
+                        }
                     }
                 }
             }

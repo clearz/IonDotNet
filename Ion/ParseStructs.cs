@@ -93,6 +93,7 @@ namespace IonLang
             public FuncParam* @params;
             public int num_params;
             public bool has_varargs;
+            public bool is_incomplete;
             public Typespec* ret_type;
             public StmtList block;
         }
@@ -126,6 +127,7 @@ namespace IonLang
 
         internal struct ConstDecl
         {
+            public Typespec *type;
             public Expr* expr;
         }
     }

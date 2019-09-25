@@ -1181,6 +1181,12 @@ namespace IonLang
             Operand result = resolve_const_expr(decl->const_decl.expr);
             if (!is_scalar_type(result.type))
                 fatal_error(decl->pos, "Const declarations must have scalar type");
+            if (decl->const_decl.type != null) {
+                Type *type = resolve_typespec(decl->const_decl.type);
+                if (!convert_operand(&result, type)) {
+                    fatal_error(decl->pos, "Invalid type in constant declaration");
+                }
+            }
             *val = result.val;
             return result.type;
         }
@@ -1397,6 +1403,9 @@ namespace IonLang
             var decl = sym->decl;
             assert(decl->kind == DECL_FUNC);
             assert(sym->state == SYM_RESOLVED);
+            if (decl->func.is_incomplete) {
+                return;
+            }
             var scope = sym_enter();
             for (var i = 0; i < decl->func.num_params; i++) {
                 var param = decl->func.@params[i];
