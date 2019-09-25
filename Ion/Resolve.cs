@@ -2219,6 +2219,14 @@ namespace IonLang
                     result = resolve_expr_ternary(expr, expected_type);
                     break;
                 case EXPR_SIZEOF_EXPR: {
+                    if (expr->sizeof_expr->kind == EXPR_NAME) {
+                        Sym *sym = resolve_name(expr->sizeof_expr->name);
+                        if (sym != null && sym->kind == SYM_TYPE) {
+                            complete_type(sym->type);
+                            result = operand_const(type_usize, new Val{ll = type_sizeof(sym->type)});
+                            break;
+                        }
+                    }
                     var type = resolve_expr(expr->sizeof_expr).type;
                     complete_type(type);
                     result = operand_const(type_usize, new Val { ll = type_sizeof(type) });
