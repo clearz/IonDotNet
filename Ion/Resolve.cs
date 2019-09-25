@@ -2271,10 +2271,7 @@ namespace IonLang
                     break;
             }
 
-            if (result.type != null) {
-                // assert(!expr->type || expr->type == result.type);
-                set_resolved_type(expr, result.type);
-            }
+            set_resolved_type(expr, result.type);
 
             return result;
         }

@@ -27,8 +27,6 @@ namespace IonLang
             global_syms_buf = PtrBuffer.Create();
             local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
             sorted_syms = PtrBuffer.Create(capacity: 256);
-            cached_array_types = Buffer<CachedArrayType>.Create();
-            cached_func_types = Buffer<CachedFuncType>.Create();
             ast_arena = MemArena.Create();
             intern_arena = MemArena.Create();
             init_builtins();
@@ -151,20 +149,27 @@ namespace IonLang
             private long cap;
 
 
-            private static ulong hash_uint64(ulong x) {
+            internal static ulong hash_uint64(ulong x) {
                 ulong a = x * 0xff51afd7ed558ccd;
                 ulong b = a ^ (x >> 32);
                 return b;
             }
 
 
-            private static ulong hash_ptr(void* ptr) {
+            internal static ulong hash_ptr(void* ptr) {
                 return hash_uint64((ulong)ptr);
             }
 
+            internal static ulong hash_mix(ulong x, ulong y) {
+                x ^= y;
+                x *= 0xff51afd7ed558ccd;
+                x ^= x >> 32;
+                return x;
+            }
 
-            public static ulong hash_bytes(char* buf, long len) {
+            public static ulong hash_bytes(void *ptr, long len) {
                 var x = 0xcbf29ce484222325;
+                char *buf = (char *)ptr;
                 for (long i = 0; i < len; i++) {
                     x ^= buf[i];
                     x *= 0x100000001b3;

@@ -76,8 +76,8 @@ namespace IonLang
     unsafe partial class Ion
     {
         private Map cached_ptr_types;
-        private Buffer<CachedArrayType> cached_array_types;
-        private Buffer<CachedFuncType> cached_func_types;
+        private Map cached_array_types;
+        private Map cached_func_types;
 
         private static readonly Type* type_void    = basic_type_alloc(TYPE_VOID, 0, 1);
         private static readonly Type* type_bool    = basic_type_alloc(TYPE_BOOL, 1, 1);
@@ -252,50 +252,58 @@ namespace IonLang
             return is_array_type(type) && type->num_elems == 0;
         }
 
-        private Type* type_array(Type* elem, int num_elems) {
-            for (var it = cached_array_types._begin; it != cached_array_types._top; it++)
-                if (it->elem == elem && it->num_elems == num_elems)
-                    return it->array;
+        private Type* type_array(Type* @base, int num_elems) {
+            var hash = Map.hash_mix(Map.hash_ptr(@base), Map.hash_uint64((ulong)num_elems));
+            void *key = (void *)(hash != 0 ? hash : 1);
+            CachedArrayType *cached = cached_array_types.map_get<CachedArrayType>(key);
+            for (CachedArrayType* it = cached; it != null; it = it->next) {
+                Type *t = it->type;
+                if (t->@base == @base && t->num_elems == num_elems) {
+                    return t;
+                }
+            }
 
-            complete_type(elem);
-            var type = type_alloc(TYPE_ARRAY);
-            type->nonmodifiable = elem->nonmodifiable;
-            type->size = num_elems * type_sizeof(elem);
-            type->align = type_alignof(elem);
-            type->@base = elem;
+            complete_type(@base);
+            Type *type = type_alloc(TYPE_ARRAY);
+            type->nonmodifiable = @base->nonmodifiable;
+            type->size = num_elems * type_sizeof(@base);
+            type->align = type_alignof(@base);
+            type->@base = @base;
             type->num_elems = num_elems;
-            cached_array_types.Add(new CachedArrayType { elem = elem, array = type, num_elems = num_elems });
+            CachedArrayType *new_cached = xmalloc<CachedArrayType>();
+            new_cached->type = type;
+            new_cached->next = cached;
+            cached_array_types.map_put(key, new_cached);
             return type;
         }
 
+        [DllImport("msvcrt.dll")]
+        private static extern unsafe int memcmp(void* b1, void* b2, int count);
+
         private Type* type_func(Type** @params, int num_params, Type* ret, bool has_varargs = false) {
-            for (var it = cached_func_types._begin; it != cached_func_types._top; it++)
-                if (it->num_params == num_params && it->ret == ret && it->has_varargs == has_varargs) {
-                    var match = true;
-                    for (var i = 0; i < num_params; i++)
-                        if (it->@params[i] != @params[i]) {
-                            match = false;
-                            break;
-                        }
-
-                    if (match)
-                        return it->func;
+            var params_size = num_params * PTR_SIZE;
+            ulong hash = Map.hash_mix(Map.hash_bytes(@params, params_size), Map.hash_ptr(ret));
+            void *key = (void *)(hash != 0 ? hash : 1);
+            CachedFuncType *cached = cached_func_types.map_get<CachedFuncType>(key);
+            for (CachedFuncType* it = cached; it != null; it = it->next) {
+                Type *type1 = it->type;
+                if (type1->func.num_params == num_params && type1->func.ret == ret && type1->func.has_varargs == has_varargs) {
+                    if (memcmp(type1->func.@params, @params, params_size) == 0) {
+                        return type1;
+                    }
                 }
-
-            var type = type_alloc(TYPE_FUNC);
+            }
+            Type *type = type_alloc(TYPE_FUNC);
             type->size = PTR_SIZE;
             type->align = PTR_ALIGN;
+            type->func.@params = (Type**)memdup(@params, params_size);
+            type->func.num_params = num_params;
             type->func.has_varargs = has_varargs;
-            if (num_params > 0) {
-                type->func.@params = (Type**)xmalloc(sizeof(Type*) * num_params);
-                Unsafe.CopyBlock(type->func.@params, @params,
-                    (uint)(num_params *
-                            sizeof(Type*)));
-                type->func.num_params = num_params;
-            }
-
             type->func.ret = ret;
-            cached_func_types.Add(new CachedFuncType { func = type, num_params = num_params, ret = ret, @params = type->func.@params, has_varargs = has_varargs });
+            CachedFuncType *new_cached = xmalloc<CachedFuncType>();
+            new_cached->type = type;
+            new_cached->next = cached;
+            cached_func_types.map_put(key, new_cached);
             return type;
         }
 
@@ -371,17 +379,13 @@ namespace IonLang
 
     internal unsafe struct CachedArrayType
     {
-        public Type* elem;
-        public long num_elems;
-        public Type* array;
+        public  Type *type;
+        public CachedArrayType *next;
     }
 
     internal unsafe struct CachedFuncType
     {
-        public Type** @params;
-        public long num_params;
-        public bool has_varargs;
-        public Type* ret;
-        public Type* func;
+        public Type *type;
+        public CachedFuncType *next;
     }
 }
