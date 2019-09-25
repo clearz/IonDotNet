@@ -746,6 +746,24 @@ repeat:
                             stream++;
                         goto repeat;
                     }
+                    else if (*stream == '*') {
+                        stream++;
+                        int level = 1;
+                        while (*stream != 0 && level > 0) {
+                            if (stream[0] == '/' && stream[1] == '*') {
+                                level++;
+                                stream += 2;
+                            }
+                            else if (stream[0] == '*' && stream[1] == '/') {
+                                level--;
+                                stream += 2;
+                            }
+                            else {
+                                stream++;
+                            }
+                        }
+                        goto repeat;
+                    }
                     else {
                         token.kind = TOKEN_DIV;
                     }
