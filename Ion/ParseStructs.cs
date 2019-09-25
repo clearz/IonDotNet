@@ -17,6 +17,10 @@ namespace IonLang
         public int num_stmts;
         public SrcPos pos;
     }
+    internal struct StmtCtx
+    {
+        public bool is_loop;
+    }
 
     [StructLayout(LayoutKind.Explicit)]
     internal unsafe struct Typespec

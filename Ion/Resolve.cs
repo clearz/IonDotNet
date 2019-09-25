@@ -1237,11 +1237,11 @@ namespace IonLang
             }
         }
 
-        private bool resolve_stmt_block(StmtList block, Type* ret_type) {
+        private bool resolve_stmt_block(StmtList block, Type* ret_type, StmtCtx ctx) {
             var scope = sym_enter();
             bool returns = false;
             for (var i = 0; i < block.num_stmts; i++) {
-                returns = resolve_stmt(block.stmts[i], ret_type) || returns;
+                returns = resolve_stmt(block.stmts[i], ret_type, ctx) || returns;
             }
             sym_leave(scope);
             return returns;
@@ -1319,7 +1319,7 @@ namespace IonLang
             }
         }
 
-        bool resolve_stmt(Stmt* stmt, Type* ret_type) {
+        bool resolve_stmt(Stmt* stmt, Type* ret_type, StmtCtx ctx) {
             switch (stmt->kind) {
                 case STMT_RETURN:
                     if (stmt->expr != null) {
@@ -1335,21 +1335,28 @@ namespace IonLang
 
                     return true;
                 case STMT_BREAK:
+                    if (!ctx.is_loop) {
+                        fatal_error(stmt->pos, "Break statement outside loop");
+                    }
+                    return false;
                 case STMT_CONTINUE:
+                    if (!ctx.is_loop) {
+                        fatal_error(stmt->pos, "Continue statement outside loop");
+                    }
                     return false;
                 case STMT_BLOCK:
-                    return resolve_stmt_block(stmt->block, ret_type);
+                    return resolve_stmt_block(stmt->block, ret_type, ctx);
                 case STMT_IF: {
                     resolve_cond_expr(stmt->if_stmt.cond);
-                    bool returns = resolve_stmt_block(stmt->if_stmt.then_block, ret_type);
+                    bool returns = resolve_stmt_block(stmt->if_stmt.then_block, ret_type, ctx);
                     for (var i = 0; i < stmt->if_stmt.num_elseifs; i++) {
                         var elseif = stmt->if_stmt.elseifs[i];
                         resolve_cond_expr(elseif->cond);
-                        returns = resolve_stmt_block(elseif->block, ret_type) && returns;
+                        returns = resolve_stmt_block(elseif->block, ret_type, ctx) && returns;
                     }
 
                     if (stmt->if_stmt.else_block.stmts != null) {
-                        returns = resolve_stmt_block(stmt->if_stmt.else_block, ret_type) && returns;
+                        returns = resolve_stmt_block(stmt->if_stmt.else_block, ret_type, ctx) && returns;
                     }
                     else
                         returns = false;
@@ -1358,17 +1365,19 @@ namespace IonLang
                 case STMT_WHILE:
                 case STMT_DO_WHILE:
                     resolve_cond_expr(stmt->while_stmt.cond);
-                    resolve_stmt_block(stmt->while_stmt.block, ret_type);
+                    ctx.is_loop = true;
+                    resolve_stmt_block(stmt->while_stmt.block, ret_type, ctx);
                     return false;
                 case STMT_FOR: {
                     var sym = sym_enter();
                     if (stmt->for_stmt.init != null)
-                        resolve_stmt(stmt->for_stmt.init, ret_type);
+                        resolve_stmt(stmt->for_stmt.init, ret_type, ctx);
                     if (stmt->for_stmt.cond != null)
                         resolve_cond_expr(stmt->for_stmt.cond);
-                    resolve_stmt_block(stmt->for_stmt.block, ret_type);
+                    ctx.is_loop = true;
+                    resolve_stmt_block(stmt->for_stmt.block, ret_type, ctx);
                     if (stmt->for_stmt.next != null)
-                        resolve_stmt(stmt->for_stmt.next, ret_type);
+                        resolve_stmt(stmt->for_stmt.next, ret_type, ctx);
                     sym_leave(sym);
                     return false;
                 }
@@ -1388,7 +1397,7 @@ namespace IonLang
                             if (!convert_operand(&case_operand, operand.type)) {
                                 fatal_error(case_expr->pos, "Invalid type in switch case expression");
                             }
-                            returns = resolve_stmt_block(switch_case.block, ret_type) && returns;
+                            returns = resolve_stmt_block(switch_case.block, ret_type, ctx) && returns;
                         }
                         if (switch_case.is_default) {
                             if (has_default) {
@@ -1429,7 +1438,7 @@ namespace IonLang
                 sym_push_var(param.name, resolve_typespec(param.type));
             }
             Type *ret_type = resolve_typespec(decl->func.ret_type);
-            bool returns = resolve_stmt_block(decl->func.block, ret_type);
+            bool returns = resolve_stmt_block(decl->func.block, ret_type, default);
             sym_leave(scope);
             if (ret_type != type_void && !returns) {
                 fatal_error(decl->pos, "Not all control paths return values");
