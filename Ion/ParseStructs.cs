@@ -8,7 +8,7 @@ namespace IonLang
     {
         public char* name;
         public long line;
-        public long col;
+        public long col { get; set; }
     }
 
     internal unsafe struct StmtList

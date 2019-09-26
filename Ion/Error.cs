@@ -6,6 +6,14 @@ namespace IonLang
 {
     public unsafe partial class Ion
     {
+        void warning(SrcPos pos, string format, params object[] pmz) {
+            if (pos.name == null) {
+                pos = pos_builtin;
+            }
+            Console.Out.WriteLine($"{new string(pos.name)}({pos.line},{pos.col}): warning ION123: {string.Format(format, pmz)}");
+        }
+
+
         [DebuggerHidden]
         private static void fatal(string format, params object[] pmz) {
             Console.Error.WriteLine("FATAL: " + format, pmz);
@@ -16,7 +24,7 @@ namespace IonLang
             if (pos.name == null) {
                 pos = pos_builtin;
             }
-            Console.Out.WriteLine($"{new string(pos.name)}({pos.line},{pos.col}): error ION000: {string.Format(format, pmz)}");
+            Console.Error.WriteLine($"{new string(pos.name)}({pos.line},{pos.col}): error ION000: {string.Format(format, pmz)}");
         }
 
         [DebuggerHidden]
@@ -26,9 +34,13 @@ namespace IonLang
         }
 
         [DebuggerHidden]
-        private void error_here(string format, params object[] pmz)
-        {
+        private void error_here(string format, params object[] pmz) {
             error(token.pos, format, pmz);
+        }
+
+        [DebuggerHidden]
+        private void warning_here(string format, params object[] pmz) {
+            warning(token.pos, format, pmz);
         }
 
 

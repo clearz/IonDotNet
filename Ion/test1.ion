@@ -87,7 +87,7 @@ func test_loops() {
 	switch (0) {
 		default:
 		    //continue;
-			break;
+			//break;
     }
 }
 func test_nonmodifiable() {

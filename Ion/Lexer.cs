@@ -481,7 +481,7 @@ repeat:
                 case '\v':
                     while (char.IsWhiteSpace(*stream))
                         if (*stream++ == '\n') {
-                            line_start = stream + 1;
+                            line_start = stream;
                             token.pos.line++;
                         }
 
@@ -852,7 +852,7 @@ repeat:
             }
 
             token.end = stream;
-            token.pos.col = stream - line_start;
+            token.pos.col = token.start - line_start + 1;
         }
 
         private void init_stream(string buf, string name = "<anonymous>") {
@@ -862,7 +862,7 @@ repeat:
         private void init_stream(char* str, char* name = null) {
             token.pos.name = name != null ? name : "<string>".ToPtr();
             token.pos.line = token.pos.col = 1;
-            stream = str;
+            line_start = stream = str;
             next_token();
         }
 
