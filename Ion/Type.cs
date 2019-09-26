@@ -96,6 +96,7 @@ namespace IonLang
         private static readonly Type* type_double  = basic_type_alloc(TYPE_DOUBLE, 8, 8);
         private static readonly Type* type_usize   = type_ullong;
         private static readonly Type* type_ssize   = type_llong;
+        private static readonly Type* type_uintptr   = type_ullong;
 
         readonly int[] type_ranks = new int[(int)NUM_TYPE_KINDS];
         readonly char*[] type_names = new char*[(int)NUM_TYPE_KINDS];

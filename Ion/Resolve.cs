@@ -2387,6 +2387,11 @@ namespace IonLang
             sym_global_typedef("uint64".ToPtr(), type_ullong);
             sym_global_typedef("int64".ToPtr(), type_llong);
 
+            sym_global_typedef("usize".ToPtr(), type_usize);
+            sym_global_typedef("ssize".ToPtr(), type_ssize);
+            sym_global_typedef("uintptr".ToPtr(), type_uintptr);
+
+
             sym_global_const("true".ToPtr(), type_bool, new Val { b = true });
             sym_global_const("false".ToPtr(), type_bool, new Val { b = false });
             sym_global_const("NULL".ToPtr(), type_const(type_ptr(type_void)), new Val { p = null });
