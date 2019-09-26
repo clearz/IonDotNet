@@ -24,7 +24,7 @@ namespace IonLang
         private readonly char[] char_to_escape  = new char[256];
         PtrBuffer* gen_headers_buf = PtrBuffer.Create();
 
-        private readonly string preamble = "// Preamble\n#include <stdbool.h>\n#include <stdint.h>\n\n"+
+        private readonly string preamble = "// Preamble\n#include <stdbool.h>\n#include <stdint.h>\n#include <stddef.h>\n\n"+
                                             "typedef unsigned char uchar;\n"+
                                             "typedef signed char schar;\n"+
                                             "typedef unsigned short ushort;\n"+
