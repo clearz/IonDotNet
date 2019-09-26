@@ -1335,12 +1335,12 @@ namespace IonLang
 
                     return true;
                 case STMT_BREAK:
-                    if (!ctx.is_loop) {
+                    if (!ctx.is_break_legal) {
                         fatal_error(stmt->pos, "Break statement outside loop");
                     }
                     return false;
                 case STMT_CONTINUE:
-                    if (!ctx.is_loop) {
+                    if (!ctx.is_continue_legal) {
                         fatal_error(stmt->pos, "Continue statement outside loop");
                     }
                     return false;
@@ -1365,7 +1365,8 @@ namespace IonLang
                 case STMT_WHILE:
                 case STMT_DO_WHILE:
                     resolve_cond_expr(stmt->while_stmt.cond);
-                    ctx.is_loop = true;
+                    ctx.is_break_legal = true;
+                    ctx.is_continue_legal = true;
                     resolve_stmt_block(stmt->while_stmt.block, ret_type, ctx);
                     return false;
                 case STMT_FOR: {
@@ -1374,10 +1375,12 @@ namespace IonLang
                         resolve_stmt(stmt->for_stmt.init, ret_type, ctx);
                     if (stmt->for_stmt.cond != null)
                         resolve_cond_expr(stmt->for_stmt.cond);
-                    ctx.is_loop = true;
-                    resolve_stmt_block(stmt->for_stmt.block, ret_type, ctx);
                     if (stmt->for_stmt.next != null)
                         resolve_stmt(stmt->for_stmt.next, ret_type, ctx);
+
+                    ctx.is_break_legal = true;
+                    ctx.is_continue_legal = true;
+                    resolve_stmt_block(stmt->for_stmt.block, ret_type, ctx);
                     sym_leave(sym);
                     return false;
                 }
@@ -1387,6 +1390,8 @@ namespace IonLang
                     if (!is_integer_type(operand.type)) {
                         fatal_error(stmt->pos, "Switch expression must have integer type");
                     }
+                    ctx.is_break_legal = true;
+                    ctx.is_continue_legal = false;
                     bool returns = true;
                     bool has_default = false;
                     for (var i = 0; i < stmt->switch_stmt.num_cases; i++) {
@@ -1397,7 +1402,6 @@ namespace IonLang
                             if (!convert_operand(&case_operand, operand.type)) {
                                 fatal_error(case_expr->pos, "Invalid type in switch case expression");
                             }
-                            returns = resolve_stmt_block(switch_case.block, ret_type, ctx) && returns;
                         }
                         if (switch_case.is_default) {
                             if (has_default) {
@@ -1405,6 +1409,7 @@ namespace IonLang
                             }
                             has_default = true;
                         }
+                        returns = resolve_stmt_block(switch_case.block, ret_type, ctx) && returns;
                     }
                     return returns && has_default;
                 }

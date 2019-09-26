@@ -759,6 +759,9 @@ repeat:
                                 stream += 2;
                             }
                             else {
+                                if (*stream == '\n') {
+                                    token.pos.line++;
+                                }
                                 stream++;
                             }
                         }

@@ -19,7 +19,8 @@ namespace IonLang
     }
     internal struct StmtCtx
     {
-        public bool is_loop;
+        public bool is_break_legal;
+        public bool is_continue_legal;
     }
 
     [StructLayout(LayoutKind.Explicit)]
