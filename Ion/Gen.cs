@@ -23,6 +23,7 @@ namespace IonLang
         StringBuilder gen_buf = new StringBuilder();
         private readonly char[] char_to_escape  = new char[256];
         PtrBuffer* gen_headers_buf = PtrBuffer.Create();
+
         private readonly string preamble = "// Preamble\n#include <stdbool.h>\n\n"+
                                             "typedef unsigned char uchar;\n"+
                                             "typedef signed char schar;\n"+
@@ -42,14 +43,20 @@ namespace IonLang
                                             "typedef llong int64;\n"+
                                             "\n";
 
-        private readonly char* defineStr = "#define ".ToPtr();
-        private readonly char* lineStr = "#line ".ToPtr();
-        private readonly char* VOID = "void".ToPtr();
-        private readonly char* null_upper = "NULL".ToPtr();
-        private readonly char* null_lower = "null".ToPtr();
+        readonly char* defineStr = "#define ".ToPtr();
+        readonly char* lineStr = "#line ".ToPtr();
+        readonly char* VOID = "void".ToPtr();
+        readonly char* externStr = "extern".ToPtr();
 
-        private SrcPos gen_pos;
-        private int _pos, gen_indent;
+
+        readonly char* forward_includes     = "// Forward includes".ToPtr();
+        readonly char* forward_declarations = "// Forward declarations".ToPtr();
+        readonly char* sorted_declarations = "// Sorted declarations".ToPtr();
+        readonly char* definitions = "// Definitions".ToPtr();
+        char *include_name;
+
+        SrcPos gen_pos;
+        int _pos, gen_indent;
 
         private void reset_pos() {
             _pos = 0;
@@ -400,20 +407,41 @@ namespace IonLang
             }
         }
 
-        private void gen_func_defs() {
+        private void gen_defs() {
             for (Sym** it = (Sym**)global_syms_buf->_begin; it < global_syms_buf->_top; it++) {
                 Sym* sym = *it;
                 Decl* decl = sym->decl;
-
-                if (decl != null && decl->kind == DECL_FUNC && !is_decl_foreign(decl)) {
-                    if (decl->is_incomplete) {
-                        fatal_error(decl->pos, "Incomplete function definition: {0}\n", new string(decl->name));
-                    }
+                if (decl == null || is_decl_foreign(decl) || decl->is_incomplete) {
+                    continue;
+                }
+                if (decl->kind == DECL_FUNC) {
+                    
                     gen_func_decl(decl);
                     c_write(' ');
                     gen_stmt_block(decl->func.block);
                     genln();
 
+                }
+                else if (decl->kind == DECL_VAR) {
+                    genln();
+                    if (decl->var.type != null && !is_incomplete_array_typespec(decl->var.type)) {
+                        reset_pos();
+                        typespec_to_cdecl(decl->var.type, sym->name);
+                        c_write(cdecl_buffer, _pos);
+                    }
+                    else {
+                        reset_pos();
+                        type_to_cdecl(sym->type, sym->name);
+                        c_write(cdecl_buffer, _pos);
+                    }
+                    if (decl->var.expr != null) {
+                        c_write(' ');
+                        c_write('=');
+                        c_write(' ');
+                        gen_init_expr(decl->var.expr);
+                    }
+                    c_write(';');
+                    genln();
                 }
             }
         }
@@ -424,8 +452,10 @@ namespace IonLang
             if (decl->func.ret_type != null) {
                 genln();
                 reset_pos();
-                typespec_to_cdecl(decl->func.ret_type, decl->name);
+                typespec_to_cdecl(decl->func.ret_type, null);
                 c_write(cdecl_buffer, _pos);
+                c_write(' ');
+                c_write(decl->name);
                 c_write('(');
             }
             else {
@@ -991,27 +1021,18 @@ namespace IonLang
 
                     break;
                 case DECL_VAR:
+                    genlnf(externStr, 6);
+                    c_write(' ');
                     if (decl->var.type != null && !is_incomplete_array_typespec(decl->var.type)) {
-                        genln();
+                        reset_pos();
                         typespec_to_cdecl(decl->var.type, sym->name);
+                        c_write(cdecl_buffer, _pos);
                     }
                     else {
-                        genln();
                         reset_pos();
                         type_to_cdecl(sym->type, sym->name);
                         c_write(cdecl_buffer, _pos);
                     }
-
-                    if (decl->var.expr != null) {
-                        c_write(' ');
-                        c_write('=');
-                        c_write(' ');
-                        //if (decl->var.expr->kind == EXPR_NAME && strcmp(decl->var.expr->name, null_lower) == 0)
-                        //    c_write(null_upper, 4);
-                        //else
-                        gen_init_expr(decl->var.expr);
-                    }
-
                     c_write(';');
                     break;
                 case DECL_FUNC:
@@ -1049,16 +1070,9 @@ namespace IonLang
                 gen_decl(*sym);
             }
         }
-
-        private readonly char* forward_includes     = "// Forward includes".ToPtr();
-        private readonly char* forward_declarations = "// Forward declarations".ToPtr();
-        private readonly char* sorted_declarations = "// Sorted declarations".ToPtr();
-        private readonly char* function_declarations = "// Function declarations".ToPtr();
-        char *include_name = null;
-
-
+               
         void gen_headers() {
-            if(include_name == null)
+            if (include_name == null)
                 include_name = _I("include");
             for (var i = 0; i < global_decls->num_decls; i++) {
                 Decl *decl = global_decls->decls[i];
@@ -1088,7 +1102,10 @@ namespace IonLang
                             c_write('#');
                             c_write(include_name, 7);
                             c_write(' ');
-                            c_write(header_name);
+                            if (*header_name == '<')
+                                c_write(header_name);
+                            else
+                                gen_str(header_name, false);
                         }
                     }
                 }
@@ -1108,8 +1125,9 @@ namespace IonLang
             genln();
             genlnf(sorted_declarations);
             gen_sorted_decls();
-            genlnf(function_declarations);
-            gen_func_defs();
+            genlnf(definitions);
+            genln();
+            gen_defs();
         }
 
         private void init_chars() {            

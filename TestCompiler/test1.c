@@ -41,7 +41,7 @@ typedef enum Color {
 }Color;
 
 #line 14
-Incomplete(*incomplete_ptr);
+extern Incomplete(*incomplete_ptr);
 
 #line 28
 #define PI 3.14f
@@ -53,13 +53,13 @@ Incomplete(*incomplete_ptr);
 #define U8 (uint8)(42)
 
 #line 33
-char c = 1;
+extern char c;
 
 #line 34
-uchar uc = 1;
+extern uchar uc;
 
 #line 35
-schar sc = 1;
+extern schar sc;
 
 #line 37
 #define N (((char)(42)) + (8)) != (0)
@@ -71,14 +71,7 @@ uchar h(void);
 typedef int (A[(1) + ((2) * (sizeof((h)())))]);
 
 #line 41
-char (*code) = 
-    "\n"
-    "#include <stdio.h>\n"
-    "\n"
-    "int main(int argc, char **argv) {\n"
-    "    printf(\"Hello, world!\\n\");\n"
-    "    return 0;\n"
-    "}\n";
+extern char (*code);
 
 #line 50
 struct S1 {
@@ -163,22 +156,22 @@ int fact_rec(int n);
 int fact_iter(int n);
 
 #line 170
-const char (escape_to_char[256]) = {['n'] = '\n', ['r'] = '\r', ['t'] = '\t', ['v'] = '\v', ['b'] = '\b', ['a'] = '\a', ['0'] = 0};
+extern const char (escape_to_char[256]);
 
 #line 180
-int (a2[11]) = {1, 2, 3, [10] = 4};
+extern int (a2[11]);
 
 #line 183
 int is_even(int digit);
 
 #line 199
-int i;
+extern int i;
 
 #line 205
 void f2(Vector v);
 
 #line 227
-T(*p);
+extern T(*p);
 
 #line 225
 #define M (1) + (sizeof(p))
@@ -189,7 +182,7 @@ struct T {
 };
 
 #line 241
-const char * (color_names[NUM_COLORS]) = {[COLOR_NONE] = "none", [COLOR_RED] = "red", [COLOR_GREEN] = "green", [COLOR_BLUE] = "blue"};
+extern const char * (color_names[NUM_COLORS]);
 
 #line 248
 void test_enum(void);
@@ -221,13 +214,13 @@ void test_bool(void);
 int test_ctrl(void);
 
 #line 357
-const int (j);
+extern const int (j);
 
 #line 358
-const int(*q);
+extern const int(*q);
 
 #line 359
-const Vector (cv);
+extern const Vector (cv);
 
 #line 361
 void f4(const char(*x));
@@ -261,7 +254,25 @@ void test_cast(void);
 #line 432
 int main(int argc, const char *(*argv));
 
-// Function declarations
+// Definitions
+
+Incomplete(*incomplete_ptr);
+
+char c = 1;
+
+uchar uc = 1;
+
+schar sc = 1;
+
+char (*code) = 
+    "\n"
+    "#include <stdio.h>\n"
+    "\n"
+    "int main(int argc, char **argv) {\n"
+    "    printf(\"Hello, world!\\n\");\n"
+    "    return 0;\n"
+    "}\n";
+
 #line 59
 void f10(int (a[3])) {
     #line 60
@@ -330,7 +341,7 @@ void test_nonmodifiable(void) {
 #line 116
 uint32 pack(UartCtrl ctrl) {
     #line 117
-    return ((ctrl.tx_enable) & (1u)) | (((ctrl.rx_enable) & (1u)) << (1));
+    return ((ctrl.tx_enable) & (1)) | (((ctrl.rx_enable) & (1)) << (1));
 }
 
 #line 120
@@ -403,6 +414,10 @@ int example_test(void) {
     return ((fact_rec)(10)) == ((fact_iter)(10));
 }
 
+const char (escape_to_char[256]) = {['n'] = '\n', ['r'] = '\r', ['t'] = '\t', ['v'] = '\v', ['b'] = '\b', ['a'] = '\a', ['0'] = 0};
+
+int (a2[11]) = {1, 2, 3, [10] = 4};
+
 #line 183
 int is_even(int digit) {
     #line 184
@@ -422,6 +437,8 @@ int is_even(int digit) {
     #line 189
     return b;
 }
+
+int i;
 
 #line 205
 void f2(Vector v) {
@@ -453,6 +470,10 @@ int fact_rec(int n) {
         return (n) * ((fact_rec)((n) - (1)));
     }
 }
+
+T(*p);
+
+const char * (color_names[NUM_COLORS]) = {[COLOR_NONE] = "none", [COLOR_RED] = "red", [COLOR_GREEN] = "green", [COLOR_BLUE] = "blue"};
 
 #line 248
 void test_enum(void) {
@@ -636,6 +657,12 @@ int test_ctrl(void) {
         }
     }
 }
+
+const int (j);
+
+const int(*q);
+
+const Vector (cv);
 
 #line 361
 void f4(const char(*x)) {
