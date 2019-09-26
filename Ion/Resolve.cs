@@ -2378,7 +2378,7 @@ namespace IonLang
             sym_global_type("llong".ToPtr(), type_llong);
             sym_global_type("ullong".ToPtr(), type_ullong);
             sym_global_type("float".ToPtr(), type_float);
-
+            sym_global_type("double".ToPtr(), type_double);
             sym_global_typedef("uint8".ToPtr(), type_uchar);
             sym_global_typedef("int8".ToPtr(), type_schar);
             sym_global_typedef("uint16".ToPtr(), type_ushort);
