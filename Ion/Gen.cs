@@ -268,7 +268,11 @@ namespace IonLang
         }
 
         private void typespec_to_cdecl(Typespec* typespec, char* str) {
-            // TODO: Figure out how to handle type vs typespec in C gen for inferred types. How to prevent "flattened" values?
+            if(typespec == null) {
+                c_write(VOID);
+                if (*str != 0)
+                    c_write(' ');
+            }
             switch (typespec->kind) {
                 case TYPESPEC_NAME:
                     if (str != null) {
