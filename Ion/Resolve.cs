@@ -2134,7 +2134,6 @@ namespace IonLang
                                 type = type_ullong;
                             }
                         }
-                        type = type_uint;
                         break;
                     case SUFFIX_L:
                         type = type_long;
