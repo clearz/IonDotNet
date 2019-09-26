@@ -2,6 +2,7 @@
 #include <stdio.h>
 // Preamble
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef unsigned char uchar;
 typedef signed char schar;
@@ -11,14 +12,18 @@ typedef unsigned long ulong;
 typedef long long llong;
 typedef unsigned long long ullong;
 
-typedef uchar uint8;
-typedef schar int8;
-typedef ushort uint16;
-typedef short int16;
-typedef uint uint32;
-typedef int int32;
-typedef ullong uint64;
-typedef llong int64;
+typedef uint8_t uint8;
+typedef int8_t int8;
+typedef uint16_t uint16;
+typedef int16_t int16;
+typedef uint32_t uint32;
+typedef int32_t int32;
+typedef uint64_t uint64;
+typedef int64_t int64;
+
+typedef uintptr_t uintptr;
+typedef size_t usize;
+typedef ptrdiff_t ssize;
 
 // Forward declarations
 typedef struct Incomplete Incomplete;
