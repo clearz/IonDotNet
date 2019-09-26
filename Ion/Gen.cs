@@ -56,21 +56,7 @@ namespace IonLang
         char *include_name;
 
         SrcPos gen_pos;
-        int _pos, gen_indent;
-
-        private void reset_pos() {
-            _pos = 0;
-        }
-
-        private char* copy_buf() {
-            var len = _pos;
-            var c = (char*) xmalloc(len << (1 + 2));
-
-            Unsafe.CopyBlock(c, cdecl_buffer, (uint)len << 1);
-            c[len] = '\0';
-            _pos = 0;
-            return c;
-        }
+        int gen_indent;
 
         private void indent() {
             var size = gen_indent * 4;
@@ -81,21 +67,6 @@ namespace IonLang
 
         private void writeln() {
             gen_buf.Append('\n');
-        }
-
-        private void buf_write(char c) {
-            *(cdecl_buffer + _pos++) = c;
-        }
-
-        private void buf_write(char* c) {
-            var len = strlen(c);
-            Unsafe.CopyBlock(cdecl_buffer + _pos, c, (uint)len << 1);
-            _pos += len;
-        }
-
-        private void buf_write(char* c, int len) {
-            Unsafe.CopyBlock(cdecl_buffer + _pos, c, (uint)len << 1);
-            _pos += len;
         }
 
         private void c_write(char c) {
@@ -149,94 +120,94 @@ namespace IonLang
             switch (type->kind) {
                 case TYPE_PTR:
                     if (str != null) {
-                        buf_write('(');
-                        buf_write('*');
-                        buf_write(str);
-                        buf_write(')');
-                        type_to_cdecl(type->@base, copy_buf());
+                        type_to_cdecl(type->@base, null);
+                        c_write(' ');
+                        c_write('(');
+                        c_write('*');
+                        c_write(str);
+                        c_write(')');
                     }
                     else {
                         //buf_write(cdecl_name(type->@base));
                         type_to_cdecl(type->@base, null);
-                        buf_write(' ');
-                        buf_write('*');
+                        c_write(' ');
+                        c_write('*');
                     }
 
                     break;
                 case TYPE_CONST:
                     if (str != null) {
-                        c_write(const_keyword);
+                        type_to_cdecl(type->@base, const_keyword);
                         c_write(' ');
-                        type_to_cdecl(type->@base, null);
-                        buf_write(' ');
-                        buf_write('(');
-                        buf_write(str);
-                        buf_write(')');
+                        c_write('(');
+                        c_write(str);
+                        c_write(')');
                     }
                     else {
-                        c_write(const_keyword);
+                        c_write(const_keyword, 5);
                         c_write(' ');
                         type_to_cdecl(type->@base, null);
                     }
                     break;
                 case TYPE_ARRAY:
                     if (str != null) {
-                        buf_write('(');
-                        buf_write(str);
-                        buf_write('[');
-                        buf_write(type->num_elems.itoa());
-                        buf_write(']');
-                        buf_write(')');
-                        type_to_cdecl(type->@base, copy_buf());
+                        type_to_cdecl(type->@base, null);
+                        c_write(' ');
+                        c_write('(');
+                        c_write(str);
+                        c_write('[');
+                        c_write(type->num_elems.itoa());
+                        c_write(']');
+                        c_write(')');
                     }
                     else {
                         type_to_cdecl(type->@base, null);
-                        buf_write(' ');
-                        buf_write('[');
-                        buf_write(type->num_elems.itoa());
-                        buf_write(']');
+                        c_write(' ');
+                        c_write('[');
+                        c_write(type->num_elems.itoa());
+                        c_write(']');
                     }
 
                     break;
                 case TYPE_FUNC: {
                     if (str != null) {
-                        buf_write('(');
-                        buf_write('*');
-                        buf_write(str);
-                        buf_write(')');
+                        c_write('(');
+                        c_write('*');
+                        c_write(str);
+                        c_write(')');
                     }
 
-                    buf_write('(');
+                    c_write('(');
                     if (type->func.num_params == 0)
-                        buf_write(VOID, 4);
+                        c_write(VOID, 4);
                     else
                         for (var i = 0; i < type->func.num_params; i++) {
                             if (i > 0) {
-                                buf_write(',');
-                                buf_write(' ');
+                                c_write(',');
+                                c_write(' ');
                             }
 
                             type_to_cdecl(type->func.@params[i], null);
                         }
                     if (type->func.has_varargs) {
-                        buf_write(',');
-                        buf_write(' ');
-                        buf_write('.');
-                        buf_write('.');
-                        buf_write('.');
+                        c_write(',');
+                        c_write(' ');
+                        c_write('.');
+                        c_write('.');
+                        c_write('.');
                     }
-                    buf_write(')');
-                    type_to_cdecl(type->func.ret, copy_buf());
+                    c_write(')');
+                    type_to_cdecl(type->func.ret, null);
                 }
                 break;
                 default:
                     if (str != null) {
-                        buf_write(cdecl_name(type));
-                        buf_write(' ');
-                        buf_write(str);
+                        c_write(cdecl_name(type));
+                        c_write(' ');
+                        c_write(str);
                     }
                     else {
-                        buf_write(cdecl_name(type));
+                        c_write(cdecl_name(type));
                     }
                     break;
             }
@@ -425,14 +396,10 @@ namespace IonLang
                 else if (decl->kind == DECL_VAR) {
                     genln();
                     if (decl->var.type != null && !is_incomplete_array_typespec(decl->var.type)) {
-                        reset_pos();
                         typespec_to_cdecl(decl->var.type, sym->name);
-                        c_write(cdecl_buffer, _pos);
                     }
                     else {
-                        reset_pos();
                         type_to_cdecl(sym->type, sym->name);
-                        c_write(cdecl_buffer, _pos);
                     }
                     if (decl->var.expr != null) {
                         c_write(' ');
@@ -451,9 +418,7 @@ namespace IonLang
             gen_sync_pos(decl->pos);
             if (decl->func.ret_type != null) {
                 genln();
-                reset_pos();
                 typespec_to_cdecl(decl->func.ret_type, null);
-                c_write(cdecl_buffer, _pos);
                 c_write(' ');
                 c_write(decl->name);
                 c_write('(');
@@ -475,10 +440,7 @@ namespace IonLang
                         c_write(',');
                         c_write(' ');
                     }
-
-                    reset_pos();
                     typespec_to_cdecl(param->type, param->name);
-                    c_write(cdecl_buffer, _pos);
                 }
             if (decl->func.has_varargs) {
                 c_write(',');
@@ -489,7 +451,6 @@ namespace IonLang
             }
             c_write(')');
         }
-
         private void gen_forward_decls() {
             for (var it = (Sym**)global_syms_buf->_begin; it != global_syms_buf->_top; it++) {
                 var sym = *it;
@@ -569,9 +530,7 @@ namespace IonLang
             }
             else {
                 c_write('(');
-                reset_pos();
                 type_to_cdecl(get_resolved_type(expr), null);
-                c_write(cdecl_buffer, _pos);
                 c_write(')');
                 c_write('{');
             }
@@ -661,9 +620,7 @@ namespace IonLang
                     break;
                 case EXPR_CAST:
                     c_write('(');
-                    reset_pos();
                     type_to_cdecl(get_resolved_type(expr->cast.type), null);
-                    c_write(cdecl_buffer, _pos);
                     c_write(')');
                     c_write('(');
                     gen_expr(expr->cast.expr);
@@ -744,9 +701,7 @@ namespace IonLang
                 case EXPR_SIZEOF_TYPE:
                     c_write(sizeof_keyword);
                     c_write('(');
-                    reset_pos();
                     type_to_cdecl(get_resolved_type(expr->sizeof_type), null);
-                    c_write(cdecl_buffer, _pos);
                     c_write(')');
                     break;
                 default:
@@ -782,9 +737,7 @@ namespace IonLang
                 case STMT_EXPR:
                     gen_expr(stmt->expr);
                     break;
-                case STMT_INIT:
-                    reset_pos();
-      
+                case STMT_INIT:      
                     if (stmt->init.type != null) {
                         if (is_incomplete_array_typespec(stmt->init.type)) {
                             type_to_cdecl(get_resolved_type(stmt->init.expr), stmt->init.name);
@@ -792,7 +745,6 @@ namespace IonLang
                         else {
                             typespec_to_cdecl(stmt->init.type, stmt->init.name);
                         }
-                        c_write(cdecl_buffer, _pos);
                         if (stmt->init.expr != null) {
                             c_write(' ');
                             c_write('=');
@@ -802,7 +754,6 @@ namespace IonLang
                     }
                     else {
                         type_to_cdecl(unqualify_type(get_resolved_type(stmt->init.expr)), stmt->init.name);
-                        c_write(cdecl_buffer, _pos);
                         c_write(' ');
                         c_write('=');
                         c_write(' ');
@@ -1024,14 +975,10 @@ namespace IonLang
                     genlnf(externStr, 6);
                     c_write(' ');
                     if (decl->var.type != null && !is_incomplete_array_typespec(decl->var.type)) {
-                        reset_pos();
                         typespec_to_cdecl(decl->var.type, sym->name);
-                        c_write(cdecl_buffer, _pos);
                     }
                     else {
-                        reset_pos();
                         type_to_cdecl(sym->type, sym->name);
-                        c_write(cdecl_buffer, _pos);
                     }
                     c_write(';');
                     break;
@@ -1115,7 +1062,6 @@ namespace IonLang
 
         private void gen_all() {
             gen_buf.Clear();
-            _pos = 0;
             c_write(forward_includes);
             gen_headers();
             genln();
