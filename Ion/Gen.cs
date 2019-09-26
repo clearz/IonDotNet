@@ -555,8 +555,10 @@ namespace IonLang
                     c_write('=');
                     c_write(' ');
                 }
-                gen_expr(field.init);
-            }
+
+                gen_init_expr(field.init);
+            
+        }
             if (expr->compound.num_fields == 0) {
                 c_write('0');
             }
