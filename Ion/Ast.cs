@@ -140,14 +140,13 @@ namespace IonLang
             return d;
         }
 
-        private Decl* new_decl_func(SrcPos pos, char* name, FuncParam* @params, int num_params, Typespec* ret_type, bool is_incomplete, bool has_varargs, StmtList block)
+        private Decl* new_decl_func(SrcPos pos, char* name, FuncParam* @params, int num_params, Typespec* ret_type, bool has_varargs, StmtList block)
         {
             var d = new_decl(DECL_FUNC, pos, name);
             d->func.@params = (FuncParam*) ast_dup(@params, num_params * sizeof(FuncParam));
             d->func.num_params = num_params;
             d->func.ret_type = ret_type;
             d->func.has_varargs = has_varargs;
-            d->func.is_incomplete = is_incomplete;
             d->func.block = block;
             return d;
         }

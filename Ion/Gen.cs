@@ -406,7 +406,7 @@ namespace IonLang
                 Decl* decl = sym->decl;
 
                 if (decl != null && decl->kind == DECL_FUNC && !is_decl_foreign(decl)) {
-                    if (decl->func.is_incomplete) {
+                    if (decl->is_incomplete) {
                         fatal_error(decl->pos, "Incomplete function definition: {0}\n", new string(decl->name));
                     }
                     gen_func_decl(decl);

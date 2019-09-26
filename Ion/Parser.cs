@@ -658,14 +658,20 @@ namespace IonLang
         private Decl* parse_decl_aggregate(SrcPos pos, DeclKind kind) {
             assert(kind == DECL_STRUCT || kind == DECL_UNION);
             var name = parse_name();
-            expect_token(TOKEN_LBRACE);
-
-            var buf = Buffer<AggregateItem>.Create();
-            while (!is_token_eof() && !is_token(TOKEN_RBRACE))
-                buf.Add(parse_decl_aggregate_item());
-
-            expect_token(TOKEN_RBRACE);
-            return new_decl_aggregate(pos, kind, name, buf, buf.count);
+            if (match_token(TOKEN_SEMICOLON)) {
+                Decl *decl = new_decl_aggregate(pos, kind, name, null, 0);
+                decl->is_incomplete = true;
+                return decl;
+            }
+            else {
+                expect_token(TOKEN_LBRACE);
+                var buf = Buffer<AggregateItem>.Create();
+                while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
+                    buf.Add(parse_decl_aggregate_item());
+                }
+                expect_token(TOKEN_RBRACE);
+                return new_decl_aggregate(pos, kind, name, buf, buf.count);
+            }
         }
 
         private Decl* parse_decl_var(SrcPos pos) {
@@ -747,15 +753,17 @@ namespace IonLang
                 ret_type = parse_type();
 
             StmtList block = default;
-            bool is_incomplete = false;
-            if (is_token(TOKEN_LBRACE)) {
-                block = parse_stmt_block();
-            }
-            else {
-                expect_token(TOKEN_SEMICOLON);
+            bool is_incomplete;
+            if (match_token(TOKEN_SEMICOLON)) {
                 is_incomplete = true;
             }
-            return new_decl_func(pos, name, buf, buf.count, ret_type, is_incomplete, has_varargs, block);
+            else {
+                block = parse_stmt_block();
+                is_incomplete = false;
+            }
+            var decl = new_decl_func(pos, name, buf, buf.count, ret_type, has_varargs, block);
+            decl->is_incomplete = is_incomplete;
+            return decl;
         }
         NoteArg parse_note_arg() {
             SrcPos pos = token.pos;

@@ -80,15 +80,16 @@ namespace IonLang
     {
         [FieldOffset(0)] public DeclKind kind;
         [FieldOffset(4)] public char* name;
-        [FieldOffset(4 + Ion.PTR_SIZE)] public SrcPos pos;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Notes notes; 
-        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public Note note;
-        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public EnumDecl enum_decl;
-        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public AggregateDecl aggregate;
-        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public FuncDecl func;
-        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public TypedefDecl typedef_decl;
-        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public VarDecl var;
-        [FieldOffset(36 + 2 * Ion.PTR_SIZE)] public ConstDecl const_decl;
+        [FieldOffset(4 + Ion.PTR_SIZE)]public bool is_incomplete;
+        [FieldOffset(8 + Ion.PTR_SIZE)] public SrcPos pos;
+        [FieldOffset(24 + 2 * Ion.PTR_SIZE)] public Notes notes; 
+        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public Note note;
+        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public EnumDecl enum_decl;
+        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public AggregateDecl aggregate;
+        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public FuncDecl func;
+        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public TypedefDecl typedef_decl;
+        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public VarDecl var;
+        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public ConstDecl const_decl;
 
 
         internal struct FuncDecl
@@ -96,7 +97,6 @@ namespace IonLang
             public FuncParam* @params;
             public int num_params;
             public bool has_varargs;
-            public bool is_incomplete;
             public Typespec* ret_type;
             public StmtList block;
         }
