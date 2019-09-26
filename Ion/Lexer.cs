@@ -266,21 +266,25 @@ namespace IonLang
 
         private void scan_int() {
             ulong @base = 10;
+            char *start_digits = stream;
             if (*stream == '0') {
                 stream++;
                 if (char.ToLower(*stream) == 'x') {
                     stream++;
                     token.mod = MOD_HEX;
                     @base = 16;
+                    start_digits = stream;
                 }
                 else if (char.ToLower(*stream) == 'b') {
                     stream++;
                     token.mod = MOD_BIN;
                     @base = 2;
+                    start_digits = stream;
                 }
                 else if (char.IsDigit(*stream)) {
                     token.mod = MOD_OCT;
                     @base = 8;
+                    start_digits = stream;
                 }
             }
 
@@ -308,7 +312,9 @@ namespace IonLang
                 val = val * @base + digit;
                 stream++;
             }
-
+            if (stream == start_digits) {
+                error_here("Expected base {0} digit, got '{1}'", @base, *stream);
+            }
             token.kind = TOKEN_INT;
             token.int_val = val;
 
