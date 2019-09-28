@@ -52,8 +52,8 @@ namespace IonLang
         [FieldOffset(4)] public long size;
         [FieldOffset(12)] public long align;
         [FieldOffset(20)] public bool nonmodifiable;
-        [FieldOffset(24)] public Sym* sym;
-        [FieldOffset(28)]  public int typeid;
+        [FieldOffset(24)] public int typeid;
+        [FieldOffset(28)] public Sym* sym;
         [FieldOffset(    Ion.PTR_SIZE + 28)] public Type* @base;
         [FieldOffset(2 * Ion.PTR_SIZE + 28)] public _aggregate aggregate;
         [FieldOffset(2 * Ion.PTR_SIZE + 28)] public _func func;

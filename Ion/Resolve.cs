@@ -1945,6 +1945,8 @@ namespace IonLang
             else
                 type = expected_type;
             complete_type(type);
+            bool is_const = is_const_type(type);
+            type = unqualify_type(type);
 
             if (type->kind == TYPE_STRUCT || type->kind == TYPE_UNION) {
                 var index = 0;
@@ -2015,7 +2017,7 @@ namespace IonLang
                 }
             }
 
-            return operand_lvalue(type);
+            return operand_lvalue(is_const ? type_const(type) : type);
         }
 
         private Operand resolve_expr_call(Expr* expr) {
