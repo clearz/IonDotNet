@@ -53,10 +53,11 @@ namespace IonLang
         [FieldOffset(12)] public long align;
         [FieldOffset(20)] public bool nonmodifiable;
         [FieldOffset(24)] public Sym* sym;
-        [FieldOffset(    Ion.PTR_SIZE + 24)] public Type* @base;
-        [FieldOffset(2 * Ion.PTR_SIZE + 24)] public _aggregate aggregate;
-        [FieldOffset(2 * Ion.PTR_SIZE + 24)] public _func func;
-        [FieldOffset(2 * Ion.PTR_SIZE + 24)] public int num_elems;
+        [FieldOffset(28)]  public int typeid;
+        [FieldOffset(    Ion.PTR_SIZE + 28)] public Type* @base;
+        [FieldOffset(2 * Ion.PTR_SIZE + 28)] public _aggregate aggregate;
+        [FieldOffset(2 * Ion.PTR_SIZE + 28)] public _func func;
+        [FieldOffset(2 * Ion.PTR_SIZE + 28)] public int num_elems;
 
         internal struct _aggregate
         {
@@ -78,22 +79,24 @@ namespace IonLang
         private Map cached_ptr_types;
         private Map cached_array_types;
         private Map cached_func_types;
+        private Map cached_const_types;
+        private static Map typeid_map;
 
-        private static readonly Type* type_void    = basic_type_alloc(TYPE_VOID, 0, 1);
-        private static readonly Type* type_bool    = basic_type_alloc(TYPE_BOOL, 1, 1);
-        private static readonly Type* type_char    = basic_type_alloc(TYPE_CHAR, 2, 2);
-        private static readonly Type* type_uchar   = basic_type_alloc(TYPE_UCHAR, 1, 1);
-        private static readonly Type* type_schar   = basic_type_alloc(TYPE_SCHAR, 1, 1);
-        private static readonly Type* type_short   = basic_type_alloc(TYPE_SHORT, 2, 2);
-        private static readonly Type* type_ushort  = basic_type_alloc(TYPE_USHORT, 2, 2);
-        private static readonly Type* type_int     = basic_type_alloc(TYPE_INT, 4, 4);
-        private static readonly Type* type_uint    = basic_type_alloc(TYPE_UINT, 4, 4);
-        private static readonly Type* type_long    = basic_type_alloc(TYPE_LONG, 4, 4); // 4 on 64-bit windows, 8 on 64-bit linux, probably factor this out to the backend
-        private static readonly Type* type_ulong   = basic_type_alloc(TYPE_ULONG, 4, 4);
-        private static readonly Type* type_llong   = basic_type_alloc(TYPE_LLONG, 8, 8);
-        private static readonly Type* type_ullong  = basic_type_alloc(TYPE_ULLONG, 8, 8);
-        private static readonly Type* type_float   = basic_type_alloc(TYPE_FLOAT, 4, 4);
-        private static readonly Type* type_double  = basic_type_alloc(TYPE_DOUBLE, 8, 8);
+        private static readonly Type* type_void    = basic_type_alloc(TYPE_VOID, 0, 1, 1);
+        private static readonly Type* type_bool    = basic_type_alloc(TYPE_BOOL, 1, 1, 2);
+        private static readonly Type* type_char    = basic_type_alloc(TYPE_CHAR, 2, 2, 3);
+        private static readonly Type* type_uchar   = basic_type_alloc(TYPE_UCHAR, 1, 1, 4);
+        private static readonly Type* type_schar   = basic_type_alloc(TYPE_SCHAR, 1, 1, 5);
+        private static readonly Type* type_short   = basic_type_alloc(TYPE_SHORT, 2, 2, 6);
+        private static readonly Type* type_ushort  = basic_type_alloc(TYPE_USHORT, 2, 2, 7);
+        private static readonly Type* type_int     = basic_type_alloc(TYPE_INT, 4, 4, 8);
+        private static readonly Type* type_uint    = basic_type_alloc(TYPE_UINT, 4, 4, 9);
+        private static readonly Type* type_long    = basic_type_alloc(TYPE_LONG, 4, 4, 10); // 4 on 64-bit windows, 8 on 64-bit linux, probably factor this out to the backend
+        private static readonly Type* type_ulong   = basic_type_alloc(TYPE_ULONG, 4, 4, 11);
+        private static readonly Type* type_llong   = basic_type_alloc(TYPE_LLONG, 8, 8, 12);
+        private static readonly Type* type_ullong  = basic_type_alloc(TYPE_ULLONG, 8, 8, 13);
+        private static readonly Type* type_float   = basic_type_alloc(TYPE_FLOAT, 4, 4, 14);
+        private static readonly Type* type_double  = basic_type_alloc(TYPE_DOUBLE, 8, 8, 15);
         private static readonly Type* type_usize   = type_ullong;
         private static readonly Type* type_ssize   = type_llong;
         private static readonly Type* type_uintptr   = type_ullong;
@@ -173,17 +176,33 @@ namespace IonLang
                     return null;
             }
         }
-        private static Type* type_alloc(TypeKind kind) {
+
+        void init_types() {
+            register_typeid(type_void);
+            register_typeid(type_bool);
+            register_typeid(type_char);
+            register_typeid(type_uchar);
+            register_typeid(type_schar);
+            register_typeid(type_short);
+            register_typeid(type_ushort);
+            register_typeid(type_int);
+            register_typeid(type_uint);
+            register_typeid(type_long);
+            register_typeid(type_ulong);
+            register_typeid(type_llong);
+            register_typeid(type_ullong);
+            register_typeid(type_float);
+            register_typeid(type_double);
+        }
+
+        private static Type* basic_type_alloc(TypeKind kind, long size = 0, long align = 0, int typeid = 0) {
             var type = (Type*) xmalloc(sizeof(Type));
             Unsafe.InitBlock(type, 0, (uint)sizeof(Type));
             type->kind = kind;
-            return type;
-        }
-
-        private static Type* basic_type_alloc(TypeKind kind, long size = 0, long align = 0) {
-            var type = type_alloc(kind);
+            type->typeid = typeid;
             type->size = size;
             type->align = align;
+            type->typeid = typeid;
             return type;
         }
 
@@ -221,7 +240,27 @@ namespace IonLang
             return type;
         }
 
-        Map cached_const_types;
+
+        Type* get_type_from_typeid(int typeid) {
+            if (typeid == 0) {
+                return null;
+            }
+            return typeid_map.map_get<Type>((void*)typeid);
+        }
+
+        void register_typeid(Type* type) {
+            typeid_map.map_put((void*)type->typeid, type);
+        }
+
+        private Type* type_alloc(TypeKind kind) {
+            var type = (Type*) xmalloc(sizeof(Type));
+            Unsafe.InitBlock(type, 0, (uint)sizeof(Type));
+            type->kind = kind;
+            type->typeid = next_typeid++;
+            register_typeid(type);
+            return type;
+        }
+
 
         Type* type_const(Type* @base) {
             if (@base->kind == TYPE_CONST) {

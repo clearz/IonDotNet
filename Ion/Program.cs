@@ -1,8 +1,8 @@
-﻿using System.Runtime.CompilerServices;
-using static System.Console;
+﻿using static System.Console;
+
 namespace IonLang
 {
-    unsafe partial class Ion
+    partial class Ion
     {
         private static int Main(string[] args) {
             var ion = new Ion();

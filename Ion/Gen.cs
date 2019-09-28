@@ -45,6 +45,7 @@ namespace IonLang
                                             "typedef uintptr_t uintptr;\n"   +
                                             "typedef size_t usize;\n"        +
                                             "typedef ptrdiff_t ssize;\n"     +
+                                            "typedef int typeid;\n"          +
                                             "\n";
 
         readonly char* defineStr = "#define ".ToPtr();
@@ -714,6 +715,18 @@ namespace IonLang
                     type_to_cdecl(get_resolved_type(expr->sizeof_type), null);
                     c_write(')');
                     break;
+                case EXPR_TYPEOF_EXPR: {
+                    Type *type = get_resolved_type(expr->typeof_expr);
+                    assert(type->typeid);
+                    c_write(type->typeid.itoa());
+                    break;
+                }
+                case EXPR_TYPEOF_TYPE: {
+                    Type *type = get_resolved_type(expr->typeof_type);
+                    assert(type->typeid);
+                    c_write(type->typeid.itoa());
+                    break;
+                }
                 default:
                     assert(false);
                     break;
@@ -1070,10 +1083,257 @@ namespace IonLang
         }
 
 
+
+    void gen_typeinfos() {
+            char*[] tiInfo = {"TypeInfo *typeinfo_table[".ToPtr(out int ti0),
+                          "] = {".ToPtr(out int ti1),
+                          "int num_typeinfos = ".ToPtr(out int ti2),
+                          "TypeInfo **typeinfos = typeinfo_table;".ToPtr(out int ti3),
+                          "NULL, // No associated type".ToPtr(out int ti4),
+                          "&(TypeInfo){TYPE_VOID, .name = \"void\"},".ToPtr(out int ti5),
+                          "&(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = sizeof(void *), .base = ".ToPtr(out int ti6),
+                          ", .base = ".ToPtr(out int ti7),
+                          "NULL, // Incomplete array type".ToPtr(out int ti8),
+                          ", .count = ".ToPtr(out int ti9),
+                          ", .base = ".ToPtr(out int ti10),
+                          ", .name = ".ToPtr(out int ti11),
+                          ", .num_fields = ".ToPtr(out int ti12),
+                          ", .fields = (TypeField[]) {".ToPtr(out int ti13),
+                          "NULL, // Func".ToPtr(out int ti14),
+                          "NULL, // Enum".ToPtr(out int ti15),
+                          "NULL, // Incomplete: ".ToPtr(out int ti16),
+                          "NULL, // Unhandled kind".ToPtr(out int ti17),
+
+                          ", .type = ".ToPtr(out int ti18),
+                          ", .offset = offsetof(".ToPtr(out int ti19),
+
+                          "&(TypeInfo){".ToPtr(out int ti20),
+                          ", .size = sizeof(".ToPtr(out int ti21),
+                          "), .align = ".ToPtr(out int ti22),
+        };
+
+            int num_typeinfos = next_typeid;
+            genln();
+            c_write(tiInfo[0], ti0);
+            c_write(num_typeinfos.itoa());
+            c_write(tiInfo[1], ti1);
+            gen_indent++;
+            for (int typeid = 0; typeid < num_typeinfos; typeid++) {
+                genln();
+                c_write('[');
+                c_write(typeid.itoa());
+                c_write(']');
+                c_write(' ');
+                c_write('=');
+                c_write(' ');
+                Type *type = get_type_from_typeid(typeid);
+                if (type != null) {
+                    gen_typeinfo(type);
+                }
+                else {
+                    c_write(tiInfo[4], ti4);
+                }
+            }
+            gen_indent--;
+            genln();
+            c_write('}');
+            c_write(';');
+            genln();
+            c_write(tiInfo[2], ti2);
+            c_write(num_typeinfos.itoa());
+            c_write(';');
+            genln();
+            c_write(tiInfo[3], ti3);
+            genln();
+
+            void gen_typeinfo_header(char *kind, Type *type) {
+                c_write(tiInfo[20], ti20);
+                c_write(kind);
+                c_write(tiInfo[21], ti21);
+                type_to_cdecl(type, null);
+                c_write(tiInfo[22], ti22);
+                c_write(type->align.itoa());
+            }
+
+            void gen_typeinfo_fields(Type* type) {
+                gen_indent++;
+                assert(type->kind == TYPE_STRUCT || type->kind == TYPE_UNION);
+                for (var i = 0; i < type->aggregate.num_fields; i++) {
+                    TypeField field = type->aggregate.fields[i];
+                    c_write('{');
+                    gen_str(field.name, false);
+
+                    c_write(tiInfo[18], ti18);
+                    c_write(field.type->typeid.itoa());
+                    c_write(tiInfo[19], ti19);
+                    c_write(type->sym->name);
+                    c_write(',');
+                    c_write(' ');
+                    c_write(field.name);
+                    c_write(')');
+                    c_write('}');
+                    c_write(',');
+                }
+                gen_indent--;
+            }
+
+            void gen_type(TypeKind tk, string s) {
+                gen_buf.AppendFormat("&(TypeInfo){{ {0}, .size = sizeof({1}), .align = sizeof({1}), .name = ", tk, s);
+                gen_str(s.ToPtr(), false);
+            }
+
+            void gen_typeinfo(Type* type) {
+                switch (type->kind) {
+                    case TYPE_BOOL:
+                        gen_type(TYPE_BOOL, "bool");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_CHAR:
+                        gen_type(TYPE_CHAR, "char");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_UCHAR:
+                        gen_type(TYPE_UCHAR, "uchar");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_SCHAR:
+                        gen_type(TYPE_SCHAR, "schar");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_SHORT:
+                        gen_type(TYPE_SHORT, "short");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_USHORT:
+                        gen_type(TYPE_USHORT, "ushort");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_INT:
+                        gen_type(TYPE_INT, "int");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_UINT:
+                        gen_type(TYPE_UINT, "uint");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_LONG:
+                        gen_type(TYPE_LONG, "long");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_ULONG:
+                        gen_type(TYPE_ULONG, "ulong");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_LLONG:
+                        gen_type(TYPE_LLONG, "llong");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_ULLONG:
+                        gen_type(TYPE_ULLONG, "ullong");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_FLOAT:
+                        gen_type(TYPE_FLOAT, "float");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_DOUBLE:
+                        gen_type(TYPE_DOUBLE, "double");
+                        c_write('}');
+                        c_write(',');
+                        break;
+
+                    case TYPE_VOID:
+                        c_write(tiInfo[5], ti5);
+                        break;
+                    case TYPE_PTR:
+                        c_write(tiInfo[6], ti6);
+                        c_write(type->@base->typeid.itoa());
+                        c_write('}');
+                        c_write(',');
+                        break;
+                    case TYPE_CONST:
+                        gen_typeinfo_header("TYPE_CONST".ToPtr(), type);
+                        c_write(tiInfo[7], ti7);
+                        c_write(type->@base->typeid.itoa());
+                        c_write('}');
+                        c_write(',');
+                        break;
+                    case TYPE_ARRAY:
+                        if (is_incomplete_array_type(type)) {
+                            c_write(tiInfo[8], ti8);
+                        }
+                        else {
+                            gen_typeinfo_header("TYPE_ARRAY".ToPtr(), type);
+                            c_write(tiInfo[9], ti9);
+                            c_write(type->@base->typeid.itoa());
+                            c_write(tiInfo[10], ti10);
+                            c_write(type->num_elems.itoa());
+                            c_write('}');
+                            c_write(',');
+                        }
+                        break;
+                    case TYPE_STRUCT:
+                    case TYPE_UNION:
+                        gen_typeinfo_header(type->kind == TYPE_STRUCT ? "TYPE_STRUCT".ToPtr() : "TYPE_UNION".ToPtr(), type);
+                        c_write(tiInfo[11], ti11);
+                        gen_str(type->sym->name, false);
+                        c_write(tiInfo[12], ti12);
+                        c_write(type->aggregate.num_fields.itoa());
+                        c_write(tiInfo[13], ti13);
+                        gen_typeinfo_fields(type);
+                        c_write('}');
+                        c_write('}');
+                        c_write(',');
+                        break;
+                    case TYPE_FUNC:
+                        c_write(tiInfo[14], ti14);
+                        break;
+                    case TYPE_ENUM:
+                        c_write(tiInfo[15], ti15);
+                        break;
+                    case TYPE_INCOMPLETE:
+                        c_write(tiInfo[16], ti16);
+                        c_write(type->sym->name);
+                        break;
+                    default:
+                        c_write(tiInfo[17], ti17);
+                        break;
+                }
+            }
+
+        }
+
         private void gen_all() {
             gen_buf.Clear();
             c_write(forward_includes);
             gen_headers();
+            genln();
             genln();
             c_write(preamble.ToPtr(), preamble.Length);
             c_write(forward_declarations);
@@ -1081,6 +1341,10 @@ namespace IonLang
             genln();
             genlnf(sorted_declarations);
             gen_sorted_decls();
+            genln();
+            c_write("// Typeinfo".ToPtr());
+            genln();
+            gen_typeinfos();
             genlnf(definitions);
             genln();
             gen_defs();

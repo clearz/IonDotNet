@@ -46,6 +46,16 @@ namespace IonLang
             stream[s.Length] = '\0';
             return stream;
         }
+        public static char* ToPtr(this string s, out int len) {
+            len = s.Length;
+            var stream = Ion.xmalloc<char>(len+ 1);
+            fixed (char* c = s) {
+                Unsafe.CopyBlock(stream, c, (uint)len << 1);
+            }
+
+            stream[s.Length] = '\0';
+            return stream;
+        }
 
         public static char* ToPtr2(this string s) {
             fixed (char* c = s) {

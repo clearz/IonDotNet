@@ -196,6 +196,19 @@ namespace IonLang
                 expect_token(TOKEN_RPAREN);
                 return new_expr_sizeof_expr(pos, expr);
             }
+            else if (match_keyword(typeof_keyword)) {
+                expect_token(TOKEN_LPAREN);
+                if (match_token(TOKEN_COLON)) {
+                    Typespec *type = parse_type();
+                    expect_token(TOKEN_RPAREN);
+                    return new_expr_typeof_type(pos, type);
+                }
+                else {
+                    Expr *expr = parse_expr();
+                    expect_token(TOKEN_RPAREN);
+                    return new_expr_typeof_expr(pos, expr);
+                }
+            }
 
             if (is_token(TOKEN_LBRACE))
                 return parse_expr_compound(null);

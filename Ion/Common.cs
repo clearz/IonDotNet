@@ -29,7 +29,7 @@ namespace IonLang
             sorted_syms = PtrBuffer.Create(capacity: 256);
             ast_arena = MemArena.Create();
             intern_arena = MemArena.Create();
-            init_builtins();
+            init_compiler();
             lex_init();
             init_chars();
 

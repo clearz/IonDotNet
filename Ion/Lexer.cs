@@ -104,6 +104,7 @@ namespace IonLang
         private char* line_start;
         private char* return_keyword;
         private char* sizeof_keyword;
+        private char *typeof_keyword;
 
         private Buffer<char> str_buf;
         private char* stream;
@@ -198,6 +199,9 @@ namespace IonLang
 
             sizeof_keyword = _I("sizeof");
             keywords->Add(sizeof_keyword);
+
+            typeof_keyword = _I("typeof");
+            keywords->Add(typeof_keyword);
 
             break_keyword = _I("break");
             keywords->Add(break_keyword);

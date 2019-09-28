@@ -21,6 +21,8 @@ namespace IonLang
         private Buffer<Sym> local_syms;
         private PtrBuffer* sorted_syms;
 
+        static int next_typeid = 16;
+
         const ulong INT_MAX = int.MaxValue,
                     UINT_MAX = uint.MaxValue,
                     LONG_MAX = int.MaxValue,
@@ -2289,7 +2291,24 @@ namespace IonLang
                     result = operand_const(type_usize, new Val { ll = type_sizeof(type) });
                     break;
                 }
-
+                case EXPR_TYPEOF_TYPE: {
+                    Type *type = resolve_typespec(expr->typeof_type);
+                    result = operand_const(type_int, new Val{i = type->typeid});
+                    break;
+                }
+                case EXPR_TYPEOF_EXPR: {
+                    if (expr->typeof_expr->kind == EXPR_NAME) {
+                        Sym *sym = resolve_name(expr->typeof_expr->name);
+                        if (sym != null && sym->kind == SYM_TYPE) {
+                            result = operand_const(type_int, new Val{i = sym->type->typeid});
+                            set_resolved_type(expr->typeof_expr, sym->type);
+                            break;
+                        }
+                    }
+                    Type *type = resolve_expr(expr->typeof_expr).type;
+                    result = operand_const(type_int, new Val{i = type->typeid});
+                    break;
+                }
                 default:
                     assert(false);
                     result = default;
@@ -2329,9 +2348,13 @@ namespace IonLang
                 }
             }
         }
+        static bool is_init = false;
+        private void init_builtins() {
 
-        private void init_builtins()
-        {
+            if (is_init) {
+                return;
+            }
+
             type_ranks[(int)TYPE_BOOL] = 1;
             type_ranks[(int)TYPE_CHAR] = 2;
             type_ranks[(int)TYPE_SCHAR] = 2;
@@ -2390,11 +2413,14 @@ namespace IonLang
             sym_global_typedef("usize".ToPtr(), type_usize);
             sym_global_typedef("ssize".ToPtr(), type_ssize);
             sym_global_typedef("uintptr".ToPtr(), type_uintptr);
+            sym_global_typedef("typeid".ToPtr(), type_int);
 
 
             sym_global_const("true".ToPtr(), type_bool, new Val { b = true });
             sym_global_const("false".ToPtr(), type_bool, new Val { b = false });
             sym_global_const("NULL".ToPtr(), type_const(type_ptr(type_void)), new Val { p = null });
+
+            is_init = true;
         }
 
         private void finalize_syms() {

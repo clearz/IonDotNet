@@ -172,7 +172,7 @@ namespace IonLang
             return d;
         }
 
-        private Expr* expr_new(ExprKind kind, SrcPos pos)
+        private Expr* new_expr(ExprKind kind, SrcPos pos)
         {
             var e = (Expr*) ast_alloc(sizeof(Expr));
             e->pos = pos;
@@ -182,21 +182,34 @@ namespace IonLang
 
         private Expr* new_expr_sizeof_expr(SrcPos pos, Expr* expr)
         {
-            var e = expr_new(EXPR_SIZEOF_EXPR, pos);
+            var e = new_expr(EXPR_SIZEOF_EXPR, pos);
             e->sizeof_expr = expr;
             return e;
         }
 
         private Expr* new_expr_sizeof_type(SrcPos pos, Typespec* type)
         {
-            var e = expr_new(EXPR_SIZEOF_TYPE, pos);
+            var e = new_expr(EXPR_SIZEOF_TYPE, pos);
             e->sizeof_type = type;
             return e;
         }
 
+        Expr* new_expr_typeof_expr(SrcPos pos, Expr* expr) {
+            Expr *e = new_expr(EXPR_TYPEOF_EXPR, pos);
+            e->typeof_expr = expr;
+            return e;
+        }
+
+        Expr* new_expr_typeof_type(SrcPos pos, Typespec* type) {
+            Expr *e = new_expr(EXPR_TYPEOF_TYPE, pos);
+            e->typeof_type = type;
+            return e;
+        }
+
+
         private Expr* new_expr_int(SrcPos pos, ulong val, TokenMod mod, TokenSuffix suffix)
         {
-            var e = expr_new(EXPR_INT, pos);
+            var e = new_expr(EXPR_INT, pos);
             e->int_lit.val = val;
             e->int_lit.mod = mod;
             e->int_lit.suffix = suffix;
@@ -205,7 +218,7 @@ namespace IonLang
 
         private Expr* new_expr_float(SrcPos pos, double val, TokenSuffix suffix)
         {
-            var e = expr_new(EXPR_FLOAT, pos);
+            var e = new_expr(EXPR_FLOAT, pos);
             e->float_lit.val = val;
             e->float_lit.suffix = suffix;
             return e;
@@ -213,21 +226,21 @@ namespace IonLang
 
         private Expr* new_expr_str(SrcPos pos, char* val, TokenMod mod)
         {
-            var e = expr_new(EXPR_STR, pos);
+            var e = new_expr(EXPR_STR, pos);
             e->str_lit.val = val;
             e->str_lit.mod = mod;
             return e;
         }
 
         private Expr* new_expr_name(SrcPos pos, char* name) {
-            var e = expr_new(EXPR_NAME, pos);
+            var e = new_expr(EXPR_NAME, pos);
             e->name = name;
             return e;
         }
 
         private Expr* new_expr_compound(SrcPos pos, Typespec* type, CompoundField* fields, int num_fields)
         {
-            var e = expr_new(EXPR_COMPOUND, pos);
+            var e = new_expr(EXPR_COMPOUND, pos);
             e->compound.type = type;
             e->compound.fields = (CompoundField*) ast_dup(fields, num_fields * sizeof(CompoundField));
             e->compound.num_fields = num_fields;
@@ -236,7 +249,7 @@ namespace IonLang
 
         private Expr* new_expr_cast(SrcPos pos, Typespec* type, Expr* expr)
         {
-            var e = expr_new(EXPR_CAST, pos);
+            var e = new_expr(EXPR_CAST, pos);
             e->cast.type = type;
             e->cast.expr = expr;
             return e;
@@ -244,7 +257,7 @@ namespace IonLang
 
         private Expr* new_expr_call(SrcPos pos, Expr* expr, Expr** args, int num_args)
         {
-            var e = expr_new(EXPR_CALL, pos);
+            var e = new_expr(EXPR_CALL, pos);
             e->call.expr = expr;
             e->call.args = (Expr**) ast_dup(args, num_args * sizeof(Expr*));
             e->call.num_args = num_args;
@@ -253,7 +266,7 @@ namespace IonLang
 
         private Expr* new_expr_index(SrcPos pos, Expr* expr, Expr* index)
         {
-            var e = expr_new(EXPR_INDEX, pos);
+            var e = new_expr(EXPR_INDEX, pos);
             e->index.expr = expr;
             e->index.index = index;
             return e;
@@ -261,7 +274,7 @@ namespace IonLang
 
         private Expr* new_expr_field(SrcPos pos, Expr* expr, char* name)
         {
-            var e = expr_new(EXPR_FIELD, pos);
+            var e = new_expr(EXPR_FIELD, pos);
             e->field.expr = expr;
             e->field.name = name;
             return e;
@@ -269,7 +282,7 @@ namespace IonLang
 
         private Expr* new_expr_unary(SrcPos pos, TokenKind op, Expr* expr)
         {
-            var e = expr_new(EXPR_UNARY, pos);
+            var e = new_expr(EXPR_UNARY, pos);
             e->unary.op = op;
             e->unary.expr = expr;
             return e;
@@ -277,7 +290,7 @@ namespace IonLang
 
         private Expr* new_expr_binary(SrcPos pos, TokenKind op, Expr* left, Expr* right)
         {
-            var e = expr_new(EXPR_BINARY, pos);
+            var e = new_expr(EXPR_BINARY, pos);
             e->binary.op = op;
             e->binary.left = left;
             e->binary.right = right;
@@ -286,7 +299,7 @@ namespace IonLang
 
         private Expr* new_expr_ternary(SrcPos pos, Expr* cond, Expr* then_expr, Expr* else_expr)
         {
-            var e = expr_new(EXPR_TERNARY, pos);
+            var e = new_expr(EXPR_TERNARY, pos);
             e->ternary.cond = cond;
             e->ternary.then_expr = then_expr;
             e->ternary.else_expr = else_expr;

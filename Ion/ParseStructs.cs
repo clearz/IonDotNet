@@ -182,6 +182,8 @@ namespace IonLang
         [FieldOffset(20 + Ion.PTR_SIZE)] public _int_lit int_lit;
         [FieldOffset(20 + Ion.PTR_SIZE)] public _float_lit float_lit;
         [FieldOffset(20 + Ion.PTR_SIZE)] public _str_lit str_lit;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public Expr* typeof_expr;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* typeof_type;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Expr* sizeof_expr;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* sizeof_type;
         [FieldOffset(20 + Ion.PTR_SIZE)] public CompoundExpr compound;
@@ -398,6 +400,8 @@ namespace IonLang
         EXPR_TERNARY,
         EXPR_SIZEOF_EXPR,
         EXPR_SIZEOF_TYPE,
+        EXPR_TYPEOF_EXPR,
+        EXPR_TYPEOF_TYPE,
     }
 
 
