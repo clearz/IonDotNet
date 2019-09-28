@@ -32,7 +32,7 @@ namespace IonLang
                     "    TYPE_FUNC,\n"             +
                     "}\n"                          +
                     "\n"                           +
-                    "struct TypeField {\n"         +
+                    "struct TypeFieldInfo {\n"         +
                     "    name: char const*;\n"     +
                     "    type: typeid;\n"          +
                     "    offset: int;\n"           +
@@ -45,7 +45,7 @@ namespace IonLang
                     "    name: char const*;\n"     +
                     "    count: int;\n"            +
                     "    base: typeid;\n"          +
-                    "    fields: TypeField*;\n"    +
+                    "    fields: TypeFieldInfo*;\n"    +
                     "    num_fields: int;\n"       +
                     "}\n"                          +
                     "\n"                           +

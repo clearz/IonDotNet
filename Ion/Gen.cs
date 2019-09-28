@@ -46,7 +46,12 @@ namespace IonLang
                                             "typedef size_t usize;\n"        +
                                             "typedef ptrdiff_t ssize;\n"     +
                                             "typedef int typeid;\n"          +
-                                            "\n";
+                                            "\n" +
+                                            "#ifdef _MSC_VER\n"              +
+                                            "#define alignof(x) __alignof(x)\n"+
+                                            "#else\n"+
+                                            "#define alignof(x) __alignof__(x)\n"+
+                                            "#endif\n";
 
         readonly char* defineStr = "#define ".ToPtr();
         readonly char* lineStr = "#line ".ToPtr();
@@ -1091,14 +1096,14 @@ namespace IonLang
                           "TypeInfo **typeinfos = typeinfo_table;".ToPtr(out int ti3),
                           "NULL, // No associated type".ToPtr(out int ti4),
                           "&(TypeInfo){TYPE_VOID, .name = \"void\"},".ToPtr(out int ti5),
-                          "&(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = sizeof(void *), .base = ".ToPtr(out int ti6),
+                          "&(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = ".ToPtr(out int ti6),
                           ", .base = ".ToPtr(out int ti7),
                           "NULL, // Incomplete array type".ToPtr(out int ti8),
-                          ", .count = ".ToPtr(out int ti9),
-                          ", .base = ".ToPtr(out int ti10),
+                          ", .base = ".ToPtr(out int ti9),
+                          ", .count = ".ToPtr(out int ti10),
                           ", .name = ".ToPtr(out int ti11),
                           ", .num_fields = ".ToPtr(out int ti12),
-                          ", .fields = (TypeField[]) {".ToPtr(out int ti13),
+                          ", .fields = (TypeFieldInfo[]) {".ToPtr(out int ti13),
                           "NULL, // Func".ToPtr(out int ti14),
                           "NULL, // Enum".ToPtr(out int ti15),
                           "NULL, // Incomplete: ".ToPtr(out int ti16),
@@ -1109,7 +1114,7 @@ namespace IonLang
 
                           "&(TypeInfo){".ToPtr(out int ti20),
                           ", .size = sizeof(".ToPtr(out int ti21),
-                          "), .align = ".ToPtr(out int ti22),
+                          "), .align = alignof(".ToPtr(out int ti22),
         };
 
             int num_typeinfos = next_typeid;
@@ -1152,7 +1157,8 @@ namespace IonLang
                 c_write(tiInfo[21], ti21);
                 type_to_cdecl(type, null);
                 c_write(tiInfo[22], ti22);
-                c_write(type->align.itoa());
+                type_to_cdecl(type, null);
+                c_write(')');
             }
 
             void gen_typeinfo_fields(Type* type) {
@@ -1178,7 +1184,7 @@ namespace IonLang
             }
 
             void gen_type(TypeKind tk, string s) {
-                gen_buf.AppendFormat("&(TypeInfo){{ {0}, .size = sizeof({1}), .align = sizeof({1}), .name = ", tk, s);
+                gen_buf.AppendFormat("&(TypeInfo){{ {0}, .size = sizeof({1}), .align = alignof({1}), .name = ", tk, s);
                 gen_str(s.ToPtr(), false);
             }
 
