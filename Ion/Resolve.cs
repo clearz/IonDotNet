@@ -2005,6 +2005,7 @@ namespace IonLang
                 }
             }
             else {
+                assert(is_scalar_type(type));
                 if (expr->compound.num_fields > 1) {
                     fatal_error(expr->pos, "Compound literal for scalar type cannot have more than one operand");
                 }
