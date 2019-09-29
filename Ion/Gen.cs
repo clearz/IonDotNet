@@ -1160,7 +1160,7 @@ namespace IonLang
                           "int num_typeinfos = ".ToPtr(out int ti2),
                           "TypeInfo **typeinfos = typeinfo_table;".ToPtr(out int ti3),
                           "NULL, // No associated type".ToPtr(out int ti4),
-                          "&(TypeInfo){TYPE_VOID, .name = \"void\"},".ToPtr(out int ti5),
+                          "&(TypeInfo){TYPE_VOID, .name = \"void\", .size = 0, .align = 0},".ToPtr(out int ti5),
                           "&(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = ".ToPtr(out int ti6),
                           ", .base = ".ToPtr(out int ti7),
                           "NULL, // Incomplete array type".ToPtr(out int ti8),
@@ -1180,6 +1180,7 @@ namespace IonLang
                           "&(TypeInfo){".ToPtr(out int ti20),
                           ", .size = sizeof(".ToPtr(out int ti21),
                           "), .align = alignof(".ToPtr(out int ti22),
+                          ", .size = 0, .align = 0".ToPtr(out int ti23),
         };
 
             int num_typeinfos = next_typeid;
@@ -1217,13 +1218,20 @@ namespace IonLang
             genln();
 
             void gen_typeinfo_header(char *kind, Type *type) {
-                c_write(tiInfo[20], ti20);
-                c_write(kind);
-                c_write(tiInfo[21], ti21);
-                type_to_cdecl(type, null);
-                c_write(tiInfo[22], ti22);
-                type_to_cdecl(type, null);
-                c_write(')');
+                if (type_sizeof(type) == 0) {
+                    c_write(tiInfo[20], ti20);
+                    c_write(kind);
+                    c_write(tiInfo[23], ti23);
+                }
+                else {
+                    c_write(tiInfo[20], ti20);
+                    c_write(kind);
+                    c_write(tiInfo[21], ti21);
+                    type_to_cdecl(type, null);
+                    c_write(tiInfo[22], ti22);
+                    type_to_cdecl(type, null);
+                    c_write(')');
+                }
             }
 
             void gen_typeinfo_fields(Type* type) {
