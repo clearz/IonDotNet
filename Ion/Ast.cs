@@ -206,8 +206,25 @@ namespace IonLang
             return e;
         }
 
+        Expr* new_expr_alignof_expr(SrcPos pos, Expr* expr) {
+            Expr *e = new_expr(EXPR_ALIGNOF_EXPR, pos);
+            e->alignof_expr = expr;
+            return e;
+        }
 
-        private Expr* new_expr_int(SrcPos pos, ulong val, TokenMod mod, TokenSuffix suffix)
+        Expr* new_expr_alignof_type(SrcPos pos, Typespec* type) {
+            Expr *e = new_expr(EXPR_ALIGNOF_TYPE, pos);
+            e->alignof_type = type;
+            return e;
+        }
+
+        Expr* new_expr_offsetof(SrcPos pos, Typespec* type, char* name) {
+            Expr *e = new_expr(EXPR_OFFSETOF, pos);
+            e->offsetof_field.type = type;
+            e->offsetof_field.name = name;
+            return e;
+        }
+    private Expr* new_expr_int(SrcPos pos, ulong val, TokenMod mod, TokenSuffix suffix)
         {
             var e = new_expr(EXPR_INT, pos);
             e->int_lit.val = val;

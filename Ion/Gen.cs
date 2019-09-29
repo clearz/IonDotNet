@@ -725,6 +725,18 @@ namespace IonLang
                     type_to_cdecl(get_resolved_type(expr->sizeof_type), null);
                     c_write(')');
                     break;
+                case EXPR_ALIGNOF_EXPR:
+                    c_write(alignof_keyword);
+                    c_write('(');
+                    type_to_cdecl(get_resolved_type(expr->alignof_expr), null);
+                    c_write(')');
+                    break;
+                case EXPR_ALIGNOF_TYPE:
+                    c_write(alignof_keyword);
+                    c_write('(');
+                    type_to_cdecl(get_resolved_type(expr->alignof_type), null);
+                    c_write(')');
+                    break;
                 case EXPR_TYPEOF_EXPR: {
                     Type *type = get_resolved_type(expr->typeof_expr);
                     assert(type->typeid);
@@ -735,6 +747,16 @@ namespace IonLang
                     Type *type = get_resolved_type(expr->typeof_type);
                     assert(type->typeid);
                     c_write(type->typeid.itoa());
+                    break;
+                }
+                case EXPR_OFFSETOF: {
+                    c_write(offsetof_keyword);
+                    c_write('(');
+                    type_to_cdecl(get_resolved_type(expr->alignof_type), null);
+                    c_write(',');
+                    c_write(' ');
+                    c_write(expr->offsetof_field.name);
+                    c_write(')');
                     break;
                 }
                 default:

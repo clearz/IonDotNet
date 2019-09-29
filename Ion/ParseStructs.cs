@@ -185,6 +185,9 @@ namespace IonLang
         [FieldOffset(20 + Ion.PTR_SIZE)] public Expr* typeof_expr;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* typeof_type;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Expr* sizeof_expr;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public Expr* alignof_expr;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* alignof_type;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public _offsetof_field offsetof_field;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* sizeof_type;
         [FieldOffset(20 + Ion.PTR_SIZE)] public CompoundExpr compound;
         [FieldOffset(20 + Ion.PTR_SIZE)] public CastExpr cast;
@@ -195,6 +198,11 @@ namespace IonLang
         [FieldOffset(20 + Ion.PTR_SIZE)] public IndexExpr index;
         [FieldOffset(20 + Ion.PTR_SIZE)] public FieldExpr field;
 
+        internal struct _offsetof_field
+        {
+            public Typespec* type;
+            public char *name;
+        }
         internal struct _int_lit
         {
             public ulong val;
@@ -403,6 +411,9 @@ namespace IonLang
         EXPR_SIZEOF_TYPE,
         EXPR_TYPEOF_EXPR,
         EXPR_TYPEOF_TYPE,
+        EXPR_ALIGNOF_EXPR,
+        EXPR_ALIGNOF_TYPE,
+        EXPR_OFFSETOF,
     }
 
 

@@ -2294,6 +2294,7 @@ namespace IonLang
                         if (sym != null && sym->kind == SYM_TYPE) {
                             complete_type(sym->type);
                             result = operand_const(type_usize, new Val{ll = type_sizeof(sym->type)});
+                            set_resolved_type(expr->sizeof_expr, sym->type);
                             break;
                         }
                     }
@@ -2325,6 +2326,39 @@ namespace IonLang
                     }
                     Type *type = resolve_expr(expr->typeof_expr).type;
                     result = operand_const(type_int, new Val{i = type->typeid});
+                    break;
+                }
+                case EXPR_ALIGNOF_EXPR: {
+                    if (expr->sizeof_expr->kind == EXPR_NAME) {
+                        Sym *sym = resolve_name(expr->alignof_expr->name);
+                        if (sym != null && sym->kind == SYM_TYPE) {
+                            complete_type(sym->type);
+                            result = operand_const(type_usize, new Val{ll = type_alignof(sym->type)});
+                            set_resolved_type(expr->alignof_expr, sym->type);
+                            break;
+                        }
+                    }
+                    Type *type = resolve_expr(expr->alignof_expr).type;
+                    complete_type(type);
+                    result = operand_const(type_usize, new Val{ll = type_alignof(type)});
+                    break;
+                }
+                case EXPR_ALIGNOF_TYPE: {
+                    Type *type = resolve_typespec(expr->alignof_type);
+                    complete_type(type);
+                    result = operand_const(type_usize, new Val{ll = type_alignof(type)});
+                    break;
+                }
+                case EXPR_OFFSETOF: {
+                    Type *type = resolve_typespec(expr->offsetof_field.type);
+                    if (type->kind != TYPE_STRUCT && type->kind != TYPE_UNION) {
+                        fatal_error(expr->pos, "offsetof can only be used with struct/union types");
+                    }
+                    int field = aggregate_field_index(type, expr->offsetof_field.name);
+                    if (field < 0) {
+                        fatal_error(expr->pos, "No field '%s' in type", new string(expr->offsetof_field.name));
+                    }
+                    result = operand_const(type_usize, new Val{ll = type->aggregate.fields[field].offset});
                     break;
                 }
                 default:

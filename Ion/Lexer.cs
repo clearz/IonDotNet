@@ -105,6 +105,8 @@ namespace IonLang
         private char* return_keyword;
         private char* sizeof_keyword;
         private char *typeof_keyword;
+        private char *alignof_keyword;
+        private char *offsetof_keyword;
 
         private Buffer<char> str_buf;
         private char* stream;
@@ -208,6 +210,12 @@ namespace IonLang
 
             typeof_keyword = _I("typeof");
             keywords->Add(typeof_keyword);
+
+            alignof_keyword = _I("alignof");
+            keywords->Add(alignof_keyword);
+
+            offsetof_keyword = _I("offsetof");
+            keywords->Add(offsetof_keyword);
 
             break_keyword = _I("break");
             keywords->Add(break_keyword);
