@@ -7,7 +7,9 @@ namespace IonLang
     public unsafe partial class Ion
     {
         char *builtin_code =
-                    ("enum TypeKind {\n"            +
+                    ("@declare_note(foreign)\n"    +
+                    "\n"                           +
+                    "enum TypeKind {\n"            +
                     "    TYPE_NONE,\n"             +
                     "    TYPE_VOID,\n"             +
                     "    TYPE_BOOL,\n"             +

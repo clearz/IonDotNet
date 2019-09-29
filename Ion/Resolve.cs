@@ -17,6 +17,7 @@ namespace IonLang
         public const int MAX_LOCAL_SYMS = 1024;
         Decls *global_decls;
         private Map global_syms_map;
+        Map decl_note_names;
         private PtrBuffer* global_syms_buf;
         private Buffer<Sym> local_syms;
         private PtrBuffer* sorted_syms;
@@ -1359,7 +1360,7 @@ namespace IonLang
                         resolve_cond_expr(stmt->note.args[0].expr);
                     }
                     else {
-                        warning(stmt->pos, "Unknown # directive '{0}'", new string(stmt->note.name));
+                        warning(stmt->pos, "Unknown statement #directive '{0}'", new string(stmt->note.name));
                     }
                     return false;
                 case STMT_IF: {
@@ -2357,7 +2358,22 @@ namespace IonLang
         internal void sym_global_decls() {
             for (var i = 0; i < global_decls->num_decls; i++) {
                 Decl *decl = global_decls->decls[i];
-                if (decl->kind != DECL_NOTE) {
+                if (decl->kind == DECL_NOTE) {
+                    if (null != decl_note_names.map_get<byte>(decl->note.name)) {
+                        warning(decl->pos, "Unknown declaration #directive '{0}'", new string(decl->note.name));
+                    }
+                    if (decl->note.name == declare_note_name) {
+                        if (decl->note.num_args != 1) {
+                            fatal_error(decl->pos, "#declare_note takes 1 argument");
+                        }
+                        Expr *arg = decl->note.args[0].expr;
+                        if (arg->kind != EXPR_NAME) {
+                            fatal_error(decl->pos, "#declare_note argument must be name");
+                        }
+                        decl_note_names.map_put(arg->name, (void*)1);
+                    }
+                }
+                else {
                     sym_global_decl(global_decls->decls[i]);
                 }
             }
@@ -2369,6 +2385,9 @@ namespace IonLang
                 return;
             }
 
+            lex_init();
+
+            decl_note_names.map_put(declare_note_name, (void*)1);
             type_ranks[(int)TYPE_BOOL] = 1;
             type_ranks[(int)TYPE_CHAR] = 2;
             type_ranks[(int)TYPE_SCHAR] = 2;
