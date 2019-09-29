@@ -836,6 +836,16 @@ namespace IonLang
                     genln();
                     gen_stmt_block(stmt->block);
                     break;
+                case STMT_NOTE:
+                    if (stmt->note.name == assert_name) {
+                        genlnf(assert_name);
+                        c_write('(');
+                        assert(stmt->note.num_args == 1);
+                        gen_expr(stmt->note.args[0].expr);
+                        c_write(')');
+                        c_write(';');
+                    }
+                    break;
                 case STMT_IF:
                     genlnf(if_keyword);
                     c_write(' ');

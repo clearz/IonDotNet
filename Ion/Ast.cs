@@ -314,9 +314,15 @@ namespace IonLang
             }
             return null;
         }
+        Stmt* new_stmt_note(SrcPos pos, Note note) {
+            Stmt *s = new_stmt(STMT_NOTE, pos);
+            s->note = note;
+            return s;
+        }
 
 
-        private Stmt* stmt_new(StmtKind kind, SrcPos pos)
+
+        private Stmt* new_stmt(StmtKind kind, SrcPos pos)
         {
             var s = (Stmt*) ast_alloc(sizeof(Stmt));
             s->pos = pos;
@@ -326,31 +332,31 @@ namespace IonLang
 
         private Stmt* new_stmt_decl(SrcPos pos, Decl* decl)
         {
-            var s = stmt_new(STMT_DECL, pos);
+            var s = new_stmt(STMT_DECL, pos);
             s->decl = decl;
             return s;
         }
 
         private Stmt* new_stmt_return(SrcPos pos, Expr* expr)
         {
-            var s = stmt_new(STMT_RETURN, pos);
+            var s = new_stmt(STMT_RETURN, pos);
             s->expr = expr;
             return s;
         }
 
         private Stmt* new_stmt_break(SrcPos pos)
         {
-            return stmt_new(STMT_BREAK, pos);
+            return new_stmt(STMT_BREAK, pos);
         }
 
         private Stmt* new_stmt_continue(SrcPos pos)
         {
-            return stmt_new(STMT_CONTINUE, pos);
+            return new_stmt(STMT_CONTINUE, pos);
         }
 
         private Stmt* new_stmt_block(SrcPos pos, StmtList block)
         {
-            var s = stmt_new(STMT_BLOCK, pos);
+            var s = new_stmt(STMT_BLOCK, pos);
             s->block = block;
             return s;
         }
@@ -358,7 +364,7 @@ namespace IonLang
         private Stmt* new_stmt_if(SrcPos pos, Expr* cond, StmtList then_block, ElseIf** elseifs, int num_elseifs,
             StmtList else_block)
         {
-            var s = stmt_new(STMT_IF, pos);
+            var s = new_stmt(STMT_IF, pos);
             s->if_stmt.cond = cond;
             s->if_stmt.then_block = then_block;
             s->if_stmt.elseifs = (ElseIf**) ast_dup(elseifs, num_elseifs * sizeof(ElseIf*));
@@ -369,7 +375,7 @@ namespace IonLang
 
         private Stmt* new_stmt_while(SrcPos pos, Expr* cond, StmtList block)
         {
-            var s = stmt_new(STMT_WHILE, pos);
+            var s = new_stmt(STMT_WHILE, pos);
             s->while_stmt.cond = cond;
             s->while_stmt.block = block;
             return s;
@@ -377,7 +383,7 @@ namespace IonLang
 
         private Stmt* new_stmt_do_while(SrcPos pos, Expr* cond, StmtList block)
         {
-            var s = stmt_new(STMT_DO_WHILE, pos);
+            var s = new_stmt(STMT_DO_WHILE, pos);
             s->while_stmt.cond = cond;
             s->while_stmt.block = block;
             return s;
@@ -385,7 +391,7 @@ namespace IonLang
 
         private Stmt* new_stmt_for(SrcPos pos, Stmt* init, Expr* cond, Stmt* next, StmtList block)
         {
-            var s = stmt_new(STMT_FOR, pos);
+            var s = new_stmt(STMT_FOR, pos);
             s->for_stmt.init = init;
             s->for_stmt.cond = cond;
             s->for_stmt.next = next;
@@ -395,7 +401,7 @@ namespace IonLang
 
         private Stmt* new_stmt_switch(SrcPos pos, Expr* expr, SwitchCase* cases, int num_cases)
         {
-            var s = stmt_new(STMT_SWITCH, pos);
+            var s = new_stmt(STMT_SWITCH, pos);
             s->switch_stmt.expr = expr;
             s->switch_stmt.cases = (SwitchCase*) ast_dup(cases, num_cases * sizeof(SwitchCase));
             s->switch_stmt.num_cases = num_cases;
@@ -404,7 +410,7 @@ namespace IonLang
 
         private Stmt* new_stmt_assign(SrcPos pos, TokenKind op, Expr* left, Expr* right)
         {
-            var s = stmt_new(STMT_ASSIGN, pos);
+            var s = new_stmt(STMT_ASSIGN, pos);
             s->assign.op = op;
             s->assign.left = left;
             s->assign.right = right;
@@ -413,7 +419,7 @@ namespace IonLang
 
         private Stmt* new_stmt_init(SrcPos pos, char* name, Typespec* type, Expr* expr)
         {
-            var s = stmt_new(STMT_INIT, pos);
+            var s = new_stmt(STMT_INIT, pos);
             s->init.name = name;
             s->init.type = type;
             s->init.expr = expr;
@@ -422,7 +428,7 @@ namespace IonLang
 
         private Stmt* new_stmt_expr(SrcPos pos, Expr* expr)
         {
-            var s = stmt_new(STMT_EXPR, pos);
+            var s = new_stmt(STMT_EXPR, pos);
             s->expr = expr;
             return s;
         }

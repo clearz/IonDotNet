@@ -562,6 +562,11 @@ func test_complete() {
     case 1:
         y = 4;
     }
+
+
+	x = 1;
+    // x = -1;
+    #assert(x >= 0);
 }
 
 func main(argc: int, argv: char const**): int {

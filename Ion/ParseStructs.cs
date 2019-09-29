@@ -299,6 +299,7 @@ namespace IonLang
         [FieldOffset(4)] public SrcPos pos;
         [FieldOffset(20)] public Notes notes;
         [FieldOffset(36)] public IfStmt if_stmt;
+        [FieldOffset(36)] public Note note;
         [FieldOffset(36)] public WhileStmt while_stmt;
         [FieldOffset(36)] public ForStmt for_stmt;
         [FieldOffset(36)] public SwitchStmt switch_stmt;
@@ -420,6 +421,7 @@ namespace IonLang
         STMT_SWITCH,
         STMT_ASSIGN,
         STMT_INIT,
-        STMT_EXPR
+        STMT_EXPR,
+        STMT_NOTE,
     }
 }

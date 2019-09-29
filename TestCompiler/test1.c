@@ -362,7 +362,7 @@ void test_compound_literals(void);
 #line 543
 void test_complete(void);
 
-#line 567
+#line 572
 int main(int argc, const char *(*argv));
 
 // Typeinfo
@@ -1185,7 +1185,7 @@ void test_complete(void) {
     }
     #line 555
     x = 0;
-    x = 2;
+    #line 559
     switch (x) {
         case 0: {
             #line 561
@@ -1200,45 +1200,51 @@ void test_complete(void) {
             assert("@complete switch failed to handle case" && 0);
             break;
     }
+    #line 567
+    x = 1;
+    #line 568
+    x = -(1);
+    #line 569
+    assert((x) >= (0));
 }
 
-#line 567
+#line 572
 int main(int argc, const char *(*argv)) {
-    #line 568
+    #line 573
     if ((argv) == (0)) {
-        #line 569
+        #line 574
         (printf)("argv is null\n");
     }
-    #line 571
-    (test_complete)();
-    #line 572
-    (test_compound_literals)();
-    #line 573
-    (test_loops)();
-    #line 574
-    (test_sizeof)();
-    #line 575
-    (test_assign)();
     #line 576
-    (test_enum)();
+    (test_complete)();
     #line 577
-    (test_arrays)();
+    (test_compound_literals)();
     #line 578
-    (test_cast)();
+    (test_loops)();
     #line 579
-    (test_init)();
+    (test_sizeof)();
     #line 580
-    (test_lits)();
+    (test_assign)();
     #line 581
-    (test_const)();
+    (test_enum)();
     #line 582
-    (test_bool)();
+    (test_arrays)();
     #line 583
-    (test_ops)();
+    (test_cast)();
     #line 584
-    (test_typeinfo)();
+    (test_init)();
     #line 585
-    (getchar)();
+    (test_lits)();
     #line 586
+    (test_const)();
+    #line 587
+    (test_bool)();
+    #line 588
+    (test_ops)();
+    #line 589
+    (test_typeinfo)();
+    #line 590
+    (getchar)();
+    #line 591
     return 0;
 }

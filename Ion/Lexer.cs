@@ -120,6 +120,7 @@ namespace IonLang
 
         char *foreign_name;
         char *complete_name;
+        char *assert_name;
 
         TokenKind[] assign_token_to_binary_token = new TokenKind[(int)NUM_TOKEN_KINDS];
 
@@ -239,6 +240,7 @@ namespace IonLang
 
             foreign_name  = _I("foreign");
             complete_name = _I("complete");
+            assert_name   = _I("assert");
 
 
             assert(intern_arena.end == arena_end);

@@ -605,6 +605,11 @@ namespace IonLang
                 expect_token(TOKEN_SEMICOLON);
                 stmt = new_stmt_return(pos, expr);
             }
+            else if (match_token(TOKEN_POUND)) {
+                Note note = parse_note();
+                expect_token(TOKEN_SEMICOLON);
+                stmt = new_stmt_note(pos, note);
+            }
             else {
                 stmt = parse_simple_stmt();
                 expect_token(TOKEN_SEMICOLON);
