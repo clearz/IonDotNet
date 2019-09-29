@@ -28,7 +28,7 @@ namespace IonLang
             return new Note { pos = pos, name = name, args = (NoteArg*)ast_dup(args, num_args * sizeof(NoteArg)), num_args = num_args };
         }
 
-        Notes new_note_list(Note* notes, int num_notes) {
+        Notes new_notes(Note* notes, int num_notes) {
             return new Notes {notes = (Note*)ast_dup(notes, num_notes * sizeof(Note)), num_notes = num_notes};
         }
 
@@ -305,6 +305,16 @@ namespace IonLang
             e->ternary.else_expr = else_expr;
             return e;
         }
+        Note* get_stmt_note(Stmt* stmt, char* name) {
+            for (var i = 0; i < stmt->notes.num_notes; i++) {
+                Note *note = stmt->notes.notes + i;
+                if (note->name == name) {
+                    return note;
+                }
+            }
+            return null;
+        }
+
 
         private Stmt* stmt_new(StmtKind kind, SrcPos pos)
         {

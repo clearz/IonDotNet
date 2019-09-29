@@ -24,7 +24,12 @@ namespace IonLang
         private readonly char[] char_to_escape  = new char[256];
         PtrBuffer* gen_headers_buf = PtrBuffer.Create();
 
-        private readonly string preamble = "// Preamble\n#include <stdbool.h>\n#include <stdint.h>\n#include <stddef.h>\n\n"+
+        private readonly string preamble = "// Preamble\n" +
+                                            "#include <stdbool.h>\n" +
+                                            "#include <stdint.h>\n " +
+                                            "#include <assert.h>\n" + 
+                                            "#include <stddef.h>\n\n"+
+
                                             "typedef unsigned char uchar;\n"+
                                             "typedef signed char schar;\n"+
                                             "typedef unsigned short ushort;\n"+
@@ -859,6 +864,20 @@ namespace IonLang
                         c_write(' ');
                         gen_stmt_block(stmt->if_stmt.else_block);
                     }
+                    else {
+                        Note *complete_note = get_stmt_note(stmt, complete_name);
+                        if (complete_note != null) {
+                            c_write(' ');
+                            c_write(else_keyword);
+                            c_write(' ');
+                            c_write('{');
+                            gen_indent++;
+                            gen_sync_pos(complete_note->pos);
+                            genlnf("assert(\"@complete if/elseif chain failed to handle case\" && 0);".ToPtr());
+                            gen_indent--;
+                            genlnf('}');
+                        }
+                    }
 
                     break;
                 case STMT_WHILE:
@@ -904,7 +923,7 @@ namespace IonLang
                     c_write(' ');
                     gen_stmt_block(stmt->for_stmt.block);
                     break;
-                case STMT_SWITCH:
+                case STMT_SWITCH: {
                     genlnf(switch_keyword);
                     c_write(' ');
                     c_write('(');
@@ -912,7 +931,7 @@ namespace IonLang
                     c_write(')');
                     c_write(' ');
                     c_write('{');
-
+                    bool has_default = false;
                     gen_indent++;
                     for (var i = 0; i < stmt->switch_stmt.num_cases; i++) {
                         var switch_case = stmt->switch_stmt.cases[i];
@@ -924,6 +943,7 @@ namespace IonLang
                         }
 
                         if (switch_case.is_default) {
+                            has_default = true;
                             c_write(default_keyword);
                             c_write(':');
                         }
@@ -940,11 +960,24 @@ namespace IonLang
                         gen_indent--;
                         genlnf('}');
                     }
-
+                    if (!has_default) {
+                        Note *note = get_stmt_note(stmt, complete_name);
+                        if (note != null) {
+                            c_write(default_keyword);
+                            c_write(':');
+                            gen_indent++;
+                            genlnf("assert(\"@complete switch failed to handle case\" && 0);".ToPtr());
+                            genln();
+                            c_write(break_keyword);
+                            c_write(';');
+                            gen_indent--;
+                        }
+                    }
                     gen_indent--;
                     genln();
                     c_write('}');
                     break;
+                }
                 default:
                     genln();
                     gen_simple_stmt(stmt);
@@ -1163,9 +1196,10 @@ namespace IonLang
 
             void gen_typeinfo_fields(Type* type) {
                 gen_indent++;
-                assert(type->kind == TYPE_STRUCT || type->kind == TYPE_UNION);
+
                 for (var i = 0; i < type->aggregate.num_fields; i++) {
                     TypeField field = type->aggregate.fields[i];
+                    genln();
                     c_write('{');
                     gen_str(field.name, false);
 

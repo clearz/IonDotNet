@@ -119,6 +119,7 @@ namespace IonLang
         private char* while_keyword;
 
         char *foreign_name;
+        char *complete_name;
 
         TokenKind[] assign_token_to_binary_token = new TokenKind[(int)NUM_TOKEN_KINDS];
 
@@ -236,7 +237,8 @@ namespace IonLang
             default_keyword = _I("default");
             keywords->Add(default_keyword);
 
-            foreign_name = _I("foreign");
+            foreign_name  = _I("foreign");
+            complete_name = _I("complete");
 
 
             assert(intern_arena.end == arena_end);

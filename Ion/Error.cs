@@ -19,6 +19,7 @@ namespace IonLang
             Console.Error.WriteLine("FATAL: " + format, pmz);
             Exit();
         }
+
         [DebuggerHidden]
         private static void error(SrcPos pos, string format, params object[] pmz) {
             if (pos.name == null) {
@@ -36,6 +37,7 @@ namespace IonLang
         [DebuggerHidden]
         private void error_here(string format, params object[] pmz) {
             error(token.pos, format, pmz);
+            Exit();
         }
 
         [DebuggerHidden]
@@ -54,7 +56,7 @@ namespace IonLang
 
         [Conditional("DEBUG")]
         [DebuggerHidden]
-        private static void assert(long l) => assert(l != 0);
+        private static void assert(long l = 0) => assert(l != 0);
 
         [Conditional("DEBUG")]
         [DebuggerHidden]

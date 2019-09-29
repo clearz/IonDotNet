@@ -238,19 +238,15 @@ namespace IonLang
                 if (match_token(TOKEN_LPAREN)) {
                     var buf = PtrBuffer.GetPooledBuffer();
 
-                    try {
-                        if (!is_token(TOKEN_RPAREN)) {
+                    if (!is_token(TOKEN_RPAREN)) {
+                        buf->Add(parse_expr());
+                        while (match_token(TOKEN_COMMA))
                             buf->Add(parse_expr());
-                            while (match_token(TOKEN_COMMA))
-                                buf->Add(parse_expr());
-                        }
+                    }
 
-                        expect_token(TOKEN_RPAREN);
-                        expr = new_expr_call(pos, expr, (Expr**)buf->_begin, buf->count);
-                    }
-                    finally {
-                        buf->Release();
-                    }
+                    expect_token(TOKEN_RPAREN);
+                    expr = new_expr_call(pos, expr, (Expr**)buf->_begin, buf->count);
+                    buf->Release();
                 }
                 else if (match_token(TOKEN_LBRACKET)) {
                     var index = parse_expr();
@@ -444,7 +440,7 @@ namespace IonLang
         private Stmt* parse_simple_stmt() {
             var pos = token.pos;
             var expr = parse_expr();
-            Stmt* stmt;
+            Stmt* stmt = null;
             if (match_token(TOKEN_COLON_ASSIGN)) {
                 if (expr->kind != EXPR_NAME) {
                     fatal_error_here(":= must be preceded by a name");
@@ -570,33 +566,35 @@ namespace IonLang
         }
 
         private Stmt* parse_stmt() {
+            Notes notes = parse_notes();
             var pos = token.pos;
+            Stmt *stmt = null;
             if (match_keyword(if_keyword))
-                return parse_stmt_if(pos);
+                stmt = parse_stmt_if(pos);
 
             else if (match_keyword(while_keyword))
-                return parse_stmt_while(pos);
+                stmt = parse_stmt_while(pos);
 
             else if (match_keyword(do_keyword))
-                return parse_stmt_do_while(pos);
+                stmt = parse_stmt_do_while(pos);
 
             else if (match_keyword(for_keyword))
-                return parse_stmt_for(pos);
+                stmt = parse_stmt_for(pos);
 
             else if (match_keyword(switch_keyword))
-                return parse_stmt_switch(pos);
+                stmt = parse_stmt_switch(pos);
 
             else if(is_token(TOKEN_LBRACE))
-                return new_stmt_block(pos, parse_stmt_block());
+                stmt = new_stmt_block(pos, parse_stmt_block());
 
             else if(match_keyword(break_keyword)) {
                 expect_token(TOKEN_SEMICOLON);
-                return new_stmt_break(pos);
+                stmt = new_stmt_break(pos);
             }
 
             else if(match_keyword(continue_keyword)) {
                 expect_token(TOKEN_SEMICOLON);
-                return new_stmt_continue(pos);
+                stmt = new_stmt_continue(pos);
             }
 
             else if(match_keyword(return_keyword)) {
@@ -605,13 +603,14 @@ namespace IonLang
                     expr = parse_expr();
 
                 expect_token(TOKEN_SEMICOLON);
-                return new_stmt_return(pos, expr);
+                stmt = new_stmt_return(pos, expr);
             }
             else {
-                Stmt *stmt = parse_simple_stmt();
+                stmt = parse_simple_stmt();
                 expect_token(TOKEN_SEMICOLON);
-                return stmt;
             }
+            stmt->notes = notes;
+            return stmt;
         }
 
         private char* parse_name() {
@@ -778,6 +777,7 @@ namespace IonLang
             decl->is_incomplete = is_incomplete;
             return decl;
         }
+
         NoteArg parse_note_arg() {
             SrcPos pos = token.pos;
             Expr *expr = parse_expr();
@@ -806,12 +806,12 @@ namespace IonLang
             return new_note(pos, name, args, args.count);
         }
 
-        Notes parse_note_list() {
+        Notes parse_notes() {
             var buf = Buffer<Note>.Create();
             while (match_token(TOKEN_AT)) {
                 buf.Add(parse_note());
             }
-            return new_note_list(buf, buf.count);
+            return new_notes(buf, buf.count);
         }
 
         Decl* parse_decl_note(SrcPos pos) {
@@ -840,7 +840,7 @@ namespace IonLang
         }
 
         private Decl* parse_decl() {
-            Notes notes = parse_note_list();
+            Notes notes = parse_notes();
             var decl = parse_decl_opt();
             if (decl == null)
                 fatal_error_here("Expected declaration keyword, got {0}", token_info());
