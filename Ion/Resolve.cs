@@ -2040,10 +2040,8 @@ namespace IonLang
             assert(expr->kind == EXPR_CALL);
             if (expr->call.expr->kind == EXPR_NAME) {
                 Sym *sym = resolve_name(expr->call.expr->name);
-                if (sym == null) {
-                    fatal_error(expr->pos, "Unresolved name");
-                }
-                if (sym->kind == SYM_TYPE) {
+               
+                if (sym != null && sym->kind == SYM_TYPE) {
                     if (expr->call.num_args != 1) {
                         fatal_error(expr->pos, "Type conversion operator takes 1 argument");
                     }
