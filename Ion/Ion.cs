@@ -52,12 +52,12 @@ namespace IonLang
                     "}\n"                          +
                     "\n"                           +
                     "@foreign\n"                   +
-                    "var typeinfos: TypeInfo**;\n" +
+                    "var typeinfos: TypeInfo const**;\n" +
                     "\n"                           +
                     "@foreign\n"                   +
                     "var num_typeinfos: int;\n"    +
                     "\n"                           +
-                    "func get_typeinfo(type: typeid): TypeInfo* {\n" +
+                    "func get_typeinfo(type: typeid): TypeInfo const* {\n" +
                     "    if (typeinfos && type < num_typeinfos) {\n" +
                     "        return typeinfos[type];\n" +
                     "    } else {\n" +

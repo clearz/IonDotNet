@@ -1158,7 +1158,7 @@ namespace IonLang
             char*[] tiInfo = {"TypeInfo *typeinfo_table[".ToPtr(out int ti0),
                           "] = {".ToPtr(out int ti1),
                           "int num_typeinfos = ".ToPtr(out int ti2),
-                          "TypeInfo **typeinfos = typeinfo_table;".ToPtr(out int ti3),
+                          "const TypeInfo **typeinfos = typeinfo_table;".ToPtr(out int ti3),
                           "NULL, // No associated type".ToPtr(out int ti4),
                           "&(TypeInfo){TYPE_VOID, .name = \"void\", .size = 0, .align = 0},".ToPtr(out int ti5),
                           "&(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = ".ToPtr(out int ti6),

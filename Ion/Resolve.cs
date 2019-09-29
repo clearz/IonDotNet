@@ -13,7 +13,8 @@ namespace IonLang
     using static CompoundFieldKind;
     using static TokenSuffix;
 
-    unsafe partial class Ion {
+    unsafe partial class Ion
+    {
         public const int MAX_LOCAL_SYMS = 1024;
         Decls *global_decls;
         private Map global_syms_map;
@@ -231,7 +232,8 @@ namespace IonLang
                     Type *unqual_dest_base = unqualify_type(dest->@base);
                     if (unqual_dest_base == src->@base) {
                         return true;
-                    } else if (unqual_dest_base == type_void) {
+                    }
+                    else if (unqual_dest_base == type_void) {
                         return is_const_type(dest->@base) || !is_const_type(src->@base);
                     }
                     else {
@@ -1240,7 +1242,7 @@ namespace IonLang
 
 
         private void resolve_cond_expr(Expr* expr) {
-            var cond = resolve_expr(expr);
+            var cond = resolve_expr_rvalue(expr);
             if (!is_scalar_type(cond.type)) {
                 fatal_error(expr->pos, "Conditional expression must have arithmetic or operand type");
             }
@@ -1311,7 +1313,8 @@ namespace IonLang
                     Operand operand = resolve_expected_expr(stmt->init.expr, expected_type);
                     if (is_incomplete_array_type(type) && is_array_type(operand.type) && type->@base == operand.type->@base) {
                         type = operand.type;
-                    } else if (!convert_operand(&operand, expected_type)) {
+                    }
+                    else if (!convert_operand(&operand, expected_type)) {
                         fatal_error(stmt->pos, "Invalid type in initialization statement");
                     }
                 }
@@ -1406,7 +1409,7 @@ namespace IonLang
                 }
 
                 case STMT_SWITCH: {
-                    Operand operand = resolve_expr(stmt->switch_stmt.expr);
+                    Operand operand = resolve_expr_rvalue(stmt->switch_stmt.expr);
                     if (!is_integer_type(operand.type)) {
                         fatal_error(stmt->pos, "Switch expression must have integer type");
                     }
@@ -2042,7 +2045,7 @@ namespace IonLang
             assert(expr->kind == EXPR_CALL);
             if (expr->call.expr->kind == EXPR_NAME) {
                 Sym *sym = resolve_name(expr->call.expr->name);
-               
+
                 if (sym != null && sym->kind == SYM_TYPE) {
                     if (expr->call.num_args != 1) {
                         fatal_error(expr->pos, "Type conversion operator takes 1 argument");
@@ -2293,7 +2296,7 @@ namespace IonLang
                         Sym *sym = resolve_name(expr->sizeof_expr->name);
                         if (sym != null && sym->kind == SYM_TYPE) {
                             complete_type(sym->type);
-                            result = operand_const(type_usize, new Val{ll = type_sizeof(sym->type)});
+                            result = operand_const(type_usize, new Val { ll = type_sizeof(sym->type) });
                             set_resolved_type(expr->sizeof_expr, sym->type);
                             break;
                         }
@@ -2312,20 +2315,20 @@ namespace IonLang
                 }
                 case EXPR_TYPEOF_TYPE: {
                     Type *type = resolve_typespec(expr->typeof_type);
-                    result = operand_const(type_int, new Val{i = type->typeid});
+                    result = operand_const(type_int, new Val { i = type->typeid });
                     break;
                 }
                 case EXPR_TYPEOF_EXPR: {
                     if (expr->typeof_expr->kind == EXPR_NAME) {
                         Sym *sym = resolve_name(expr->typeof_expr->name);
                         if (sym != null && sym->kind == SYM_TYPE) {
-                            result = operand_const(type_int, new Val{i = sym->type->typeid});
+                            result = operand_const(type_int, new Val { i = sym->type->typeid });
                             set_resolved_type(expr->typeof_expr, sym->type);
                             break;
                         }
                     }
                     Type *type = resolve_expr(expr->typeof_expr).type;
-                    result = operand_const(type_int, new Val{i = type->typeid});
+                    result = operand_const(type_int, new Val { i = type->typeid });
                     break;
                 }
                 case EXPR_ALIGNOF_EXPR: {
@@ -2333,20 +2336,20 @@ namespace IonLang
                         Sym *sym = resolve_name(expr->alignof_expr->name);
                         if (sym != null && sym->kind == SYM_TYPE) {
                             complete_type(sym->type);
-                            result = operand_const(type_usize, new Val{ll = type_alignof(sym->type)});
+                            result = operand_const(type_usize, new Val { ll = type_alignof(sym->type) });
                             set_resolved_type(expr->alignof_expr, sym->type);
                             break;
                         }
                     }
                     Type *type = resolve_expr(expr->alignof_expr).type;
                     complete_type(type);
-                    result = operand_const(type_usize, new Val{ll = type_alignof(type)});
+                    result = operand_const(type_usize, new Val { ll = type_alignof(type) });
                     break;
                 }
                 case EXPR_ALIGNOF_TYPE: {
                     Type *type = resolve_typespec(expr->alignof_type);
                     complete_type(type);
-                    result = operand_const(type_usize, new Val{ll = type_alignof(type)});
+                    result = operand_const(type_usize, new Val { ll = type_alignof(type) });
                     break;
                 }
                 case EXPR_OFFSETOF: {
@@ -2358,7 +2361,7 @@ namespace IonLang
                     if (field < 0) {
                         fatal_error(expr->pos, "No field '%s' in type", new string(expr->offsetof_field.name));
                     }
-                    result = operand_const(type_usize, new Val{ll = type->aggregate.fields[field].offset});
+                    result = operand_const(type_usize, new Val { ll = type->aggregate.fields[field].offset });
                     break;
                 }
                 default:
@@ -2421,7 +2424,7 @@ namespace IonLang
             if (is_init) {
                 return;
             }
-            
+
             decl_note_names.map_put(declare_note_name, (void*)1);
 
             type_ranks[(int)TYPE_BOOL] = 1;
