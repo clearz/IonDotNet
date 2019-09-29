@@ -30,7 +30,6 @@ namespace IonLang
             ast_arena = MemArena.Create();
             intern_arena = MemArena.Create();
             init_compiler();
-            lex_init();
             init_chars();
 
             inited = true;

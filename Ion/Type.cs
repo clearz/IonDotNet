@@ -208,7 +208,6 @@ namespace IonLang
 
         private long type_sizeof(Type* type) {
             assert(type->kind > TYPE_COMPLETING);
-            assert(type->size != 0);
             return type->size;
         }
 

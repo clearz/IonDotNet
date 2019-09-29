@@ -46,6 +46,7 @@ typedef struct Vector Vector;
 typedef struct T T;
 typedef struct ConstVector ConstVector;
 typedef struct Any Any;
+typedef struct BufHdr BufHdr;
 
 // Sorted declarations
 #line 3 "<builtin>"
@@ -360,14 +361,24 @@ void test_typeinfo(void);
 void test_compound_literals(void);
 
 #line 544
+struct BufHdr {
+    #line 545
+    usize cap;
+    #line 545
+    usize len;
+    #line 546
+    char (buf[1]);
+};
+
+#line 551
 void test_complete(void);
 
-#line 573
+#line 580
 int main(int argc, const char *(*argv));
 
 // Typeinfo
 
-TypeInfo *typeinfo_table[78] = {
+TypeInfo *typeinfo_table[80] = {
     [0] = NULL, // No associated type
     [1] = &(TypeInfo){TYPE_VOID, .name = "void"},
     [2] = &(TypeInfo){ TYPE_BOOL, .size = sizeof(bool), .align = alignof(bool), .name = "bool"},
@@ -388,22 +399,22 @@ TypeInfo *typeinfo_table[78] = {
     [17] = &(TypeInfo){TYPE_CONST, .size = sizeof(const void *), .align = alignof(const void *), .base = 16},
     [18] = NULL, // Enum
     [19] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(TypeFieldInfo), .align = alignof(TypeFieldInfo), .name = "TypeFieldInfo", .num_fields = 3, .fields = (TypeFieldInfo[]) {
-        {"name", .type = 32, .offset = offsetof(TypeFieldInfo, name)},
+        {"name", .type = 33, .offset = offsetof(TypeFieldInfo, name)},
         {"type", .type = 8, .offset = offsetof(TypeFieldInfo, type)},
         {"offset", .type = 8, .offset = offsetof(TypeFieldInfo, offset)},}},
     [20] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(TypeInfo), .align = alignof(TypeInfo), .name = "TypeInfo", .num_fields = 8, .fields = (TypeFieldInfo[]) {
         {"kind", .type = 18, .offset = offsetof(TypeInfo, kind)},
         {"size", .type = 8, .offset = offsetof(TypeInfo, size)},
         {"align", .type = 8, .offset = offsetof(TypeInfo, align)},
-        {"name", .type = 32, .offset = offsetof(TypeInfo, name)},
+        {"name", .type = 33, .offset = offsetof(TypeInfo, name)},
         {"count", .type = 8, .offset = offsetof(TypeInfo, count)},
         {"base", .type = 8, .offset = offsetof(TypeInfo, base)},
-        {"fields", .type = 33, .offset = offsetof(TypeInfo, fields)},
+        {"fields", .type = 34, .offset = offsetof(TypeInfo, fields)},
         {"num_fields", .type = 8, .offset = offsetof(TypeInfo, num_fields)},}},
     [21] = NULL, // Incomplete: SomeIncompleteType
     [22] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(S1), .align = alignof(S1), .name = "S1", .num_fields = 2, .fields = (TypeFieldInfo[]) {
         {"a", .type = 8, .offset = offsetof(S1, a)},
-        {"b", .type = 44, .offset = offsetof(S1, b)},}},
+        {"b", .type = 45, .offset = offsetof(S1, b)},}},
     [23] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(S2), .align = alignof(S2), .name = "S2", .num_fields = 1, .fields = (TypeFieldInfo[]) {
         {"s1", .type = 22, .offset = offsetof(S2, s1)},}},
     [24] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(UartCtrl), .align = alignof(UartCtrl), .name = "UartCtrl", .num_fields = 2, .fields = (TypeFieldInfo[]) {
@@ -411,68 +422,73 @@ TypeInfo *typeinfo_table[78] = {
         {"rx_enable", .type = 2, .offset = offsetof(UartCtrl, rx_enable)},}},
     [25] = &(TypeInfo){TYPE_UNION, .size = sizeof(IntOrPtr), .align = alignof(IntOrPtr), .name = "IntOrPtr", .num_fields = 2, .fields = (TypeFieldInfo[]) {
         {"i", .type = 8, .offset = offsetof(IntOrPtr, i)},
-        {"p", .type = 46, .offset = offsetof(IntOrPtr, p)},}},
+        {"p", .type = 47, .offset = offsetof(IntOrPtr, p)},}},
     [26] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(Vector), .align = alignof(Vector), .name = "Vector", .num_fields = 2, .fields = (TypeFieldInfo[]) {
         {"x", .type = 8, .offset = offsetof(Vector, x)},
         {"y", .type = 8, .offset = offsetof(Vector, y)},}},
     [27] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(T), .align = alignof(T), .name = "T", .num_fields = 1, .fields = (TypeFieldInfo[]) {
-        {"a", .type = 61, .offset = offsetof(T, a)},}},
+        {"a", .type = 62, .offset = offsetof(T, a)},}},
     [28] = NULL, // Enum
     [29] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(ConstVector), .align = alignof(ConstVector), .name = "ConstVector", .num_fields = 2, .fields = (TypeFieldInfo[]) {
-        {"x", .type = 44, .offset = offsetof(ConstVector, x)},
-        {"y", .type = 44, .offset = offsetof(ConstVector, y)},}},
+        {"x", .type = 45, .offset = offsetof(ConstVector, x)},
+        {"y", .type = 45, .offset = offsetof(ConstVector, y)},}},
     [30] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(Any), .align = alignof(Any), .name = "Any", .num_fields = 2, .fields = (TypeFieldInfo[]) {
         {"ptr", .type = 16, .offset = offsetof(Any, ptr)},
         {"type", .type = 8, .offset = offsetof(Any, type)},}},
-    [31] = &(TypeInfo){TYPE_CONST, .size = sizeof(const char), .align = alignof(const char), .base = 3},
-    [32] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 31},
-    [33] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 19},
-    [34] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 20},
-    [35] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 34},
-    [36] = NULL, // Func
+    [31] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(BufHdr), .align = alignof(BufHdr), .name = "BufHdr", .num_fields = 3, .fields = (TypeFieldInfo[]) {
+        {"cap", .type = 13, .offset = offsetof(BufHdr, cap)},
+        {"len", .type = 13, .offset = offsetof(BufHdr, len)},
+        {"buf", .type = 77, .offset = offsetof(BufHdr, buf)},}},
+    [32] = &(TypeInfo){TYPE_CONST, .size = sizeof(const char), .align = alignof(const char), .base = 3},
+    [33] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 32},
+    [34] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 19},
+    [35] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 20},
+    [36] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 35},
     [37] = NULL, // Func
     [38] = NULL, // Func
     [39] = NULL, // Func
-    [40] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 21},
-    [41] = NULL, // Func
-    [42] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [3]), .align = alignof(int [3]), .base = 8, .count = 3},
-    [43] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 3},
-    [44] = &(TypeInfo){TYPE_CONST, .size = sizeof(const int), .align = alignof(const int), .base = 8},
-    [45] = NULL, // Func
-    [46] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 8},
-    [47] = NULL, // Func
-    [48] = NULL, // Incomplete array type
-    [49] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 9},
-    [50] = NULL, // Func
+    [40] = NULL, // Func
+    [41] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 21},
+    [42] = NULL, // Func
+    [43] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [3]), .align = alignof(int [3]), .base = 8, .count = 3},
+    [44] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 3},
+    [45] = &(TypeInfo){TYPE_CONST, .size = sizeof(const int), .align = alignof(const int), .base = 8},
+    [46] = NULL, // Func
+    [47] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 8},
+    [48] = NULL, // Func
+    [49] = NULL, // Incomplete array type
+    [50] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 9},
     [51] = NULL, // Func
-    [52] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 26},
-    [53] = NULL, // Func
+    [52] = NULL, // Func
+    [53] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 26},
     [54] = NULL, // Func
     [55] = NULL, // Func
     [56] = NULL, // Func
-    [57] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const char [256]), .align = alignof(const char [256]), .base = 31, .count = 256},
-    [58] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [11]), .align = alignof(int [11]), .base = 8, .count = 11},
-    [59] = NULL, // Func
-    [60] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 27},
-    [61] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [9]), .align = alignof(int [9]), .base = 8, .count = 9},
-    [62] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const char * [4]), .align = alignof(const char * [4]), .base = 32, .count = 4},
-    [63] = NULL, // Func
+    [57] = NULL, // Func
+    [58] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const char [256]), .align = alignof(const char [256]), .base = 32, .count = 256},
+    [59] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [11]), .align = alignof(int [11]), .base = 8, .count = 11},
+    [60] = NULL, // Func
+    [61] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 27},
+    [62] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [9]), .align = alignof(int [9]), .base = 8, .count = 9},
+    [63] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const char * [4]), .align = alignof(const char * [4]), .base = 33, .count = 4},
     [64] = NULL, // Func
-    [65] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 44},
-    [66] = &(TypeInfo){TYPE_CONST, .size = sizeof(const Vector), .align = alignof(const Vector), .base = 26},
-    [67] = NULL, // Func
+    [65] = NULL, // Func
+    [66] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 45},
+    [67] = &(TypeInfo){TYPE_CONST, .size = sizeof(const Vector), .align = alignof(const Vector), .base = 26},
     [68] = NULL, // Func
     [69] = NULL, // Func
-    [70] = &(TypeInfo){TYPE_CONST, .size = sizeof(const float), .align = alignof(const float), .base = 14},
-    [71] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 70},
-    [72] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 14},
-    [73] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 16},
-    [74] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const int * [42]), .align = alignof(const int * [42]), .base = 65, .count = 42},
-    [75] = &(TypeInfo){TYPE_CONST, .size = sizeof(const Any), .align = alignof(const Any), .base = 30},
-    [76] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 32},
-    [77] = NULL, // Func
+    [70] = NULL, // Func
+    [71] = &(TypeInfo){TYPE_CONST, .size = sizeof(const float), .align = alignof(const float), .base = 14},
+    [72] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 71},
+    [73] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 14},
+    [74] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 16},
+    [75] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const int * [42]), .align = alignof(const int * [42]), .base = 66, .count = 42},
+    [76] = &(TypeInfo){TYPE_CONST, .size = sizeof(const Any), .align = alignof(const Any), .base = 30},
+    [77] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(char [1]), .align = alignof(char [1]), .base = 3, .count = 1},
+    [78] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 33},
+    [79] = NULL, // Func
 };
-int num_typeinfos = 78;
+int num_typeinfos = 80;
 TypeInfo **typeinfos = typeinfo_table;
 
 // Definitions
@@ -1147,9 +1163,9 @@ void test_typeinfo(void) {
     (println_any)((Any){&(p), 16});
     (println_type)(8);
     #line 530
-    (println_type)(65);
+    (println_type)(66);
     #line 531
-    (println_type)(74);
+    (println_type)(75);
     #line 532
     (println_type)(24);
     (println_typeinfo)(8);
@@ -1167,81 +1183,81 @@ void test_compound_literals(void) {
     Any y = {&(i), 8};
 }
 
-#line 544
+#line 551
 void test_complete(void) {
-    #line 545
+    #line 552
     int x = 0;
-    #line 548
+    #line 555
     int y = 0;
     if ((x) == (0)) {
-        #line 551
+        #line 558
         y = 1;
     } else if ((x) == (1)) {
-        #line 553
+        #line 560
         y = 2;
     } else {
-        #line 549
+        #line 556
         assert("@complete if/elseif chain failed to handle case" && 0);
     }
-    #line 556
+    #line 563
     x = 0;
-    #line 560
+    #line 567
     switch (x) {
         case 0: {
-            #line 562
+            #line 569
             y = 3;
             break;
         }
         case 1: {
-            #line 564
+            #line 571
             y = 4;
             break;
         }default:
             assert("@complete switch failed to handle case" && 0);
             break;
     }
-    #line 568
+    #line 575
     x = 1;
     assert((x) >= (0));
 }
 
-#line 573
+#line 580
 int main(int argc, const char *(*argv)) {
-    #line 574
+    #line 581
     if ((argv) == (0)) {
-        #line 575
+        #line 582
         (printf)("argv is null\n");
     }
-    #line 578
-    (test_complete)();
-    #line 579
-    (test_compound_literals)();
-    #line 580
-    (test_loops)();
-    #line 581
-    (test_sizeof)();
-    #line 582
-    (test_assign)();
-    #line 583
-    (test_enum)();
-    #line 584
-    (test_arrays)();
     #line 585
-    (test_cast)();
+    (test_complete)();
     #line 586
-    (test_init)();
+    (test_compound_literals)();
     #line 587
-    (test_lits)();
+    (test_loops)();
     #line 588
-    (test_const)();
+    (test_sizeof)();
     #line 589
-    (test_bool)();
+    (test_assign)();
     #line 590
-    (test_ops)();
+    (test_enum)();
     #line 591
-    (test_typeinfo)();
+    (test_arrays)();
     #line 592
-    (getchar)();
+    (test_cast)();
     #line 593
+    (test_init)();
+    #line 594
+    (test_lits)();
+    #line 595
+    (test_const)();
+    #line 596
+    (test_bool)();
+    #line 597
+    (test_ops)();
+    #line 598
+    (test_typeinfo)();
+    #line 599
+    (getchar)();
+    #line 600
     return 0;
 }

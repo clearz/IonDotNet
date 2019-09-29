@@ -66,6 +66,7 @@ namespace IonLang
                     "}\n").ToPtr();
 
         void init_compiler() {
+            lex_init();
             init_builtins();
             init_types();
         }

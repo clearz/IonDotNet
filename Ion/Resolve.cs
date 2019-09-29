@@ -1142,6 +1142,9 @@ namespace IonLang
                 //    fatal_error(item.pos, "Field cannot be const qualified");
                 //}
                 complete_type(item_type);
+                if (type_sizeof(item_type) == 0) {
+                    fatal_error(item.pos, "Field type of size 0 is not allowed");
+                }
                 for (var j = 0; j < item.num_names; j++)
                     fields.Add(new TypeField { name = item.names[j], type = item_type });
             }
@@ -2384,10 +2387,9 @@ namespace IonLang
             if (is_init) {
                 return;
             }
-
-            lex_init();
-
+            
             decl_note_names.map_put(declare_note_name, (void*)1);
+
             type_ranks[(int)TYPE_BOOL] = 1;
             type_ranks[(int)TYPE_CHAR] = 2;
             type_ranks[(int)TYPE_SCHAR] = 2;
