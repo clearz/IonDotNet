@@ -1717,7 +1717,7 @@ namespace IonLang
             assert(expr->kind == EXPR_NAME);
             var sym = resolve_name(expr->name);
             if (sym == null) {
-                fatal_error(expr->pos, "Unresolved name");
+                fatal_error(expr->pos, "Unresolved name '{0}'", new string(expr->name));
             }
             if (sym->kind == SYM_VAR)
                 return operand_lvalue(sym->type);
