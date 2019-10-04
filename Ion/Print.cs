@@ -4,12 +4,21 @@ using System.Text;
 
 namespace IonLang
 {
+    #region Header
+
+#if X64
+    using size_t = System.Int64;
+#else
+    using size_t = System.Int32;
+#endif
+
     using static TypespecKind;
     using static DeclKind;
     using static ExprKind;
     using static StmtKind;
     using static CompoundFieldKind;
 
+    #endregion
     unsafe partial class Ion
     {
         private int _indent;
@@ -328,7 +337,7 @@ namespace IonLang
                     printf(")");
                     break;
                 case STMT_ASSIGN:
-                    printf("({0} ", token_kind_names[(long) s->assign.op]);
+                    printf("({0} ", token_kind_names[(size_t) s->assign.op]);
                     print_expr(s->assign.left);
                     if (s->assign.right != null)
                     {

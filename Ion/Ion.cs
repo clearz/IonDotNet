@@ -4,6 +4,15 @@ using System.Reflection;
 
 namespace IonLang
 {
+    #region Header
+
+#if X64
+    using size_t = System.Int64;
+#else
+    using size_t = System.Int32;
+#endif
+
+    #endregion
     public unsafe partial class Ion
     {
         char *builtin_code =
@@ -126,7 +135,7 @@ namespace IonLang
             assert(b);
         }
 
-        private long ion_main(string[] args) {
+        private size_t ion_main(string[] args) {
             if (args.Length == 0) {
                 Console.WriteLine("Usage: {0} <ion-source-file>\n", Assembly.GetEntryAssembly()?.FullName);
                 return 1;

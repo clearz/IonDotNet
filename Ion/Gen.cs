@@ -1,10 +1,17 @@
 ﻿using System;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace IonLang
 {
+    #region Header
+
+#if X64
+    using size_t = System.Int64;
+#else
+    using size_t = System.Int32;
+#endif
+
     using static CompoundFieldKind;
     using static DeclKind;
     using static ExprKind;
@@ -13,7 +20,7 @@ namespace IonLang
     using static TypespecKind;
     using static TokenMod;
 
-
+    #endregion
     unsafe partial class Ion
     {
         private const int _1MB = 1024 * 1024;
@@ -1323,7 +1330,7 @@ namespace IonLang
                         break;
 
                     case TYPE_LONG:
-                        gen_type(TYPE_LONG, "long");
+                        gen_type(TYPE_LONG, "size_t");
                         c_write('}');
                         c_write(',');
                         break;

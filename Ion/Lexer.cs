@@ -2,10 +2,18 @@
 
 namespace IonLang
 {
+    #region Header
+
+#if X64
+    using size_t = System.Int64;
+#else
+    using size_t = System.Int32;
+#endif
     using static TokenKind;
     using static TokenMod;
     using static TokenSuffix;
 
+    #endregion
     public unsafe partial class Ion
     {
         private static PtrBuffer* keywords;
@@ -273,7 +281,7 @@ namespace IonLang
 
         private char* _token_kind_name(TokenKind kind) {
             if (kind < NUM_TOKEN_KINDS)
-                return *(token_kind_names + (long)kind);
+                return *(token_kind_names + (size_t)kind);
             return _I("<unknown>");
         }
 
@@ -878,7 +886,7 @@ repeat:
             }
 
             token.end = stream;
-            token.pos.col = token.start - line_start + 1;
+            token.pos.col = (size_t)(token.start - line_start + 1);
         }
 
         private void init_stream(string buf, string name = "<anonymous>") {

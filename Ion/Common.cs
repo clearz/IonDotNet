@@ -5,6 +5,15 @@ using System.Runtime.InteropServices;
 
 namespace IonLang
 {
+    #region Header
+
+#if X64
+    using size_t = System.Int64;
+#else
+    using size_t = System.Int32;
+#endif
+
+    #endregion
     unsafe partial class Ion
     {
         private static Map interns;
@@ -71,7 +80,7 @@ namespace IonLang
             private const int ARENA_BLOCK_SIZE = 1024 * 1024;
 
 
-            private void arena_grow(long min_size) {
+            private void arena_grow(size_t min_size) {
                 //Console.WriteLine("Growing: " + arenas->count);
                 var size = (int) ALIGN_UP(MAX(ARENA_BLOCK_SIZE, min_size), ARENA_ALIGNMENT);
                 ptr = (byte*)xmalloc(size);
@@ -115,7 +124,7 @@ namespace IonLang
 
         internal struct Intern
         {
-            private long len;
+            private size_t len;
             private char* str;
             private Intern* next;
 
@@ -144,8 +153,8 @@ namespace IonLang
         {
             private ulong* keys;
             private void** vals;
-            private long len;
-            private long cap;
+            private size_t len;
+            private size_t cap;
 
 
             internal static ulong hash_uint64(ulong x) {
@@ -166,10 +175,10 @@ namespace IonLang
                 return x;
             }
 
-            public static ulong hash_bytes(void *ptr, long len) {
+            public static ulong hash_bytes(void *ptr, size_t len) {
                 var x = 0xcbf29ce484222325;
                 char *buf = (char *)ptr;
-                for (long i = 0; i < len; i++) {
+                for (size_t i = 0; i < len; i++) {
                     x ^= buf[i];
                     x *= 0x100000001b3;
                     x ^= x >> 32;
@@ -178,13 +187,13 @@ namespace IonLang
                 return x;
             }
 
-            public static ulong hash_ptr(void* ptr, long len) {
+            public static ulong hash_ptr(void* ptr, size_t len) {
                 var buf = (char*) ptr;
                 return hash_bytes(buf, len);
             }
 
 
-            private void map_grow(long new_cap) {
+            private void map_grow(size_t new_cap) {
                 new_cap = MAX(new_cap, 16);
                 var new_map = new Map
                 {
@@ -193,7 +202,7 @@ namespace IonLang
                     cap = new_cap
                 };
 
-                for (long i = 0; i < cap; i++)
+                for (size_t i = 0; i < cap; i++)
                     if (keys[i] != 0)
                         new_map.map_put(keys[i], vals[i]);
                 xfree(keys);
@@ -265,47 +274,47 @@ namespace IonLang
             }
         }
 
-        #region Macros*
+#region Macros*
 
-        public static long MAX(long a, long b) {
+        public static size_t MAX(size_t a, size_t b) {
             return a > b ? a : b;
         }
 
-        public static long MIN(long a, long b) {
+        public static size_t MIN(size_t a, size_t b) {
             return a < b ? a : b;
         }
 
-        public static long CLAMP_MIN(long x, long min) {
+        public static size_t CLAMP_MIN(size_t x, size_t min) {
             return MAX(x, min);
         }
 
-        public static long CLAMP_MAX(long x, long max) {
+        public static size_t CLAMP_MAX(size_t x, size_t max) {
             return MIN(x, max);
         }
 
-        public static bool IS_POW2(long x) {
+        public static bool IS_POW2(size_t x) {
             return x != 0 && (x & (x - 1)) == 0;
         }
 
-        public static long ALIGN_DOWN(long n, long a) {
+        public static size_t ALIGN_DOWN(size_t n, size_t a) {
             return n & ~(a - 1);
         }
 
-        public static long ALIGN_UP(long n, long a) {
+        public static size_t ALIGN_UP(size_t n, size_t a) {
             return (n + a - 1) & ~(a - 1);
         }
 
-        public static void* ALIGN_DOWN_PTR(void* p, long a) {
-            return (void*)ALIGN_DOWN((long)p, a);
+        public static void* ALIGN_DOWN_PTR(void* p, size_t a) {
+            return (void*)ALIGN_DOWN((size_t)p, a);
         }
 
-        public static void* ALIGN_UP_PTR(void* p, long a) {
-            return (void*)ALIGN_UP((long)p, a);
+        public static void* ALIGN_UP_PTR(void* p, size_t a) {
+            return (void*)ALIGN_UP((size_t)p, a);
         }
 
-        #endregion
+#endregion
 
-        #region MemAlloc
+#region MemAlloc
 
         internal static void memcpy(void* dst, void* src, int len) {
             Unsafe.CopyBlock(dst, src, (uint)len);
@@ -389,10 +398,10 @@ namespace IonLang
             return new string(new_path);
         }
 
-        #endregion
+#endregion
 
 
-        #region Buffers
+#region Buffers
 
         internal struct Buffer<T> where T : unmanaged
         {
@@ -555,9 +564,9 @@ namespace IonLang
             }
         }
 
-        #endregion
+#endregion
 
-        #region Std Functions
+#region Std Functions
 
         public static bool isalnum(char c) {
             return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9';
@@ -603,7 +612,7 @@ namespace IonLang
             return i;
         }
 
-        #endregion
+#endregion
     }
 
 
@@ -620,7 +629,7 @@ namespace IonLang
         [FieldOffset(0)] public uint u;
         [FieldOffset(0)] public int l;
         [FieldOffset(0)] public uint ul;
-        [FieldOffset(0)] public long ll;
+        [FieldOffset(0)] public size_t ll;
         [FieldOffset(0)] public ulong ull;
         [FieldOffset(0)] public void* p;
 

@@ -141,7 +141,7 @@ func h(): uchar {
     v := &Vector{1, 2};
     v.x = 42;
     p := &int{0};
-    x := uint{1} + long{2};
+    x := uint{1} + size_t{2};
     y := +c;
     return uchar(x);
 }

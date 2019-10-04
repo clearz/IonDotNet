@@ -1,13 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace IonLang
 {
+    #region Header
+
     using static TokenKind;
     using static TokenMod;
-    using static TokenSuffix;
 
+    #endregion
     unsafe partial class Ion
     {
         void main_test() {

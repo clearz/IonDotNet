@@ -2,11 +2,14 @@
 
 namespace IonLang
 {
+    #region Header
+
     using static TypespecKind;
     using static DeclKind;
     using static ExprKind;
     using static StmtKind;
 
+    #endregion
     public unsafe partial class Ion {
         private MemArena ast_arena;
 

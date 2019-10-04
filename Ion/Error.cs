@@ -4,6 +4,16 @@ using System.Threading;
 
 namespace IonLang
 {
+    #region Header
+
+#if X64
+    using size_t = System.Int64;
+#else
+    using size_t = System.Int32;
+#endif
+
+
+    #endregion
     public unsafe partial class Ion
     {
         void warning(SrcPos pos, string format, params object[] pmz) {
@@ -56,7 +66,7 @@ namespace IonLang
 
         [Conditional("DEBUG")]
         [DebuggerHidden]
-        private static void assert(long l = 0) => assert(l != 0);
+        private static void assert(size_t l = 0) => assert(l != 0);
 
         [Conditional("DEBUG")]
         [DebuggerHidden]

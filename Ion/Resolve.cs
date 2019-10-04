@@ -1,7 +1,12 @@
-﻿using System;
-
-namespace IonLang
+﻿namespace IonLang
 {
+    #region Header
+
+#if X64
+    using size_t = System.Int64;
+#else
+    using size_t = System.Int32;
+#endif
     using static TypeKind;
     using static SymState;
     using static DeclKind;
@@ -13,6 +18,7 @@ namespace IonLang
     using static CompoundFieldKind;
     using static TokenSuffix;
 
+    #endregion
     unsafe partial class Ion
     {
         public const int MAX_LOCAL_SYMS = 1024;
@@ -37,7 +43,7 @@ namespace IonLang
 #else
         internal const int PTR_SIZE = 4;
 #endif
-        private const long PTR_ALIGN = 8;
+        private const int PTR_ALIGN = 8;
 
 
 
@@ -324,7 +330,7 @@ namespace IonLang
                                         operand->val.ul = (uint)p;
                                         break;
                                     case TYPE_LLONG:
-                                        operand->val.ll = (long)p;
+                                        operand->val.ll = (size_t)p;
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
@@ -379,7 +385,7 @@ namespace IonLang
                                         operand->val.ul = (uint)p;
                                         break;
                                     case TYPE_LLONG:
-                                        operand->val.ll = (long)p;
+                                        operand->val.ll = (size_t)p;
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
@@ -434,7 +440,7 @@ namespace IonLang
                                         operand->val.ul = (uint)p;
                                         break;
                                     case TYPE_LLONG:
-                                        operand->val.ll = (long)p;
+                                        operand->val.ll = (size_t)p;
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
@@ -489,7 +495,7 @@ namespace IonLang
                                         operand->val.ul = (uint)p;
                                         break;
                                     case TYPE_LLONG:
-                                        operand->val.ll = (long)p;
+                                        operand->val.ll = (size_t)p;
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
@@ -544,7 +550,7 @@ namespace IonLang
                                         operand->val.ul = (uint)p;
                                         break;
                                     case TYPE_LLONG:
-                                        operand->val.ll = (long)p;
+                                        operand->val.ll = (size_t)p;
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
@@ -599,7 +605,7 @@ namespace IonLang
                                         operand->val.ul = (uint)p;
                                         break;
                                     case TYPE_LLONG:
-                                        operand->val.ll = (long)p;
+                                        operand->val.ll = (size_t)p;
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
@@ -654,7 +660,7 @@ namespace IonLang
                                         operand->val.ul = (uint)p;
                                         break;
                                     case TYPE_LLONG:
-                                        operand->val.ll = (long)p;
+                                        operand->val.ll = (size_t)p;
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
@@ -709,7 +715,7 @@ namespace IonLang
                                         operand->val.ul = (uint)p;
                                         break;
                                     case TYPE_LLONG:
-                                        operand->val.ll = (long)p;
+                                        operand->val.ll = (size_t)p;
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
@@ -764,7 +770,7 @@ namespace IonLang
                                         operand->val.ul = (uint)p;
                                         break;
                                     case TYPE_LLONG:
-                                        operand->val.ll = (long)p;
+                                        operand->val.ll = (size_t)p;
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
@@ -819,7 +825,7 @@ namespace IonLang
                                         operand->val.ul = (uint)p;
                                         break;
                                     case TYPE_LLONG:
-                                        operand->val.ll = (long)p;
+                                        operand->val.ll = (size_t)p;
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
@@ -874,7 +880,7 @@ namespace IonLang
                                         operand->val.ul = (uint)p;
                                         break;
                                     case TYPE_LLONG:
-                                        operand->val.ll = (long)p;
+                                        operand->val.ll = (size_t)p;
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
@@ -929,7 +935,7 @@ namespace IonLang
                                         operand->val.ul = (uint)p;
                                         break;
                                     case TYPE_LLONG:
-                                        operand->val.ll = (long)p;
+                                        operand->val.ll = (size_t)p;
                                         break;
                                     case TYPE_ULLONG:
                                         operand->val.ull = (ulong)p;
@@ -1560,7 +1566,7 @@ namespace IonLang
             return default;
         }
 
-        long eval_unary_op_ll(TokenKind op, long val) {
+        size_t eval_unary_op_ll(TokenKind op, size_t val) {
             switch (op) {
                 case TOKEN_ADD:
                     return +val;
@@ -1609,7 +1615,7 @@ namespace IonLang
             return default;
         }
 
-        long eval_binary_op_ll(TokenKind op, long left, long right) {
+        size_t eval_binary_op_ll(TokenKind op, size_t left, size_t right) {
             switch (op) {
                 case TOKEN_MUL:
                     return left * right;
@@ -2464,7 +2470,7 @@ namespace IonLang
             type_names[(int)TYPE_USHORT] = "ushort".ToPtr();
             type_names[(int)TYPE_INT] = "int".ToPtr();
             type_names[(int)TYPE_UINT] = "uint".ToPtr();
-            type_names[(int)TYPE_LONG] = "long".ToPtr();
+            type_names[(int)TYPE_LONG] = "size_t".ToPtr();
             type_names[(int)TYPE_ULONG] = "ulong".ToPtr();
             type_names[(int)TYPE_LLONG] = "llong".ToPtr();
             type_names[(int)TYPE_ULLONG] = "ullong".ToPtr();
@@ -2481,7 +2487,7 @@ namespace IonLang
             sym_global_type("ushort".ToPtr(), type_ushort);
             sym_global_type("int".ToPtr(), type_int);
             sym_global_type("uint".ToPtr(), type_uint);
-            sym_global_type("long".ToPtr(), type_long);
+            sym_global_type("size_t".ToPtr(), type_long);
             sym_global_type("ulong".ToPtr(), type_ulong);
             sym_global_type("llong".ToPtr(), type_llong);
             sym_global_type("ullong".ToPtr(), type_ullong);

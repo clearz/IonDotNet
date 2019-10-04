@@ -1,13 +1,20 @@
-﻿using System;
-
-namespace IonLang
+﻿namespace IonLang
 {
+    #region Header
+
+#if X64
+    using size_t = System.Int64;
+#else
+    using size_t = System.Int32;
+#endif
+
     using static TokenKind;
     using static DeclKind;
     using static ExprKind;
     using static StmtKind;
     using static CompoundFieldKind;
 
+    #endregion
     public unsafe partial class Ion {
         internal Decls* parse_decls() {
             var buf = PtrBuffer.GetPooledBuffer();

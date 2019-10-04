@@ -3,7 +3,17 @@ using System.Runtime.InteropServices;
 
 namespace IonLang
 {
+    #region Header
+
+#if X64
+    using size_t = System.Int64;
+#else
+    using size_t = System.Int32;
+#endif
+
     using static TypeKind;
+
+    #endregion
     internal enum TypeKind
     {
         TYPE_NONE,
@@ -42,15 +52,15 @@ namespace IonLang
     {
         public char* name;
         public Type* type;
-        public long offset;
+        public size_t offset;
     }
 
     [StructLayout(LayoutKind.Explicit)]
     internal unsafe struct Type
     {
         [FieldOffset(0)] public TypeKind kind;
-        [FieldOffset(4)] public long size;
-        [FieldOffset(12)] public long align;
+        [FieldOffset(4)] public size_t size;
+        [FieldOffset(12)] public size_t align;
         [FieldOffset(20)] public bool nonmodifiable;
         [FieldOffset(24)] public int typeid;
         [FieldOffset(28)] public Sym* sym;
@@ -62,13 +72,13 @@ namespace IonLang
         internal struct _aggregate
         {
             public TypeField* fields;
-            public long num_fields;
+            public size_t num_fields;
         }
 
         internal struct _func
         {
             public Type** @params;
-            public long num_params;
+            public size_t num_params;
             public bool has_varargs;
             public Type* ret;
         }
@@ -195,7 +205,7 @@ namespace IonLang
             register_typeid(type_double);
         }
 
-        private static Type* basic_type_alloc(TypeKind kind, long size = 0, long align = 0, int typeid = 0) {
+        private static Type* basic_type_alloc(TypeKind kind, size_t size = 0, size_t align = 0, int typeid = 0) {
             var type = (Type*) xmalloc(sizeof(Type));
             Unsafe.InitBlock(type, 0, (uint)sizeof(Type));
             type->kind = kind;
@@ -206,12 +216,12 @@ namespace IonLang
             return type;
         }
 
-        private long type_sizeof(Type* type) {
+        private size_t type_sizeof(Type* type) {
             assert(type->kind > TYPE_COMPLETING);
             return type->size;
         }
 
-        private long type_alignof(Type* type) {
+        private size_t type_alignof(Type* type) {
             assert(type->kind > TYPE_COMPLETING);
             assert(IS_POW2(type->align));
             return type->align;
@@ -353,7 +363,7 @@ namespace IonLang
         }
 
         // TODO: This probably shouldn't use an O(n^2) algorithm
-        private bool has_duplicate_fields(TypeField* fields, long num_fields) {
+        private bool has_duplicate_fields(TypeField* fields, size_t num_fields) {
             for (var i = 0; i < num_fields; i++)
                 for (var j = i + 1; j < num_fields; j++)
                     if (fields[i].name == fields[j].name)

@@ -2,13 +2,21 @@
 
 namespace IonLang
 {
+    #region Header
 
+#if X64
+    using size_t = System.Int64;
+#else
+    using size_t = System.Int32;
+#endif
+
+    #endregion
     [StructLayout(LayoutKind.Sequential, Size = 16)]
     internal unsafe struct SrcPos
     {
         public char* name;
-        public long line;
-        public long col { get; set; }
+        public size_t line;
+        public size_t col { get; set; }
     }
 
     internal unsafe struct StmtList
