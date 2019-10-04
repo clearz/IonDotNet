@@ -759,6 +759,15 @@ namespace IonLang
                     c_write(')');
                     break;
                 }
+                case EXPR_MODIFY:
+                    if (!expr->modify.post) {
+                        c_write(_token_kind_name(expr->modify.op));
+                    }
+                    gen_paren_expr(expr->modify.expr);
+                    if (expr->modify.post) {
+                        c_write(_token_kind_name(expr->modify.op));
+                    }
+                    break;
                 default:
                     assert(false);
                     break;
@@ -824,16 +833,10 @@ namespace IonLang
                     break;
                 case STMT_ASSIGN:
                     gen_paren_expr(stmt->assign.left);
-                    if (stmt->assign.right != null) {
-                        c_write(' ');
-                        c_write(_token_kind_name(stmt->assign.op));
-                        c_write(' ');
-                        gen_expr(stmt->assign.right);
-                    }
-                    else {
-                        c_write(_token_kind_name(stmt->assign.op));
-                    }
-
+                    c_write(' ');
+                    c_write(_token_kind_name(stmt->assign.op));
+                    c_write(' ');
+                    gen_expr(stmt->assign.right);
                     break;
                 default:
                     assert(false);

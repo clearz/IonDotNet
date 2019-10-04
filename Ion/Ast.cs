@@ -217,6 +217,13 @@ namespace IonLang
             e->alignof_type = type;
             return e;
         }
+        Expr* new_expr_modify(SrcPos pos, TokenKind op, bool post, Expr* expr) {
+            Expr *e = new_expr(EXPR_MODIFY, pos);
+            e->modify.op = op;
+            e->modify.post = post;
+            e->modify.expr = expr;
+            return e;
+        }
 
         Expr* new_expr_offsetof(SrcPos pos, Typespec* type, char* name) {
             Expr *e = new_expr(EXPR_OFFSETOF, pos);
@@ -224,7 +231,8 @@ namespace IonLang
             e->offsetof_field.name = name;
             return e;
         }
-    private Expr* new_expr_int(SrcPos pos, ulong val, TokenMod mod, TokenSuffix suffix)
+
+        private Expr* new_expr_int(SrcPos pos, ulong val, TokenMod mod, TokenSuffix suffix)
         {
             var e = new_expr(EXPR_INT, pos);
             e->int_lit.val = val;

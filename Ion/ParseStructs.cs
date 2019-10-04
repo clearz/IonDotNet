@@ -188,6 +188,7 @@ namespace IonLang
         [FieldOffset(20 + Ion.PTR_SIZE)] public Expr* alignof_expr;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* alignof_type;
         [FieldOffset(20 + Ion.PTR_SIZE)] public _offsetof_field offsetof_field;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public _modify modify;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* sizeof_type;
         [FieldOffset(20 + Ion.PTR_SIZE)] public CompoundExpr compound;
         [FieldOffset(20 + Ion.PTR_SIZE)] public CastExpr cast;
@@ -223,6 +224,12 @@ namespace IonLang
             public TokenMod mod;
         }
 
+        internal struct _modify
+        {
+            public TokenKind op;
+            public bool post;
+            public Expr* expr;
+        }
         internal struct CompoundExpr
         {
             public Typespec* type;
@@ -407,6 +414,7 @@ namespace IonLang
         EXPR_UNARY,
         EXPR_BINARY,
         EXPR_TERNARY,
+        EXPR_MODIFY,
         EXPR_SIZEOF_EXPR,
         EXPR_SIZEOF_TYPE,
         EXPR_TYPEOF_EXPR,

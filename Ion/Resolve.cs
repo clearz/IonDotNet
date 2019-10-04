@@ -1270,39 +1270,32 @@ namespace IonLang
             if (left.type->nonmodifiable) {
                 fatal_error(stmt->pos, "Left-hand side of assignment has non-modifiable type");
             }
-            if (stmt->assign.right != null) {
-                var assign_op_name = token_kind_name(stmt->assign.op);
-                TokenKind binary_op = assign_token_to_binary_token[(int)stmt->assign.op];
-                Operand right = resolve_expected_expr_rvalue(stmt->assign.right, left.type);
-                Operand result;
-                if (stmt->assign.op == TOKEN_ASSIGN) {
-                    result = right;
+            string assign_op_name = token_kind_name(stmt->assign.op);
+            TokenKind binary_op = assign_token_to_binary_token[(int)stmt->assign.op];
+            Operand right = resolve_expected_expr_rvalue(stmt->assign.right, left.type);
+            Operand result;
+            if (stmt->assign.op == TOKEN_ASSIGN) {
+                result = right;
+            }
+            else if (stmt->assign.op == TOKEN_ADD_ASSIGN || stmt->assign.op == TOKEN_SUB_ASSIGN) {
+                if (left.type->kind == TYPE_PTR && is_integer_type(right.type)) {
+                    result = operand_rvalue(left.type);
                 }
-                else if (stmt->assign.op == TOKEN_ADD_ASSIGN || stmt->assign.op == TOKEN_SUB_ASSIGN) {
-                    if (left.type->kind == TYPE_PTR && is_integer_type(right.type)) {
-                        result = operand_rvalue(left.type);
-                    }
-                    else if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
-                        result = resolve_expr_binary_op(binary_op, ref assign_op_name, stmt->pos, left, right);
-                    }
-                    else {
-                        fatal_error(stmt->pos, "Invalid operand types for %s", assign_op_name);
-                    }
-                }
-                else {
+                else if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
                     result = resolve_expr_binary_op(binary_op, ref assign_op_name, stmt->pos, left, right);
                 }
-                if (!convert_operand(&result, left.type)) {
-                    fatal_error(stmt->pos, "Invalid type in assignment");
+                else {
+                    fatal_error(stmt->pos, "Invalid operand types for %s", assign_op_name);
                 }
             }
             else {
-                assert(stmt->assign.op == TOKEN_INC || stmt->assign.op == TOKEN_DEC);
-                if (!(is_integer_type(left.type) || left.type->kind == TYPE_PTR)) {
-                    fatal_error(stmt->pos, "%s only valid for integer and pointer types", token_kind_name(stmt->assign.op));
-                }
+                result = resolve_expr_binary_op(binary_op, ref assign_op_name, stmt->pos, left, right);
+            }
+            if (!convert_operand(&result, left.type)) {
+                fatal_error(stmt->pos, "Invalid type in assignment");
             }
         }
+
         void resolve_stmt_init(Stmt* stmt) {
             assert(stmt->kind == STMT_INIT);
             Type *type;
@@ -2252,6 +2245,23 @@ namespace IonLang
             return operand;
         }
 
+        Operand resolve_expr_modify(Expr* expr) {
+            Operand operand = resolve_expr(expr->modify.expr);
+            Type *type = operand.type;
+            complete_type(type);
+            if (!operand.is_lvalue) {
+                fatal_error(expr->pos, "Cannot modify non-lvalue");
+            }
+            if (type->nonmodifiable) {
+                fatal_error(expr->pos, "Cannot modify non-modifiable type");
+            }
+            if (!(is_integer_type(type) || type->kind == TYPE_PTR)) {
+                fatal_error(expr->pos, "%s only valid for integer and pointer types", token_kind_name(expr->modify.op));
+            }
+            return operand_rvalue(type);
+        }
+
+
 
         private Operand resolve_expected_expr(Expr* expr, Type* expected_type) {
             Operand result;
@@ -2365,6 +2375,9 @@ namespace IonLang
                     result = operand_const(type_usize, new Val { ll = type->aggregate.fields[field].offset });
                     break;
                 }
+                case EXPR_MODIFY:
+                    result = resolve_expr_modify(expr);
+                    break;
                 default:
                     assert(false);
                     result = default;

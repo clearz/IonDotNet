@@ -254,7 +254,9 @@ namespace IonLang
         private Expr* parse_expr_base() {
             var pos = token.pos;
             var expr = parse_expr_operand();
-            while (is_token(TOKEN_LPAREN) || is_token(TOKEN_LBRACKET) || is_token(TOKEN_DOT))
+            while (is_token(TOKEN_LPAREN) || is_token(TOKEN_LBRACKET) || is_token(TOKEN_DOT)
+                || is_token(TOKEN_INC) || is_token(TOKEN_DEC)) {
+
                 if (match_token(TOKEN_LPAREN)) {
                     var buf = PtrBuffer.GetPooledBuffer();
 
@@ -273,20 +275,26 @@ namespace IonLang
                     expect_token(TOKEN_RBRACKET);
                     expr = new_expr_index(pos, expr, index);
                 }
-                else {
-                    assert(is_token(TOKEN_DOT));
+                else if (is_token(TOKEN_DOT)) {
                     next_token();
                     var field = token.name;
                     expect_token(TOKEN_NAME);
                     expr = new_expr_field(pos, expr, field);
                 }
+                else {
+                    assert(is_token(TOKEN_INC) || is_token(TOKEN_DEC));
+                    TokenKind op = token.kind;
+                    next_token();
+                    expr = new_expr_modify(pos, op, true, expr);
+                }
+            }
 
             return expr;
         }
 
         private bool is_unary_op() {
             return is_token(TOKEN_ADD) || is_token(TOKEN_SUB) || is_token(TOKEN_MUL) || is_token(TOKEN_AND) ||
-                   is_token(TOKEN_NEG) || is_token(TOKEN_NOT);
+                   is_token(TOKEN_NEG) || is_token(TOKEN_NOT) || is_token(TOKEN_INC) || is_token(TOKEN_DEC);
         }
 
         private Expr* parse_expr_unary() {
@@ -294,7 +302,12 @@ namespace IonLang
             if (is_unary_op()) {
                 var op = token.kind;
                 next_token();
-                return new_expr_unary(pos, op, parse_expr_unary());
+                if (op == TOKEN_INC || op == TOKEN_DEC) {
+                    return new_expr_modify(pos, op, false, parse_expr_unary());
+                }
+                else {
+                    return new_expr_unary(pos, op, parse_expr_unary());
+                }
             }
 
             return parse_expr_base();
@@ -488,11 +501,6 @@ namespace IonLang
                 var op = token.kind;
                 next_token();
                 stmt = new_stmt_assign(pos, op, expr, parse_expr());
-            }
-            else if (is_token(TOKEN_INC) || is_token(TOKEN_DEC)) {
-                var op = token.kind;
-                next_token();
-                stmt = new_stmt_assign(pos, op, expr, null);
             }
             else {
                 stmt = new_stmt_expr(pos, expr);
