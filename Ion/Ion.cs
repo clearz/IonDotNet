@@ -63,6 +63,10 @@ namespace IonLang
                     "    } else {\n" +
                     "        return NULL;\n" +
                     "    }\n" +
+                    "}\n\n"           +
+                    "struct Any {\n"+
+                    "    ptr: void*;\n"+
+                    "    type: typeid;\n"+
                     "}\n").ToPtr();
 
         void init_compiler() {

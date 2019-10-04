@@ -37,6 +37,7 @@ typedef int typeid;
 // Forward declarations
 typedef struct TypeFieldInfo TypeFieldInfo;
 typedef struct TypeInfo TypeInfo;
+typedef struct Any Any;
 typedef struct SomeIncompleteType SomeIncompleteType;
 typedef struct S1 S1;
 typedef struct S2 S2;
@@ -45,7 +46,6 @@ typedef union IntOrPtr IntOrPtr;
 typedef struct Vector Vector;
 typedef struct T T;
 typedef struct ConstVector ConstVector;
-typedef struct Any Any;
 typedef struct BufHdr BufHdr;
 typedef struct Thing Thing;
 
@@ -117,6 +117,14 @@ struct TypeInfo {
 
 #line 51
 const TypeInfo * get_typeinfo(typeid type);
+
+#line 59
+struct Any {
+    #line 60
+    void(*ptr);
+    #line 61
+    typeid type;
+};
 
 #line 17 "test1.ion"
 extern SomeIncompleteType(*incomplete_ptr);
@@ -282,124 +290,116 @@ void test_lits(void);
 #line 317
 void test_ops(void);
 
-#line 347
+#line 348
 #define IS_DEBUG true
 
-#line 349
+#line 350
 void test_bool(void);
 
-#line 356
+#line 357
 int test_ctrl(void);
 
-#line 366
+#line 367
 extern const int (j);
 
-#line 367
+#line 368
 extern const int(*q);
 
-#line 368
+#line 369
 extern const Vector (cv);
 
-#line 370
+#line 371
 void f4(const char(*x));
 
-#line 373
+#line 374
 struct ConstVector {
-    #line 374
+    #line 375
     const int (x);
-    #line 374
+    #line 375
     const int (y);
 };
 
-#line 377
+#line 378
 void f5(const int(*p));
 
-#line 380
+#line 381
 void test_convert(void);
 
-#line 388
+#line 389
 void test_const(void);
 
-#line 411
+#line 412
 void test_init(void);
 
-#line 424
+#line 425
 void test_sizeof(void);
 
-#line 432
+#line 433
 void test_cast(void);
 
-#line 441
-struct Any {
-    #line 442
-    void(*ptr);
-    #line 443
-    typeid type;
-};
-
-#line 446
+#line 442
 void print_any(Any any);
 
-#line 468
+#line 464
 void print_type(typeid type);
 
-#line 459
+#line 455
 void println_any(Any any);
 
-#line 464
+#line 460
 void print_typeid(typeid type);
 
-#line 493
+#line 489
 void println_type(typeid type);
 
-#line 498
+#line 494
 void print_typeinfo(typeid type);
 
-#line 522
+#line 518
 void println_typeinfo(typeid type);
 
-#line 527
+#line 523
 void test_typeinfo(void);
 
-#line 547
+#line 543
 void test_compound_literals(void);
 
-#line 553
+#line 549
 void test_complete(void);
 
-#line 581
+#line 577
 void test_alignof(void);
 
-#line 589
+#line 585
 struct BufHdr {
-    #line 590
+    #line 586
     usize cap;
-    #line 590
+    #line 586
     usize len;
-    #line 591
+    #line 587
     char (buf[1]);
 };
 
-#line 596
+#line 592
 void test_offsetof(void);
 
-#line 601
+#line 597
 struct Thing {
-    #line 602
+    #line 598
     int a;
 };
 
-#line 605
+#line 601
 extern Thing thing;
 
-#line 607
+#line 603
 Thing * returns_ptr(void);
 
 const Thing * returns_ptr_to_const(void);
 
 void test_lvalue(void);
 
-#line 623
+#line 619
 int main(int argc, const char *(*argv));
 
 // Typeinfo
@@ -437,30 +437,30 @@ TypeInfo *typeinfo_table[94] = {
         {"base", .type = 8, .offset = offsetof(TypeInfo, base)},
         {"fields", .type = 35, .offset = offsetof(TypeInfo, fields)},
         {"num_fields", .type = 8, .offset = offsetof(TypeInfo, num_fields)},}},
-    [21] = NULL, // Incomplete: SomeIncompleteType
-    [22] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(S1), .align = alignof(S1), .name = "S1", .num_fields = 2, .fields = (TypeFieldInfo[]) {
-        {"a", .type = 8, .offset = offsetof(S1, a)},
-        {"b", .type = 50, .offset = offsetof(S1, b)},}},
-    [23] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(S2), .align = alignof(S2), .name = "S2", .num_fields = 1, .fields = (TypeFieldInfo[]) {
-        {"s1", .type = 22, .offset = offsetof(S2, s1)},}},
-    [24] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(UartCtrl), .align = alignof(UartCtrl), .name = "UartCtrl", .num_fields = 2, .fields = (TypeFieldInfo[]) {
-        {"tx_enable", .type = 2, .offset = offsetof(UartCtrl, tx_enable)},
-        {"rx_enable", .type = 2, .offset = offsetof(UartCtrl, rx_enable)},}},
-    [25] = &(TypeInfo){TYPE_UNION, .size = sizeof(IntOrPtr), .align = alignof(IntOrPtr), .name = "IntOrPtr", .num_fields = 2, .fields = (TypeFieldInfo[]) {
-        {"i", .type = 8, .offset = offsetof(IntOrPtr, i)},
-        {"p", .type = 52, .offset = offsetof(IntOrPtr, p)},}},
-    [26] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(Vector), .align = alignof(Vector), .name = "Vector", .num_fields = 2, .fields = (TypeFieldInfo[]) {
-        {"x", .type = 8, .offset = offsetof(Vector, x)},
-        {"y", .type = 8, .offset = offsetof(Vector, y)},}},
-    [27] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(T), .align = alignof(T), .name = "T", .num_fields = 1, .fields = (TypeFieldInfo[]) {
-        {"a", .type = 67, .offset = offsetof(T, a)},}},
-    [28] = NULL, // Enum
-    [29] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(ConstVector), .align = alignof(ConstVector), .name = "ConstVector", .num_fields = 2, .fields = (TypeFieldInfo[]) {
-        {"x", .type = 50, .offset = offsetof(ConstVector, x)},
-        {"y", .type = 50, .offset = offsetof(ConstVector, y)},}},
-    [30] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(Any), .align = alignof(Any), .name = "Any", .num_fields = 2, .fields = (TypeFieldInfo[]) {
+    [21] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(Any), .align = alignof(Any), .name = "Any", .num_fields = 2, .fields = (TypeFieldInfo[]) {
         {"ptr", .type = 16, .offset = offsetof(Any, ptr)},
         {"type", .type = 8, .offset = offsetof(Any, type)},}},
+    [22] = NULL, // Incomplete: SomeIncompleteType
+    [23] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(S1), .align = alignof(S1), .name = "S1", .num_fields = 2, .fields = (TypeFieldInfo[]) {
+        {"a", .type = 8, .offset = offsetof(S1, a)},
+        {"b", .type = 50, .offset = offsetof(S1, b)},}},
+    [24] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(S2), .align = alignof(S2), .name = "S2", .num_fields = 1, .fields = (TypeFieldInfo[]) {
+        {"s1", .type = 23, .offset = offsetof(S2, s1)},}},
+    [25] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(UartCtrl), .align = alignof(UartCtrl), .name = "UartCtrl", .num_fields = 2, .fields = (TypeFieldInfo[]) {
+        {"tx_enable", .type = 2, .offset = offsetof(UartCtrl, tx_enable)},
+        {"rx_enable", .type = 2, .offset = offsetof(UartCtrl, rx_enable)},}},
+    [26] = &(TypeInfo){TYPE_UNION, .size = sizeof(IntOrPtr), .align = alignof(IntOrPtr), .name = "IntOrPtr", .num_fields = 2, .fields = (TypeFieldInfo[]) {
+        {"i", .type = 8, .offset = offsetof(IntOrPtr, i)},
+        {"p", .type = 52, .offset = offsetof(IntOrPtr, p)},}},
+    [27] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(Vector), .align = alignof(Vector), .name = "Vector", .num_fields = 2, .fields = (TypeFieldInfo[]) {
+        {"x", .type = 8, .offset = offsetof(Vector, x)},
+        {"y", .type = 8, .offset = offsetof(Vector, y)},}},
+    [28] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(T), .align = alignof(T), .name = "T", .num_fields = 1, .fields = (TypeFieldInfo[]) {
+        {"a", .type = 67, .offset = offsetof(T, a)},}},
+    [29] = NULL, // Enum
+    [30] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(ConstVector), .align = alignof(ConstVector), .name = "ConstVector", .num_fields = 2, .fields = (TypeFieldInfo[]) {
+        {"x", .type = 50, .offset = offsetof(ConstVector, x)},
+        {"y", .type = 50, .offset = offsetof(ConstVector, y)},}},
     [31] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(BufHdr), .align = alignof(BufHdr), .name = "BufHdr", .num_fields = 3, .fields = (TypeFieldInfo[]) {
         {"cap", .type = 13, .offset = offsetof(BufHdr, cap)},
         {"len", .type = 13, .offset = offsetof(BufHdr, len)},
@@ -480,7 +480,7 @@ TypeInfo *typeinfo_table[94] = {
     [43] = &(TypeInfo){TYPE_CONST, .size = 0, .align = 0, .base = 1},
     [44] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 43},
     [45] = NULL, // Func
-    [46] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 21},
+    [46] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 22},
     [47] = NULL, // Func
     [48] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [3]), .align = alignof(int [3]), .base = 8, .count = 3},
     [49] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 3},
@@ -492,7 +492,7 @@ TypeInfo *typeinfo_table[94] = {
     [55] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 9},
     [56] = NULL, // Func
     [57] = NULL, // Func
-    [58] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 26},
+    [58] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 27},
     [59] = NULL, // Func
     [60] = NULL, // Func
     [61] = NULL, // Func
@@ -500,13 +500,13 @@ TypeInfo *typeinfo_table[94] = {
     [63] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const char [256]), .align = alignof(const char [256]), .base = 33, .count = 256},
     [64] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [11]), .align = alignof(int [11]), .base = 8, .count = 11},
     [65] = NULL, // Func
-    [66] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 27},
+    [66] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 28},
     [67] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [9]), .align = alignof(int [9]), .base = 8, .count = 9},
     [68] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const char * [4]), .align = alignof(const char * [4]), .base = 34, .count = 4},
     [69] = NULL, // Func
     [70] = NULL, // Func
     [71] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 50},
-    [72] = &(TypeInfo){TYPE_CONST, .size = sizeof(const Vector), .align = alignof(const Vector), .base = 26},
+    [72] = &(TypeInfo){TYPE_CONST, .size = sizeof(const Vector), .align = alignof(const Vector), .base = 27},
     [73] = NULL, // Func
     [74] = NULL, // Func
     [75] = NULL, // Func
@@ -518,8 +518,8 @@ TypeInfo *typeinfo_table[94] = {
     [81] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 14},
     [82] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 16},
     [83] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const int * [42]), .align = alignof(const int * [42]), .base = 71, .count = 42},
-    [84] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 25},
-    [85] = &(TypeInfo){TYPE_CONST, .size = sizeof(const Any), .align = alignof(const Any), .base = 30},
+    [84] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 26},
+    [85] = &(TypeInfo){TYPE_CONST, .size = sizeof(const Any), .align = alignof(const Any), .base = 21},
     [86] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(char [1]), .align = alignof(char [1]), .base = 3, .count = 1},
     [87] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 32},
     [88] = NULL, // Func
@@ -566,7 +566,7 @@ char (*code) =
 #line 61 "test1.ion"
 void f10(int (a[3])) {
     #line 62
-    a[1] = 42;
+    (a[1]) = 42;
 }
 
 #line 65
@@ -596,7 +596,7 @@ void test_loops(void) {
     while (0) {
     }
     #line 87
-    for (int i = 0; (i) < (10); i++) {
+    for (int i = 0; (i) < (10); (i)++) {
     }
     #line 89
     for (;;) {
@@ -612,14 +612,14 @@ void test_loops(void) {
     for (; 0;) {
     }
     #line 97
-    for (int i = 0;; i++) {
+    for (int i = 0;; (i)++) {
         #line 98
         break;
     }
     #line 100
     int i = 0;
     #line 101
-    for (;; i++) {
+    for (;; (i)++) {
         #line 102
         break;
     }
@@ -630,11 +630,11 @@ void test_nonmodifiable(void) {
     #line 106
     S1 s1;
     #line 107
-    s1.a = 0;
+    (s1.a) = 0;
     #line 110
     S2 s2;
     #line 111
-    s2.s1.a = 0;
+    (s2.s1.a) = 0;
 }
 
 #line 123
@@ -654,23 +654,23 @@ void test_uart(void) {
     #line 132
     bool tx_enable = (unpack)(*(UART_CTRL_REG)).tx_enable;
     #line 133
-    *(UART_CTRL_REG) = (pack)((UartCtrl){.tx_enable = !(tx_enable), .rx_enable = false});
+    (*(UART_CTRL_REG)) = (pack)((UartCtrl){.tx_enable = !(tx_enable), .rx_enable = false});
     #line 134
     UartCtrl ctrl = (unpack)(*(UART_CTRL_REG));
     #line 135
-    ctrl.rx_enable = true;
+    (ctrl.rx_enable) = true;
     #line 136
-    *(UART_CTRL_REG) = (pack)(ctrl);
+    (*(UART_CTRL_REG)) = (pack)(ctrl);
 }
 
 #line 139
 uchar h(void) {
     #line 140
-    (Vector){.x = 1, .y = 2}.x = 42;
+    ((Vector){.x = 1, .y = 2}.x) = 42;
     #line 141
     Vector (*v) = &((Vector){1, 2});
     #line 142
-    v->x = 42;
+    (v->x) = 42;
     #line 143
     int (*p) = &((int){0});
     #line 144
@@ -690,9 +690,9 @@ int g(U u) {
 #line 153
 void k(void(*vp), int(*ip)) {
     #line 154
-    vp = ip;
+    (vp) = ip;
     #line 155
-    ip = vp;
+    (ip) = vp;
 }
 
 #line 158
@@ -700,7 +700,7 @@ void f1(void) {
     #line 159
     int (*p) = &((int){0});
     #line 160
-    *(p) = 42;
+    (*(p)) = 42;
 }
 
 #line 163
@@ -729,7 +729,7 @@ int is_even(int digit) {
         case 6:
         case 8: {
             #line 194
-            b = 1;
+            (b) = 1;
             break;
         }
     }
@@ -742,7 +742,7 @@ int i;
 #line 212
 void f2(Vector v) {
     #line 213
-    v = (Vector){0};
+    (v) = (Vector){0};
 }
 
 #line 216
@@ -750,9 +750,9 @@ int fact_iter(int n) {
     #line 217
     int r = 1;
     #line 218
-    for (int i = 0; (i) <= (n); i++) {
+    for (int i = 0; (i) <= (n); (i)++) {
         #line 219
-        r *= i;
+        (r) *= i;
     }
     #line 221
     return r;
@@ -785,7 +785,7 @@ void test_enum(void) {
     #line 259
     int i = a;
     #line 260
-    a = i;
+    (a) = i;
     #line 261
     (printf)("%d %d %d %d\n", COLOR_NONE, COLOR_RED, COLOR_GREEN, COLOR_BLUE);
 }
@@ -799,31 +799,31 @@ void test_assign(void) {
     #line 267
     int(*p) = &(i);
     #line 268
-    i++;
+    (i)++;
     #line 269
-    i--;
+    (i)--;
     #line 270
-    p++;
+    (p)++;
     #line 271
-    p--;
+    (p)--;
     #line 272
-    p += 1;
+    (p) += 1;
     #line 273
-    i /= 2;
+    (i) /= 2;
     #line 274
-    i *= 123;
+    (i) *= 123;
     #line 275
-    i %= 3;
+    (i) %= 3;
     #line 276
-    i <<= 1;
+    (i) <<= 1;
     #line 277
-    i >>= 2;
+    (i) >>= 2;
     #line 278
-    i &= 0xFF;
+    (i) &= 0xFF;
     #line 279
-    i |= 0xFF00;
+    (i) |= 0xFF00;
     #line 280
-    i ^= 0xFF0;
+    (i) ^= 0xFF0;
 }
 
 #line 287
@@ -831,9 +831,9 @@ void benchmark(int n) {
     #line 288
     int r = 1;
     #line 289
-    for (int i = 1; (i) <= (n); i++) {
+    for (int i = 1; (i) <= (n); (i)++) {
         #line 290
-        r *= i;
+        (r) *= i;
     }
 }
 
@@ -878,79 +878,81 @@ void test_ops(void) {
     #line 319
     float f = 0.0f;
     #line 320
-    f = +(pi);
+    (f) = +(pi);
     #line 321
-    f = -(pi);
+    (f) = -(pi);
     #line 322
     int n = -(1);
     #line 323
-    n = ~(n);
+    (n) = ~(n);
     #line 324
-    f = ((f) * (pi)) + (n);
+    (f) = ((f) * (pi)) + (n);
     #line 325
-    f = (pi) / (pi);
+    (f) = (pi) / (pi);
     #line 326
-    n = (3) % (2);
+    (n) = (3) % (2);
     #line 327
-    n = (n) + ((uchar)(1));
+    (n) = (n) + ((uchar)(1));
     #line 328
     int (*p) = &(n);
     #line 329
-    p = (p) + (1);
+    (p) = (p) + (1);
     #line 330
-    n = (int)(((p) + (1)) - (p));
+    (n) = (int)(((p) + (1)) - (p));
     #line 331
-    n = (n) << (1);
+    (n) = (n) << (1);
     #line 332
-    n = (n) >> (1);
+    (n) = (n) >> (1);
     #line 333
     int b = ((p) + (1)) > (p);
     #line 334
-    b = ((p) + (1)) >= (p);
+    (b) = ((p) + (1)) >= (p);
     #line 335
-    b = ((p) + (1)) < (p);
+    (b) = ((p) + (1)) < (p);
     #line 336
-    b = ((p) + (1)) <= (p);
+    (b) = ((p) + (1)) <= (p);
     #line 337
-    b = ((p) + (1)) == (p);
+    (b) = ((p) + (1)) == (p);
     #line 338
-    b = (1) > (2);
+    (b) = (1) > (2);
     #line 339
-    b = (1.23f) <= (pi);
+    (b) = (1.23f) <= (pi);
     #line 340
-    n = 0xFF;
+    (n) = 0xFF;
     #line 341
-    b = (n) & (~(1));
+    (b) = (n) & (~(1));
     #line 342
-    b = (n) & (1);
+    (b) = (n) & (1);
     #line 343
-    b = ((n) & (~(1))) ^ (1);
+    (b) = ((n) & (~(1))) ^ (1);
     #line 344
-    b = (p) && (pi);
+    (b) = (p) && (pi);
+    #line 345
+    (*(p))++;
 }
 
-#line 349
+#line 350
 void test_bool(void) {
-    #line 350
-    bool b = false;
     #line 351
-    b = true;
+    bool b = false;
     #line 352
-    int i = 0;
+    (b) = true;
     #line 353
-    i = IS_DEBUG;
+    int i = 0;
+    #line 354
+    (i) = IS_DEBUG;
 }
 
-#line 356
+#line 357
 int test_ctrl(void) {
-    #line 357
+    #line 358
     switch (1) {
         case 0: {
-            #line 359
+            #line 360
             return 0;
             break;
         }default: {
-            #line 361
+            #line 362
             return 1;
             break;
         }
@@ -963,174 +965,174 @@ const int(*q);
 
 const Vector (cv);
 
-#line 370
+#line 371
 void f4(const char(*x)) {
 }
 
-#line 377
+#line 378
 void f5(const int(*p)) {
 }
 
-#line 380
+#line 381
 void test_convert(void) {
-    #line 381
-    const int(*a) = 0;
     #line 382
-    int(*b) = 0;
+    const int(*a) = 0;
     #line 383
-    a = b;
+    int(*b) = 0;
     #line 384
-    void(*p) = 0;
+    (a) = b;
     #line 385
+    void(*p) = 0;
+    #line 386
     (f5)(p);
 }
 
-#line 388
+#line 389
 void test_const(void) {
-    #line 389
+    #line 390
     ConstVector cv2 = {1, 2};
     int i = 0;
-    #line 392
-    i = 1;
-    #line 395
+    #line 393
+    (i) = 1;
+    #line 396
     int x = cv.x;
     char c = escape_to_char[0];
     (f4)(escape_to_char);
-    #line 400
-    const char (*p) = (const char *)(0);
     #line 401
-    p = (escape_to_char) + (1);
+    const char (*p) = (const char *)(0);
     #line 402
-    char (*q) = (char *)(escape_to_char);
+    (p) = (escape_to_char) + (1);
     #line 403
-    c = q['n'];
-    p = (const char *)(1);
-    #line 408
-    i = (int)((ullong)(p));
+    char (*q) = (char *)(escape_to_char);
+    #line 404
+    (c) = q['n'];
+    (p) = (const char *)(1);
+    #line 409
+    (i) = (int)((ullong)(p));
 }
 
-#line 411
+#line 412
 void test_init(void) {
-    #line 412
-    int x = (const int)(0);
     #line 413
-    int y;
+    int x = (const int)(0);
     #line 414
-    y = 0;
+    int y;
     #line 415
-    int z = 42;
+    (y) = 0;
     #line 416
+    int z = 42;
+    #line 417
     int (a[3]) = {1, 2, 3};
-    #line 419
-    for (ullong i = 0; (i) < (10); i++) {
-        #line 420
+    #line 420
+    for (ullong i = 0; (i) < (10); (i)++) {
+        #line 421
         (printf)("%llu\n", i);
     }
 }
 
-#line 424
+#line 425
 void test_sizeof(void) {
-    #line 425
-    int i = 0;
     #line 426
-    ullong n = sizeof(i);
+    int i = 0;
     #line 427
-    n = sizeof(int);
+    ullong n = sizeof(i);
     #line 428
-    n = sizeof(int);
+    (n) = sizeof(int);
     #line 429
-    n = sizeof(int *);
+    (n) = sizeof(int);
+    #line 430
+    (n) = sizeof(int *);
 }
 
-#line 432
+#line 433
 void test_cast(void) {
-    #line 433
-    int(*p) = 0;
     #line 434
+    int(*p) = 0;
+    #line 435
     uint64 a = 0;
-    a = (uint64)(p);
-    p = (int *)(a);
+    (a) = (uint64)(p);
+    (p) = (int *)(a);
 }
 
-#line 446
+#line 442
 void print_any(Any any) {
-    #line 447
+    #line 443
     switch (any.type) {
         case 8: {
-            #line 449
+            #line 445
             (printf)("%d", *((const int *)(any.ptr)));
             break;
         }
         case 14: {
-            #line 451
+            #line 447
             (printf)("%f", *((const float *)(any.ptr)));
             break;
         }default: {
-            #line 453
+            #line 449
             (printf)("<unknown>");
             break;
         }
     }
-    #line 455
+    #line 451
     (printf)(": ");
-    #line 456
+    #line 452
     (print_type)(any.type);
 }
 
-#line 459
+#line 455
 void println_any(Any any) {
-    #line 460
+    #line 456
     (print_any)(any);
-    #line 461
+    #line 457
     (printf)("\n");
 }
 
-#line 464
+#line 460
 void print_typeid(typeid type) {
-    #line 465
+    #line 461
     (printf)("typeid(%d)", type);
 }
 
-#line 468
+#line 464
 void print_type(typeid type) {
-    #line 469
+    #line 465
     const TypeInfo (*typeinfo) = (get_typeinfo)(type);
-    #line 470
+    #line 466
     if (!(typeinfo)) {
-        #line 471
+        #line 467
         (print_typeid)(type);
-        #line 472
+        #line 468
         return;
     }
-    #line 474
+    #line 470
     switch (typeinfo->kind) {
         case TYPE_PTR: {
-            #line 476
+            #line 472
             (print_type)(typeinfo->base);
-            #line 477
+            #line 473
             (printf)("*");
             break;
         }
         case TYPE_CONST: {
-            #line 479
+            #line 475
             (print_type)(typeinfo->base);
-            #line 480
+            #line 476
             (printf)(" const");
             break;
         }
         case TYPE_ARRAY: {
-            #line 482
+            #line 478
             (print_type)(typeinfo->base);
-            #line 483
+            #line 479
             (printf)("[%d]", typeinfo->count);
             break;
         }default: {
-            #line 485
+            #line 481
             if (typeinfo->name) {
-                #line 486
+                #line 482
                 (printf)("%s", typeinfo->name);
             } else {
-                #line 488
+                #line 484
                 (print_typeid)(type);
             }
             break;
@@ -1138,134 +1140,134 @@ void print_type(typeid type) {
     }
 }
 
-#line 493
+#line 489
 void println_type(typeid type) {
-    #line 494
+    #line 490
     (print_type)(type);
-    #line 495
+    #line 491
     (printf)("\n");
 }
 
-#line 498
+#line 494
 void print_typeinfo(typeid type) {
-    #line 499
+    #line 495
     const TypeInfo (*typeinfo) = (get_typeinfo)(type);
-    #line 500
+    #line 496
     if (!(typeinfo)) {
-        #line 501
+        #line 497
         (print_typeid)(type);
-        #line 502
+        #line 498
         return;
     }
-    #line 504
+    #line 500
     (printf)("<");
-    #line 505
+    #line 501
     (print_type)(type);
-    #line 506
+    #line 502
     (printf)(" size=%d align=%d", typeinfo->size, typeinfo->align);
-    #line 507
+    #line 503
     switch (typeinfo->kind) {
         case TYPE_STRUCT:
         case TYPE_UNION: {
-            #line 510
+            #line 506
             (printf)(" %s={ ", ((typeinfo->kind) == (TYPE_STRUCT) ? "struct" : "union"));
-            #line 511
-            for (int i = 0; (i) < (typeinfo->num_fields); i++) {
-                #line 512
+            #line 507
+            for (int i = 0; (i) < (typeinfo->num_fields); (i)++) {
+                #line 508
                 TypeFieldInfo field = typeinfo->fields[i];
-                #line 513
+                #line 509
                 (printf)("@offset(%d) %s: ", field.offset, field.name);
-                #line 514
+                #line 510
                 (print_type)(field.type);
-                #line 515
+                #line 511
                 (printf)("; ");
             }
-            #line 517
+            #line 513
             (printf)("}");
             break;
         }
     }
-    #line 519
+    #line 515
     (printf)(">");
 }
 
-#line 522
+#line 518
 void println_typeinfo(typeid type) {
-    #line 523
+    #line 519
     (print_typeinfo)(type);
-    #line 524
+    #line 520
     (printf)("\n");
 }
 
-#line 527
+#line 523
 void test_typeinfo(void) {
-    #line 528
+    #line 524
     int i = 42;
-    #line 529
+    #line 525
     float f = 3.14f;
-    #line 530
+    #line 526
     void (*p) = NULL;
     (println_any)((Any){&(i), 8});
-    #line 533
+    #line 529
     (println_any)((Any){&(f), 14});
-    #line 534
+    #line 530
     (println_any)((Any){&(p), 16});
     (println_type)(8);
-    #line 537
+    #line 533
     (println_type)(71);
-    #line 538
+    #line 534
     (println_type)(83);
-    #line 539
-    (println_type)(24);
+    #line 535
+    (println_type)(25);
     (println_typeinfo)(8);
-    #line 542
-    (println_typeinfo)(24);
-    #line 543
-    (println_typeinfo)(84);
-    #line 544
+    #line 538
     (println_typeinfo)(25);
+    #line 539
+    (println_typeinfo)(84);
+    #line 540
+    (println_typeinfo)(26);
 }
 
-#line 547
+#line 543
 void test_compound_literals(void) {
-    #line 548
+    #line 544
     int i = 42;
-    #line 549
+    #line 545
     const Any (x) = {&(i), 8};
-    #line 550
+    #line 546
     Any y = {&(i), 8};
 }
 
-#line 553
+#line 549
 void test_complete(void) {
-    #line 554
+    #line 550
     int x = 0;
-    #line 557
+    #line 553
     int y = 0;
     if ((x) == (0)) {
-        #line 560
-        y = 1;
+        #line 556
+        (y) = 1;
     } else if ((x) == (1)) {
-        #line 562
-        y = 2;
-    } else {
         #line 558
+        (y) = 2;
+    } else {
+        #line 554
         assert("@complete if/elseif chain failed to handle case" && 0);
     }
-    #line 565
-    x = 1;
+    #line 561
+    (x) = 1;
     assert((x) >= (0));
-    x = 0;
-    #line 573
+    (x) = 0;
+    #line 569
     switch (x) {
         case 0: {
-            #line 575
-            y = 3;
+            #line 571
+            (y) = 3;
             break;
         }
         case 1: {
-            #line 577
-            y = 4;
+            #line 573
+            (y) = 4;
             break;
         }default:
             assert("@complete switch failed to handle case" && 0);
@@ -1273,88 +1275,88 @@ void test_complete(void) {
     }
 }
 
-#line 581
+#line 577
 void test_alignof(void) {
-    #line 582
+    #line 578
     int i = 42;
-    #line 583
+    #line 579
     ullong n1 = alignof(int);
-    #line 584
+    #line 580
     ullong n2 = alignof(int);
-    #line 585
+    #line 581
     ullong n3 = alignof(ullong);
-    #line 586
+    #line 582
     ullong n4 = alignof(int *);
 }
 
-#line 596
+#line 592
 void test_offsetof(void) {
-    #line 597
+    #line 593
     ullong n = offsetof(BufHdr, buf);
 }
 
 Thing thing;
 
 Thing * returns_ptr(void) {
+    #line 604
+    return &(thing);
+}
+
+#line 607
+const Thing * returns_ptr_to_const(void) {
     #line 608
     return &(thing);
 }
 
 #line 611
-const Thing * returns_ptr_to_const(void) {
-    #line 612
-    return &(thing);
-}
-
-#line 615
 void test_lvalue(void) {
-    (returns_ptr)()->a = 5;
+    ((returns_ptr)()->a) = 5;
     const Thing (*p) = (returns_ptr_to_const)();
 }
 
-#line 623
+#line 619
 int main(int argc, const char *(*argv)) {
-    #line 624
+    #line 620
     if ((argv) == (0)) {
-        #line 625
+        #line 621
         (printf)("argv is null\n");
     }
-    #line 627
+    #line 623
     (test_lvalue)();
-    #line 628
+    #line 624
     (test_alignof)();
-    #line 629
+    #line 625
     (test_offsetof)();
-    #line 630
+    #line 626
     (test_complete)();
-    #line 631
+    #line 627
     (test_compound_literals)();
-    #line 632
+    #line 628
     (test_loops)();
-    #line 633
+    #line 629
     (test_sizeof)();
-    #line 634
+    #line 630
     (test_assign)();
-    #line 635
+    #line 631
     (test_enum)();
-    #line 636
+    #line 632
     (test_arrays)();
-    #line 637
+    #line 633
     (test_cast)();
-    #line 638
+    #line 634
     (test_init)();
-    #line 639
+    #line 635
     (test_lits)();
-    #line 640
+    #line 636
     (test_const)();
-    #line 641
+    #line 637
     (test_bool)();
-    #line 642
+    #line 638
     (test_ops)();
-    #line 643
+    #line 639
     (test_typeinfo)();
-    #line 644
+    #line 640
     (getchar)();
-    #line 645
+    #line 641
     return 0;
 }

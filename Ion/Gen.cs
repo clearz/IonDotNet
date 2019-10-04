@@ -787,6 +787,13 @@ namespace IonLang
             c_write('}');
         }
 
+        void gen_paren_expr(Expr* expr) {
+            c_write('(');
+            gen_expr(expr);
+            c_write(')');
+        }
+
+
         private void gen_simple_stmt(Stmt* stmt) {
             switch (stmt->kind) {
                 case STMT_EXPR:
@@ -816,7 +823,7 @@ namespace IonLang
                     }
                     break;
                 case STMT_ASSIGN:
-                    gen_expr(stmt->assign.left);
+                    gen_paren_expr(stmt->assign.left);
                     if (stmt->assign.right != null) {
                         c_write(' ');
                         c_write(_token_kind_name(stmt->assign.op));
