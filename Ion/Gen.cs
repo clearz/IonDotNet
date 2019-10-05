@@ -19,7 +19,7 @@ namespace IonLang
         private const int _1MB = 1024 * 1024;
 
         private readonly char* cdecl_buffer = xmalloc<char>(_1MB);
-        // private Buffer<char> gen_buf = Buffer<char>.Create(_1MB, 4);
+        //private Buffer<char> gen_buf = Buffer<char>.Create(_1MB, 4);
         StringBuilder gen_buf = new StringBuilder();
         private readonly char[] char_to_escape  = new char[256];
         PtrBuffer* gen_headers_buf = PtrBuffer.Create();
@@ -76,7 +76,7 @@ namespace IonLang
         private void indent() {
             var size = gen_indent * 4;
 
-            gen_buf.Append(' ', size);
+            gen_buf.Append(string.Empty.PadRight(size).ToPtr(out int s), s);
             gen_pos.line++;
         }
 
@@ -1267,93 +1267,101 @@ namespace IonLang
                 gen_indent--;
             }
 
-            void gen_type(TypeKind tk, string s) {
-                gen_buf.AppendFormat("&(TypeInfo){{ {0}, .size = sizeof({1}), .align = alignof({1}), .name = ", tk, s);
-                gen_str(s.ToPtr(), false);
+            void gen_type(TypeKind tk) {
+                char* c = type_names[(int)tk];
+                c_write(tiInfo[20], ti20);
+                c_write(enum_type_names[(int)tk]);
+                c_write(tiInfo[21], ti21);
+                c_write(c);
+                c_write(tiInfo[22], ti22);
+                c_write(c);
+                c_write(')');
+                c_write(tiInfo[11], ti11);
+                gen_str(c, false);
             }
 
             void gen_typeinfo(Type* type) {
                 switch (type->kind) {
                     case TYPE_BOOL:
-                        gen_type(TYPE_BOOL, "bool");
+                        gen_type(TYPE_BOOL);
                         c_write('}');
                         c_write(',');
                         break;
 
                     case TYPE_CHAR:
-                        gen_type(TYPE_CHAR, "char");
+                        gen_type(TYPE_CHAR);
                         c_write('}');
                         c_write(',');
                         break;
 
                     case TYPE_UCHAR:
-                        gen_type(TYPE_UCHAR, "uchar");
+                        gen_type(TYPE_UCHAR);
                         c_write('}');
                         c_write(',');
                         break;
 
                     case TYPE_SCHAR:
-                        gen_type(TYPE_SCHAR, "schar");
+                        gen_type(TYPE_SCHAR);
                         c_write('}');
                         c_write(',');
                         break;
 
                     case TYPE_SHORT:
-                        gen_type(TYPE_SHORT, "short");
+                        gen_type(TYPE_SHORT);
                         c_write('}');
                         c_write(',');
                         break;
 
                     case TYPE_USHORT:
-                        gen_type(TYPE_USHORT, "ushort");
+                        gen_type(TYPE_USHORT);
                         c_write('}');
                         c_write(',');
                         break;
 
                     case TYPE_INT:
-                        gen_type(TYPE_INT, "int");
+                        gen_type(TYPE_INT);
                         c_write('}');
                         c_write(',');
                         break;
 
                     case TYPE_UINT:
-                        gen_type(TYPE_UINT, "uint");
+                        gen_type(TYPE_UINT);
                         c_write('}');
                         c_write(',');
                         break;
 
                     case TYPE_LONG:
-                        gen_type(TYPE_LONG, "long");
+                        gen_type(TYPE_LONG);
                         c_write('}');
                         c_write(',');
                         break;
 
                     case TYPE_ULONG:
-                        gen_type(TYPE_ULONG, "ulong");
+                        gen_type(TYPE_ULONG);
                         c_write('}');
                         c_write(',');
                         break;
 
                     case TYPE_LLONG:
-                        gen_type(TYPE_LLONG, "llong");
+                        gen_type(TYPE_LLONG);
                         c_write('}');
                         c_write(',');
                         break;
 
                     case TYPE_ULLONG:
-                        gen_type(TYPE_ULLONG, "ullong");
+                        gen_type(TYPE_ULLONG);
                         c_write('}');
                         c_write(',');
                         break;
 
                     case TYPE_FLOAT:
-                        gen_type(TYPE_FLOAT, "float");
+                        gen_type(TYPE_FLOAT);
                         c_write('}');
                         c_write(',');
                         break;
 
                     case TYPE_DOUBLE:
-                        gen_type(TYPE_DOUBLE, "double");
+                        gen_type(TYPE_DOUBLE);
                         c_write('}');
                         c_write(',');
                         break;
@@ -1368,7 +1376,7 @@ namespace IonLang
                         c_write(',');
                         break;
                     case TYPE_CONST:
-                        gen_typeinfo_header("TYPE_CONST".ToPtr(), type);
+                        gen_typeinfo_header(enum_type_names[(int)TYPE_CONST], type);
                         c_write(tiInfo[7], ti7);
                         c_write(type->@base->typeid.itoa());
                         c_write('}');
@@ -1379,7 +1387,7 @@ namespace IonLang
                             c_write(tiInfo[8], ti8);
                         }
                         else {
-                            gen_typeinfo_header("TYPE_ARRAY".ToPtr(), type);
+                            gen_typeinfo_header(enum_type_names[(int)TYPE_ARRAY], type);
                             c_write(tiInfo[9], ti9);
                             c_write(type->@base->typeid.itoa());
                             c_write(tiInfo[10], ti10);
@@ -1390,7 +1398,7 @@ namespace IonLang
                         break;
                     case TYPE_STRUCT:
                     case TYPE_UNION:
-                        gen_typeinfo_header(type->kind == TYPE_STRUCT ? "TYPE_STRUCT".ToPtr() : "TYPE_UNION".ToPtr(), type);
+                        gen_typeinfo_header(enum_type_names[(int)type->kind], type);
                         c_write(tiInfo[11], ti11);
                         gen_str(type->sym->name, false);
                         c_write(tiInfo[12], ti12);

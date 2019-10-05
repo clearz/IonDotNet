@@ -2,7 +2,7 @@
 
 namespace IonLang
 {
-    partial class Ion
+    unsafe partial class Ion
     {
         private static int Main(string[] args) {
             var ion = new Ion();
@@ -10,7 +10,9 @@ namespace IonLang
                 ion.ion_main(args);
             else {
                 Timer.Time(() => ion.ion_test(), 1);
+#if DEBUG
                 WriteLine(ion.gen_buf);
+#endif
                 ReadKey();
             }
             return 0;

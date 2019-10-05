@@ -407,6 +407,7 @@ namespace IonLang
             public static implicit operator T*(Buffer<T> b) {
                 return b._begin;
             }
+
             public static Buffer<T>* CreateP(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
                 assert(capacity >= START_CAPACITY);
                 assert(multiplier > 1);
@@ -451,7 +452,7 @@ namespace IonLang
                 }
             }
 
-            public void Add(T* val, int len) {
+            public void Append(T* val, int len) {
                 if (count + len >= _capacity) {
                     _capacity *= _multiplier;
                     buffer_size = _capacity * item_size;

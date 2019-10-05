@@ -101,8 +101,9 @@ namespace IonLang
         private static readonly Type* type_ssize   = type_llong;
         private static readonly Type* type_uintptr   = type_ullong;
 
-        readonly int[] type_ranks = new int[(int)NUM_TYPE_KINDS];
-        readonly char*[] type_names = new char*[(int)NUM_TYPE_KINDS];
+        static readonly int[] type_ranks = new int[(int)NUM_TYPE_KINDS];
+        static readonly char*[] type_names = new char*[(int)NUM_TYPE_KINDS];
+        static readonly char*[] enum_type_names = new char*[(int)NUM_TYPE_KINDS];
         bool is_const_type(Type* type) {
             return type->kind == TYPE_CONST;
         }

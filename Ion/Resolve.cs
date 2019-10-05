@@ -2471,6 +2471,29 @@ namespace IonLang
             type_names[(int)TYPE_FLOAT] = "float".ToPtr();
             type_names[(int)TYPE_DOUBLE] = "double".ToPtr();
 
+            enum_type_names[(int)TYPE_VOID] = "TYPE_VOID".ToPtr();
+            enum_type_names[(int)TYPE_BOOL] = "TYPE_BOOL".ToPtr();
+            enum_type_names[(int)TYPE_CHAR] = "TYPE_CHAR".ToPtr();
+            enum_type_names[(int)TYPE_SCHAR] = "TYPE_SCHAR".ToPtr();
+            enum_type_names[(int)TYPE_UCHAR] = "TYPE_UCHAR".ToPtr();
+            enum_type_names[(int)TYPE_SHORT] = "TYPE_SHORT".ToPtr();
+            enum_type_names[(int)TYPE_USHORT] = "TYPE_USHORT".ToPtr();
+            enum_type_names[(int)TYPE_INT] = "TYPE_INT".ToPtr();
+            enum_type_names[(int)TYPE_UINT] = "TYPE_UINT".ToPtr();
+            enum_type_names[(int)TYPE_LONG] = "TYPE_LONG".ToPtr();
+            enum_type_names[(int)TYPE_ULONG] = "TYPE_ULONG".ToPtr();
+            enum_type_names[(int)TYPE_LLONG] = "TYPE_LLONG".ToPtr();
+            enum_type_names[(int)TYPE_ULLONG] = "TYPE_ULLONG".ToPtr();
+            enum_type_names[(int)TYPE_FLOAT] = "TYPE_FLOAT".ToPtr();
+            enum_type_names[(int)TYPE_DOUBLE] = "TYPE_DOUBLE".ToPtr();
+
+
+            enum_type_names[(int)TYPE_CONST] = "TYPE_CONST".ToPtr();
+            enum_type_names[(int)TYPE_PTR] = "TYPE_PTR".ToPtr();
+            enum_type_names[(int)TYPE_ARRAY] = "TYPE_ARRAY".ToPtr();
+            enum_type_names[(int)TYPE_STRUCT] = "TYPE_STRUCT".ToPtr();
+            enum_type_names[(int)TYPE_UNION] = "TYPE_UNION".ToPtr();
+
             sym_global_type("void".ToPtr(), type_void);
             sym_global_type("bool".ToPtr(), type_bool);
             sym_global_type("char".ToPtr(), type_char);
