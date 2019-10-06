@@ -60,6 +60,10 @@ namespace IonLang
 
         [Conditional("DEBUG")]
         [DebuggerHidden]
+        private static void assert(void* v) => assert(v != null);
+
+        [Conditional("DEBUG")]
+        [DebuggerHidden]
         private static void assert(bool b) => Debug.Assert(b);
 
         [DebuggerHidden]
