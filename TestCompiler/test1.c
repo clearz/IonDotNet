@@ -59,70 +59,70 @@ typedef int TypeKind;
 typedef int Color;
 
 #line 4 "<builtin>"
-#define TYPE_NONE (0)
+#define TYPE_NONE ((int)(0))
 
 #line 5
-#define TYPE_VOID ((TYPE_NONE) + (1))
+#define TYPE_VOID ((int)((TYPE_NONE) + (1)))
 
 #line 6
-#define TYPE_BOOL ((TYPE_VOID) + (1))
+#define TYPE_BOOL ((int)((TYPE_VOID) + (1)))
 
 #line 7
-#define TYPE_CHAR ((TYPE_BOOL) + (1))
+#define TYPE_CHAR ((int)((TYPE_BOOL) + (1)))
 
 #line 8
-#define TYPE_UCHAR ((TYPE_CHAR) + (1))
+#define TYPE_UCHAR ((int)((TYPE_CHAR) + (1)))
 
 #line 9
-#define TYPE_SCHAR ((TYPE_UCHAR) + (1))
+#define TYPE_SCHAR ((int)((TYPE_UCHAR) + (1)))
 
 #line 10
-#define TYPE_SHORT ((TYPE_SCHAR) + (1))
+#define TYPE_SHORT ((int)((TYPE_SCHAR) + (1)))
 
 #line 11
-#define TYPE_USHORT ((TYPE_SHORT) + (1))
+#define TYPE_USHORT ((int)((TYPE_SHORT) + (1)))
 
 #line 12
-#define TYPE_INT ((TYPE_USHORT) + (1))
+#define TYPE_INT ((int)((TYPE_USHORT) + (1)))
 
 #line 13
-#define TYPE_UINT ((TYPE_INT) + (1))
+#define TYPE_UINT ((int)((TYPE_INT) + (1)))
 
 #line 14
-#define TYPE_LONG ((TYPE_UINT) + (1))
+#define TYPE_LONG ((int)((TYPE_UINT) + (1)))
 
 #line 15
-#define TYPE_ULONG ((TYPE_LONG) + (1))
+#define TYPE_ULONG ((int)((TYPE_LONG) + (1)))
 
 #line 16
-#define TYPE_LLONG ((TYPE_ULONG) + (1))
+#define TYPE_LLONG ((int)((TYPE_ULONG) + (1)))
 
 #line 17
-#define TYPE_ULLONG ((TYPE_LLONG) + (1))
+#define TYPE_ULLONG ((int)((TYPE_LLONG) + (1)))
 
 #line 18
-#define TYPE_FLOAT ((TYPE_ULLONG) + (1))
+#define TYPE_FLOAT ((int)((TYPE_ULLONG) + (1)))
 
 #line 19
-#define TYPE_DOUBLE ((TYPE_FLOAT) + (1))
+#define TYPE_DOUBLE ((int)((TYPE_FLOAT) + (1)))
 
 #line 20
-#define TYPE_CONST ((TYPE_DOUBLE) + (1))
+#define TYPE_CONST ((int)((TYPE_DOUBLE) + (1)))
 
 #line 21
-#define TYPE_PTR ((TYPE_CONST) + (1))
+#define TYPE_PTR ((int)((TYPE_CONST) + (1)))
 
 #line 22
-#define TYPE_ARRAY ((TYPE_PTR) + (1))
+#define TYPE_ARRAY ((int)((TYPE_PTR) + (1)))
 
 #line 23
-#define TYPE_STRUCT ((TYPE_ARRAY) + (1))
+#define TYPE_STRUCT ((int)((TYPE_ARRAY) + (1)))
 
 #line 24
-#define TYPE_UNION ((TYPE_STRUCT) + (1))
+#define TYPE_UNION ((int)((TYPE_STRUCT) + (1)))
 
 #line 25
-#define TYPE_FUNC ((TYPE_UNION) + (1))
+#define TYPE_FUNC ((int)((TYPE_UNION) + (1)))
 
 #line 28
 struct TypeFieldInfo {
@@ -312,19 +312,19 @@ struct T {
 };
 
 #line 262
-#define COLOR_NONE (0)
+#define COLOR_NONE ((int)(0))
 
 #line 263
-#define COLOR_RED ((COLOR_NONE) + (1))
+#define COLOR_RED ((int)((COLOR_NONE) + (1)))
 
 #line 264
-#define COLOR_GREEN ((COLOR_RED) + (3))
+#define COLOR_GREEN ((int)((COLOR_RED) + (3)))
 
 #line 265
-#define COLOR_BLUE ((COLOR_GREEN) + (1))
+#define COLOR_BLUE ((int)((COLOR_GREEN) + (1)))
 
 #line 266
-#define NUM_COLORS ((COLOR_BLUE) + (1))
+#define NUM_COLORS ((int)((COLOR_BLUE) + (1)))
 
 #line 269
 extern const char * (color_names[NUM_COLORS]);
