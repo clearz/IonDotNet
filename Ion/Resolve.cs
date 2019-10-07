@@ -2445,7 +2445,7 @@ namespace IonLang
             for (var i = 0; i < global_decls->num_decls; i++) {
                 Decl *decl = global_decls->decls[i];
                 if (decl->kind == DECL_NOTE) {
-                    if (null != decl_note_names.map_get<byte>(decl->note.name)) {
+                    if (null == decl_note_names.map_get<byte>(decl->note.name)) {
                         warning(decl->pos, "Unknown declaration #directive '{0}'", new string(decl->note.name));
                     }
                     if (decl->note.name == declare_note_name) {
@@ -2457,6 +2457,15 @@ namespace IonLang
                             fatal_error(decl->pos, "#declare_note argument must be name");
                         }
                         decl_note_names.map_put(arg->name, (void*)1);
+                    }
+                    else if (decl->note.name == static_assert_name) {
+                        if (decl->note.num_args != 1) {
+                            fatal_error(decl->pos, "#static_assert takes 1 argument");
+                        }
+                        Operand operand = resolve_const_expr(decl->note.args[0].expr);
+                        if (operand.val.ull == 0) {
+                            fatal_error(decl->pos, "#static_assert failed");
+                        }
                     }
                 }
                 else {

@@ -124,6 +124,7 @@ namespace IonLang
         char *complete_name;
         char *assert_name;
         char *declare_note_name;
+        char *static_assert_name;
 
         TokenKind[] assign_token_to_binary_token = new TokenKind[(int)NUM_TOKEN_KINDS];
 
@@ -254,6 +255,7 @@ namespace IonLang
             complete_name = _I("complete");
             assert_name   = _I("assert");
             declare_note_name = _I("declare_note");
+            static_assert_name = _I("static_assert");
 
             assert(intern_arena.end == arena_end);
 
