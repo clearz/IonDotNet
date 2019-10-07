@@ -1351,6 +1351,16 @@ namespace IonLang
                 fatal_error(stmt->pos, "Shadowed definition of local symbol");
         }
 
+        void resolve_static_assert(Note note) {
+            if (note.num_args != 1) {
+                fatal_error(note.pos, "#static_assert takes 1 argument");
+            }
+            Operand operand = resolve_const_expr(note.args[0].expr);
+            if (operand.val.ull == 0) {
+                fatal_error(note.pos, "#static_assert failed");
+            }
+        }
+
         bool resolve_stmt(Stmt* stmt, Type* ret_type, StmtCtx ctx) {
             switch (stmt->kind) {
                 case STMT_RETURN:
@@ -1384,6 +1394,9 @@ namespace IonLang
                             fatal_error(stmt->pos, "#assert takes 1 argument");
                         }
                         resolve_cond_expr(stmt->note.args[0].expr);
+                    }
+                    else if (stmt->note.name == static_assert_name) {
+                        resolve_static_assert(stmt->note);
                     }
                     else {
                         warning(stmt->pos, "Unknown statement #directive '{0}'", new string(stmt->note.name));
@@ -2459,13 +2472,7 @@ namespace IonLang
                         decl_note_names.map_put(arg->name, (void*)1);
                     }
                     else if (decl->note.name == static_assert_name) {
-                        if (decl->note.num_args != 1) {
-                            fatal_error(decl->pos, "#static_assert takes 1 argument");
-                        }
-                        Operand operand = resolve_const_expr(decl->note.args[0].expr);
-                        if (operand.val.ull == 0) {
-                            fatal_error(decl->pos, "#static_assert failed");
-                        }
+                        resolve_static_assert(decl->note);
                     }
                 }
                 else {
