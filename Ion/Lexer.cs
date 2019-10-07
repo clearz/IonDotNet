@@ -179,6 +179,9 @@ namespace IonLang
             escape_to_char['b'] = '\b';
             escape_to_char['a'] = '\a';
             escape_to_char['0'] = '\0';
+            escape_to_char['\\'] = '\\';
+            escape_to_char['\''] = '\'';
+            escape_to_char['\"'] = '\"';
 
         }
 
@@ -402,11 +405,32 @@ namespace IonLang
                 stream++;
             }
         }
+        int scan_hex_escape() {
+            assert(*stream == 'x');
+            stream++;
+            int val = char_to_digit[*stream];
+            if (val == 0) {
+                error_here("\\x needs at least 1 hex digit");
+            }
+            stream++;
+            int digit = char_to_digit[*stream];
+            if (digit > 0 || *stream == 48) {
+                val *= 16;
+                val += digit;
+                if (val > 0xFF) {
+                    error_here("\\x argument out of range");
+                    val = 0xFF;
+                }
+                stream++;
+            }
+            return val;
+        }
 
-        private void scan_char() {
+
+        void scan_char() {
             assert(*stream == '\'');
             stream++;
-            var val = '\0';
+            var val = 0;
             if (*stream == '\'') {
                 error_here("Char literal cannot be empty");
                 stream++;
@@ -416,11 +440,16 @@ namespace IonLang
             }
             else if (*stream == '\\') {
                 stream++;
-                val = escape_to_char[*stream];
-                if (val == 0 && *stream != '0')
-                    error_here("Invalid char literal escape '\\%c'", *stream);
-
-                stream++;
+                if (*stream == 'x') {
+                    val = scan_hex_escape();
+                }
+                else {
+                    val = escape_to_char[*stream];
+                    if (val == 0 && *stream != '0') {
+                        error_here("Invalid char literal escape '\\%c'", *stream);
+                    }
+                    stream++;
+                }
             }
             else {
                 val = *stream;
@@ -433,7 +462,7 @@ namespace IonLang
                 stream++;
 
             token.kind = TOKEN_INT;
-            token.int_val = val;
+            token.int_val = (ulong)val;
             token.mod = MOD_CHAR;
         }
 
@@ -473,13 +502,21 @@ namespace IonLang
 
                     if (val == '\\') {
                         stream++;
-                        val = escape_to_char[*stream];
-                        if (val == 0 && *stream != '0')
-                            error_here("Invalid string literal escape '\\%c'", *stream);
+                        if (*stream == 'x') {
+                            val = (char)scan_hex_escape();
+                        }
+                        else {
+                            val = escape_to_char[*stream];
+                            if (val == 0 && *stream != '0') {
+                                error_here("Invalid string literal escape '\\%c'", *stream);
+                            }
+                            stream++;
+                        }
                     }
-
+                    else {
+                        stream++;
+                    }
                     str_buf.Add(val);
-                    stream++;
                 }
                 if (*stream != 0) {
                     assert(*stream == '"');

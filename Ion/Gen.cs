@@ -237,7 +237,7 @@ namespace IonLang
             c_write('\"');
             while (*str != 0) {
                 var start = str;
-                while (*str != 0 && !Char.IsControl(*str) && char_to_escape[*str] == 0)
+                while (*str != 0 && isprint(*str) && char_to_escape[*str] == 0)
                     str++;
                 if (start != str)
                     c_write(start, (int)(str - start));
@@ -245,16 +245,16 @@ namespace IonLang
                     if (char_to_escape[*str] != 0) {
                         c_write('\\');
                         c_write(char_to_escape[*str]);
-                        if (str[0] == '\n' && str[1] != 0) {
+                        if (multiline && str[0] == '\n' && str[1] != 0) {
                             c_write('\"');
                             genlnf('\"');
                         }
                     } else {
-                        assert(Char.IsControl(*str));
+                        assert(!isprint(*str));
 
                         c_write('\\');
                         c_write('x');
-                        c_write(Convert.ToString((int)*str, 16).ToPtr());
+                        c_write(((int)*str).itoa(16));
                     }
                     str++;
                 }
@@ -596,13 +596,13 @@ namespace IonLang
                 c_write('\\');
                 c_write(char_to_escape[c]);
             }
-            else if (!Char.IsControl(c)) {
+            else if (isprint(c)) {
                 c_write(c);
             }
             else {
                 c_write('\\');
                 c_write('x');
-                c_write(((ulong)c).itoa(16));
+                c_write(((int)c).itoa(16));
             }
             c_write('\'');
         }

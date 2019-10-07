@@ -67,7 +67,7 @@ namespace IonLang
         static char* ZERO = "0".ToPtr();
         static char* tmp = Ion.xmalloc<char>(24);
         static char[] num_vals = { '0', '1',  '2',  '3',  '4',  '5',  '6',  '7',  '8',  '9',  'A',  'B',  'C',  'D',  'E',  'F' };
-        public static char* itoa(this int i) {
+        public static char* itoa(this int i, int @base = 10) {
             if (i == 0)
                 return ZERO;
             int pos = 11;
@@ -75,11 +75,8 @@ namespace IonLang
             tmp[pos] = '\0';
             var j = i;
             while (j != 0) {
-                if (i < 0)
-                    tmp[--pos] = (char)(-(j % 10) + 48);
-                else
-                    tmp[--pos] = (char)((j % 10) + 48);
-                j /= 10;
+                tmp[--pos] = num_vals[j % @base];
+                j /= @base;
             }
             if (i < 0)
                 tmp[--pos] = '-';

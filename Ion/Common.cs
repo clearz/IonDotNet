@@ -582,6 +582,10 @@ namespace IonLang
             return c >= '0' && c <= '9';
         }
 
+        public static bool isprint(char c) {
+            return c >= ' ' && c <= '~';
+        }
+
 
         public static char tolower(char c) {
             return c >= 'a' ? c : (char)(c + 32);
