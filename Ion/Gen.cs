@@ -56,7 +56,8 @@ namespace IonLang
                                             "#define alignof(x) __alignof(x)\n"+
                                             "#else\n"+
                                             "#define alignof(x) __alignof__(x)\n"+
-                                            "#endif\n";
+                                            "#endif\n"                       +
+                                            "\n";
 
         readonly char* defineStr = "#define ".ToPtr();
         readonly char* lineStr = "#line ".ToPtr();
@@ -1162,10 +1163,10 @@ namespace IonLang
 
 
     void gen_typeinfos() {
-            char*[] tiInfo = {"TypeInfo *typeinfo_table[".ToPtr(out int ti0),
+            char*[] tiInfo = {"const TypeInfo *typeinfo_table[".ToPtr(out int ti0),
                           "] = {".ToPtr(out int ti1),
                           "int num_typeinfos = ".ToPtr(out int ti2),
-                          "const TypeInfo **typeinfos = typeinfo_table;".ToPtr(out int ti3),
+                          "const TypeInfo **typeinfos = (const TypeInfo **)typeinfo_table;".ToPtr(out int ti3),
                           "NULL, // No associated type".ToPtr(out int ti4),
                           "&(TypeInfo){TYPE_VOID, .name = \"void\", .size = 0, .align = 0},".ToPtr(out int ti5),
                           "&(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = ".ToPtr(out int ti6),
@@ -1179,7 +1180,7 @@ namespace IonLang
                           "NULL, // Func".ToPtr(out int ti14),
                           "NULL, // Enum".ToPtr(out int ti15),
                           "NULL, // Incomplete: ".ToPtr(out int ti16),
-                          "NULL, // Unhandled kind".ToPtr(out int ti17),
+                          "NULL, // Unhandled".ToPtr(out int ti17),
 
                           ", .type = ".ToPtr(out int ti18),
                           ", .offset = offsetof(".ToPtr(out int ti19),
