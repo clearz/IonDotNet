@@ -123,6 +123,11 @@ namespace IonLang
         bool is_scalar_type(Type* type) {
             return TYPE_BOOL <= type->kind && type->kind <= TYPE_FUNC;
         }
+
+        bool is_aggregate_type(Type* type) {
+            return type->kind == TYPE_STRUCT || type->kind == TYPE_UNION;
+        }
+
         bool is_ptr_type(Type* type) {
             return type->kind == TYPE_PTR;
         }
@@ -144,6 +149,30 @@ namespace IonLang
                 default:
                     return false;
             }
+        }
+        int aggregate_field_index(Type* type, char* name) {
+            assert(is_aggregate_type(type));
+            for (int i = 0; i < type->aggregate.num_fields; i++) {
+                if (type->aggregate.fields[i].name == name) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        Type* aggregate_field_type_from_index(Type* type, int index) {
+            assert(is_aggregate_type(type));
+            assert(0 <= index && index < type->aggregate.num_fields);
+            return type->aggregate.fields[index].type;
+        }
+
+        Type* aggregate_field_type_from_name(Type* type, char* name) {
+            assert(is_aggregate_type(type));
+            int index = aggregate_field_index(type, name);
+            if (index < 0) {
+                return null;
+            }
+            return aggregate_field_type_from_index(type, index);
         }
 
         int type_rank(Type* type) {

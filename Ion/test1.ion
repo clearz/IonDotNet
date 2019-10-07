@@ -12,6 +12,8 @@ func getchar(): int;
 @foreign
 func memcpy(dest: void*, src: void const*): void*;
 
+var some_array: int* = (:int[]){1, 2, 3};
+
 struct SomeIncompleteType;
 
 var incomplete_ptr: SomeIncompleteType*;
@@ -560,10 +562,26 @@ func test_typeinfo() {
     println_typeinfo(typeof(IntOrPtr));
 }
 
+struct Ints {
+    num_ints: int;
+    int_ptr: int*;
+    int_arr: int[3];
+}
+
 func test_compound_literals() {
+    a := (:int[]){1, 2, 3};
     i := 42;
     x: Any const = {&i, typeof(i)};
     y := (:Any const){&i, typeof(i)};
+    v: Ints = {
+        num_ints = 3,
+        int_ptr = (:int[]){1, 2, 3},
+        int_arr = {1, 2, 3},
+    };
+    ints_of_ints: Ints[] = {
+        {num_ints = 3, int_arr = {1, 2, 3}},
+        {num_ints = 2, int_ptr = (:int[2]){-1, -2}},
+    };
 }
 
 func test_complete() {

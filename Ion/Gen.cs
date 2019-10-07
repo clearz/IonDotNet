@@ -331,25 +331,29 @@ namespace IonLang
 
                     break;
                 case TYPESPEC_ARRAY:
-                    if (str != null) {
+                    if (typespec->@base != null) {
                         typespec_to_cdecl(typespec->@base, null);
                         c_write(' ');
-
+                    }
+                    if (str != null) {
                         c_write('(');
                         c_write(str);
-                        c_write('[');
-                        if (typespec->num_elems != null)
-                            gen_expr(typespec->num_elems);
-                        c_write(']');
-                        c_write(')');
                     }
-                    else {
-                        c_write(typespec->name);
-                        c_write(' ');
-                        c_write('[');
+                    c_write('[');
+                    if (typespec->num_elems != null)
                         gen_expr(typespec->num_elems);
-                        c_write(']');
-                    }
+                    c_write(']');
+
+                    if (str != null)
+                        c_write(')');
+                    
+                    //if(typespec->name != null) {
+                    //    c_write(typespec->name);
+                    //    c_write(' ');
+                    //    c_write('[');
+                    //    gen_expr(typespec->num_elems);
+                    //    c_write(']');
+                    //}
 
                     break;
                 case TYPESPEC_FUNC: {
@@ -424,7 +428,7 @@ namespace IonLang
                         c_write(' ');
                         c_write('=');
                         c_write(' ');
-                        gen_init_expr(decl->var.expr);
+                        gen_expr(decl->var.expr);
                     }
                     c_write(';');
                     genln();
@@ -537,8 +541,10 @@ namespace IonLang
             c_write(';');
         }
 
-        void gen_expr_compound(Expr* expr, bool is_init) {
-            if (is_init) {
+        void gen_expr_compound(Expr* expr) {
+            Type *expected_type = get_resolved_expected_type(expr);
+
+            if (expected_type != null && !is_ptr_type(expected_type)) {
                 c_write('{');
             }
             else if (expr->compound.type != null) {
@@ -575,9 +581,8 @@ namespace IonLang
                     c_write(' ');
                 }
 
-                gen_init_expr(field.init);
-            
-        }
+                gen_expr(field.init);
+            }
             if (expr->compound.num_fields == 0) {
                 c_write('0');
             }
@@ -681,7 +686,7 @@ namespace IonLang
                     c_write(expr->field.name);
                     break;
                 case EXPR_COMPOUND:
-                    gen_expr_compound(expr, false);
+                    gen_expr_compound(expr);
                     break;
                 case EXPR_UNARY:
                     c_write(_token_kind_name(expr->unary.op));
@@ -774,14 +779,6 @@ namespace IonLang
             }
         }
 
-        void gen_init_expr(Expr* expr) {
-            if (expr->kind == EXPR_COMPOUND) {
-                gen_expr_compound(expr, true);
-            }
-            else {
-                gen_expr(expr);
-            }
-        }
         bool is_incomplete_array_typespec(Typespec* typespec) {
             return typespec->kind == TYPESPEC_ARRAY && typespec->num_elems == null;
         }
@@ -820,7 +817,7 @@ namespace IonLang
                             c_write(' ');
                             c_write('=');
                             c_write(' ');
-                            gen_init_expr(stmt->init.expr);
+                            gen_expr(stmt->init.expr);
                         }
                     }
                     else {
@@ -828,7 +825,7 @@ namespace IonLang
                         c_write(' ');
                         c_write('=');
                         c_write(' ');
-                        gen_init_expr(stmt->init.expr);
+                        gen_expr(stmt->init.expr);
                     }
                     break;
                 case STMT_ASSIGN:
@@ -1440,9 +1437,11 @@ namespace IonLang
             genlnf(sorted_declarations);
             gen_sorted_decls();
             genln();
-            c_write("// Typeinfo".ToPtr());
-            genln();
-            gen_typeinfos();
+            if (compile_extras) {
+                c_write("// Typeinfo".ToPtr());
+                genln();
+                gen_typeinfos();
+            }
             genlnf(definitions);
             genln();
             gen_defs();

@@ -190,6 +190,14 @@ namespace IonLang
             resolved_type_map.map_put(ptr, type);
         }
 
+        Map resolved_expected_type_map;
+
+        Type* get_resolved_expected_type(Expr* expr) {
+            return resolved_expected_type_map.map_get<Type>(expr);
+        }
+        void set_resolved_expected_type(Expr* expr, Type* type) {
+            resolved_expected_type_map.map_put(expr, type);
+        }
 
         private Operand operand_rvalue(Type* type) {
             return new Operand { type = unqualify_type(type) };
@@ -1176,30 +1184,39 @@ namespace IonLang
             return resolve_typespec(decl->typedef_decl.type);
         }
 
+        Type* resolve_typed_init(SrcPos pos, Type* type, Expr* expr) {
+            Type *expected_type = unqualify_type(type);
+            Operand operand = resolve_expected_expr(expr, expected_type);
+            if (is_incomplete_array_type(type) && is_array_type(operand.type) && type->@base == operand.type->@base) {
+                // Incomplete array size, so infer the size from the initializer expression's type.
+            } else {
+                if (type != null && is_ptr_type(type)) {
+                    operand = operand_decay(operand);
+                }
+                if (!convert_operand(&operand, expected_type)) {
+                    return null;
+                }
+            }
+            set_resolved_expected_type(expr, operand.type);
+            return operand.type;
+        }
+
+
         Type* resolve_init(SrcPos pos, Typespec* typespec, Expr* expr) {
             Type *type;
             if (typespec != null) {
                 type = resolve_typespec(typespec);
                 if (expr != null) {
-                    Type *expected_type = unqualify_type(type);
-                    Operand operand = resolve_expected_expr(expr, expected_type);
-                    if (is_incomplete_array_type(type) && is_array_type(operand.type) && type->@base == operand.type->@base) {
-                        // Incomplete array size, so infer the size from the initializer expression's type.
+                    type = resolve_typed_init(pos, type, expr);
+                    if (type == null) {
+                        fatal_error(pos, "Invalid type in initialization");
                     }
-                    else {
-                        if (type != null && is_ptr_type(type)) {
-                            operand = operand_decay(operand);
-                        }
-                        if (!convert_operand(&operand, expected_type)) {
-                            fatal_error(pos, "Invalid type in initialization");
-                        }
-                    }
-                    type = operand.type;
                 }
             }
             else {
                 assert(expr);
                 type = unqualify_type(resolve_expr(expr).type);
+                set_resolved_expected_type(expr, type);
             }
             complete_type(type);
             if (type->size == 0) {
@@ -1935,14 +1952,6 @@ namespace IonLang
             return resolve_expr_binary_op(op, ref op_name, expr->pos, left, right);
         }
 
-        private int aggregate_field_index(Type* type, char* name) {
-            assert(type->kind == TYPE_STRUCT || type->kind == TYPE_UNION);
-            for (var i = 0; i < type->aggregate.num_fields; i++)
-                if (type->aggregate.fields[i].name == name)
-                    return i;
-            return -1;
-        }
-
         private Operand resolve_expr_compound(Expr* expr, Type* expected_type) {
             assert(expr->kind == EXPR_COMPOUND);
             if (expected_type == null && expr->compound.type == null)
@@ -1971,9 +1980,8 @@ namespace IonLang
                     if (index >= type->aggregate.num_fields)
                         fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
                     Type *field_type = type->aggregate.fields[index].type;
-                    Operand init = resolve_expected_expr_rvalue(field.init, field_type);
-                    if (!convert_operand(&init, field_type)) {
-                        fatal_error(field.pos, "Invalid type in compound literal initializer");
+                    if (resolve_typed_init(field.pos, field_type, field.init) == null) {
+                        fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type");
                     }
                     index++;
                 }
@@ -2001,9 +2009,8 @@ namespace IonLang
 
                     if (type->num_elems != 0 && index >= type->num_elems)
                         fatal_error(field.pos, "Field initializer in array compound literal out of range");
-                    Operand init = resolve_expected_expr_rvalue(field.init, type->@base);
-                    if (!convert_operand(&init, type->@base)) {
-                        fatal_error(field.pos, "Invalid type in compound literal initializer");
+                    if (resolve_typed_init(field.pos, type->@base, field.init) == null) {
+                        fatal_error(field.pos, "Invalid type in compound literal initializer for array type");
                     }
                     max_index = (int)MAX(max_index, index);
                     index++;
@@ -2388,11 +2395,11 @@ namespace IonLang
         }
 
         Operand resolve_const_expr(Expr* expr) {
-            var result = resolve_expr(expr);
-            if (!result.is_const)
+            Operand operand = resolve_expr(expr);
+            if (!operand.is_const) {
                 fatal_error(expr->pos, "Expected constant expression");
-
-            return result;
+            }
+            return operand;
         }
 
         Operand resolve_expr_rvalue(Expr* expr) {

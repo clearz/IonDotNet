@@ -84,7 +84,7 @@ namespace IonLang
         }
 
 
-        private bool ion_compile_file(string spath, bool compile_builtins = true) {
+        private bool ion_compile_file(string spath) {
             initialise();
             var path = spath.ToPtr();
             char *str = read_file(spath);
@@ -92,7 +92,7 @@ namespace IonLang
                 printf("Failed to read %s\n", path);
                 return false;
             }
-            if (compile_builtins && !ion_compile_builtin()) {
+            if (compile_extras && !ion_compile_builtin()) {
                 printf("Failed to compile builtins\n");
                 return false;
             }
@@ -122,7 +122,7 @@ namespace IonLang
         }
 
         private void ion_test() {
-            var b = ion_compile_file("test1.ion", true);
+            var b = ion_compile_file("test1.ion");
             assert(b);
         }
 

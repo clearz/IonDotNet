@@ -4,6 +4,7 @@ namespace IonLang
 {
     unsafe partial class Ion
     {
+        bool compile_extras = true;
         private static int Main(string[] args) {
             var ion = new Ion();
             if (args.Length > 0)
