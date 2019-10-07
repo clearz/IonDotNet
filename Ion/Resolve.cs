@@ -145,12 +145,21 @@ namespace IonLang
                 sym->state = SYM_RESOLVED;
                 sym->type = type_enum(sym);
                 sorted_syms->Add(sym);
+                char *prev_item_name = null;
                 for (int i = 0; i < decl->enum_decl.num_items; i++) {
                     EnumItem item = decl->enum_decl.items[i];
+                    Expr *init;
                     if (item.init != null) {
-                        fatal_error(item.pos, "Explicit enum constant initializers are not currently supported");
+                        init = item.init;
                     }
-                    sym_global_const(item.name, sym->type, new Val { i = i });
+                    else if (prev_item_name != null) {
+                        init = new_expr_binary(item.pos, TOKEN_ADD, new_expr_name(item.pos, prev_item_name), new_expr_int(item.pos, 1, 0, 0));
+                    }
+                    else {
+                        init = new_expr_int(item.pos, 0, 0, 0);
+                    }
+                    sym_global_decl(new_decl_const(item.pos, item.name, null, init));
+                    prev_item_name = item.name;
                 }
             }
             return sym;

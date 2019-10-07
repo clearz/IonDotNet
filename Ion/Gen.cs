@@ -1075,6 +1075,7 @@ namespace IonLang
                     c_write(defineStr, 8);
                     c_write(sym->name);
                     c_write(' ');
+                    c_write('(');
                     if (decl->const_decl.type != null) {
                         c_write('(');
                         typespec_to_cdecl(decl->const_decl.type, null);
@@ -1085,6 +1086,7 @@ namespace IonLang
                     if (decl->const_decl.type != null)
                         c_write(')');
 
+                    c_write(')');
                     break;
                 case DECL_VAR:
                     genlnf(externStr, 6);
@@ -1106,7 +1108,14 @@ namespace IonLang
                     gen_aggregate(decl);
                     break;
                 case DECL_ENUM:
-                    gen_enum(decl);
+                    //gen_enum(decl);
+                    genln();
+                    c_write(typedef_keyword, 7);
+                    c_write(' ');
+                    c_write(type_names[(int)TYPE_INT], 3);
+                    c_write(' ');
+                    c_write(decl->name);
+                    c_write(';');
                     break;
                 case DECL_TYPEDEF:
                     genln();

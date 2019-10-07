@@ -53,41 +53,78 @@ typedef struct Thing Thing;
 
 // Sorted declarations
 #line 3 "<builtin>"
-typedef enum TypeKind {
-    TYPE_NONE,
-    TYPE_VOID,
-    TYPE_BOOL,
-    TYPE_CHAR,
-    TYPE_UCHAR,
-    TYPE_SCHAR,
-    TYPE_SHORT,
-    TYPE_USHORT,
-    TYPE_INT,
-    TYPE_UINT,
-    TYPE_LONG,
-    TYPE_ULONG,
-    TYPE_LLONG,
-    TYPE_ULLONG,
-    TYPE_FLOAT,
-    TYPE_DOUBLE,
-    TYPE_CONST,
-    TYPE_PTR,
-    TYPE_ARRAY,
-    TYPE_STRUCT,
-    TYPE_UNION,
-    TYPE_FUNC,
-}TypeKind;
+typedef int TypeKind;
 
 #line 261 "test1.ion"
-typedef enum Color {
-    COLOR_NONE,
-    COLOR_RED,
-    COLOR_GREEN,
-    COLOR_BLUE,
-    NUM_COLORS,
-}Color;
+typedef int Color;
 
-#line 28 "<builtin>"
+#line 4 "<builtin>"
+#define TYPE_NONE (0)
+
+#line 5
+#define TYPE_VOID ((TYPE_NONE) + (1))
+
+#line 6
+#define TYPE_BOOL ((TYPE_VOID) + (1))
+
+#line 7
+#define TYPE_CHAR ((TYPE_BOOL) + (1))
+
+#line 8
+#define TYPE_UCHAR ((TYPE_CHAR) + (1))
+
+#line 9
+#define TYPE_SCHAR ((TYPE_UCHAR) + (1))
+
+#line 10
+#define TYPE_SHORT ((TYPE_SCHAR) + (1))
+
+#line 11
+#define TYPE_USHORT ((TYPE_SHORT) + (1))
+
+#line 12
+#define TYPE_INT ((TYPE_USHORT) + (1))
+
+#line 13
+#define TYPE_UINT ((TYPE_INT) + (1))
+
+#line 14
+#define TYPE_LONG ((TYPE_UINT) + (1))
+
+#line 15
+#define TYPE_ULONG ((TYPE_LONG) + (1))
+
+#line 16
+#define TYPE_LLONG ((TYPE_ULONG) + (1))
+
+#line 17
+#define TYPE_ULLONG ((TYPE_LLONG) + (1))
+
+#line 18
+#define TYPE_FLOAT ((TYPE_ULLONG) + (1))
+
+#line 19
+#define TYPE_DOUBLE ((TYPE_FLOAT) + (1))
+
+#line 20
+#define TYPE_CONST ((TYPE_DOUBLE) + (1))
+
+#line 21
+#define TYPE_PTR ((TYPE_CONST) + (1))
+
+#line 22
+#define TYPE_ARRAY ((TYPE_PTR) + (1))
+
+#line 23
+#define TYPE_STRUCT ((TYPE_ARRAY) + (1))
+
+#line 24
+#define TYPE_UNION ((TYPE_STRUCT) + (1))
+
+#line 25
+#define TYPE_FUNC ((TYPE_UNION) + (1))
+
+#line 28
 struct TypeFieldInfo {
     #line 29
     const char(*name);
@@ -134,13 +171,13 @@ extern int(*some_array);
 extern SomeIncompleteType(*incomplete_ptr);
 
 #line 32
-#define PI 3.14f
+#define PI (3.14f)
 
 #line 33
-#define PI2 (PI) + (PI)
+#define PI2 ((PI) + (PI))
 
 #line 35
-#define U8 (uint8)(42)
+#define U8 ((uint8)(42))
 
 #line 37
 extern char c;
@@ -152,7 +189,7 @@ extern uchar uc;
 extern schar sc;
 
 #line 41
-#define N (((char)(42)) + (8)) != (0)
+#define N ((((char)(42)) + (8)) != (0))
 
 #line 160
 uchar h(void);
@@ -200,7 +237,7 @@ struct UartCtrl {
 };
 
 #line 142
-#define UART_CTRL_REG (uint *)(0x12345678)
+#define UART_CTRL_REG ((uint *)(0x12345678))
 
 #line 144
 uint32 pack(UartCtrl ctrl);
@@ -267,12 +304,27 @@ void f2(Vector v);
 extern T(*p);
 
 #line 253
-#define M (1) + (sizeof(p))
+#define M ((1) + (sizeof(p)))
 
 struct T {
     #line 258
     int (a[M]);
 };
+
+#line 262
+#define COLOR_NONE (0)
+
+#line 263
+#define COLOR_RED ((COLOR_NONE) + (1))
+
+#line 264
+#define COLOR_GREEN ((COLOR_RED) + (3))
+
+#line 265
+#define COLOR_BLUE ((COLOR_GREEN) + (1))
+
+#line 266
+#define NUM_COLORS ((COLOR_BLUE) + (1))
 
 #line 269
 extern const char * (color_names[NUM_COLORS]);
@@ -298,7 +350,7 @@ void test_lits(void);
 void test_ops(void);
 
 #line 368
-#define IS_DEBUG true
+#define IS_DEBUG (true)
 
 #line 370
 void test_bool(void);
@@ -527,7 +579,7 @@ const TypeInfo *typeinfo_table[100] = {
     [67] = NULL, // Func
     [68] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 28},
     [69] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [9]), .align = alignof(int [9]), .base = 8, .count = 9},
-    [70] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const char * [4]), .align = alignof(const char * [4]), .base = 35, .count = 4},
+    [70] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const char * [6]), .align = alignof(const char * [6]), .base = 35, .count = 6},
     [71] = NULL, // Func
     [72] = NULL, // Func
     [73] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = 53},
@@ -846,7 +898,7 @@ void test_enum(void) {
     #line 277
     Color a = COLOR_RED;
     #line 278
-    Color b = COLOR_RED;
+    int b = COLOR_RED;
     #line 279
     int c = (a) + (b);
     #line 280
