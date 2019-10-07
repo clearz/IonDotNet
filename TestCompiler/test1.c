@@ -34,6 +34,7 @@ typedef int typeid;
 #else
 #define alignof(x) __alignof__(x)
 #endif
+
 // Forward declarations
 typedef struct TypeFieldInfo TypeFieldInfo;
 typedef struct TypeInfo TypeInfo;
@@ -416,11 +417,14 @@ const Thing * returns_ptr_to_const(void);
 void test_lvalue(void);
 
 #line 656
+void test_if(void);
+
+#line 670
 int main(int argc, const char *(*argv));
 
 // Typeinfo
 
-TypeInfo *typeinfo_table[100] = {
+const TypeInfo *typeinfo_table[100] = {
     [0] = NULL, // No associated type
     [1] = &(TypeInfo){TYPE_VOID, .name = "void", .size = 0, .align = 0},
     [2] = &(TypeInfo){TYPE_BOOL, .size = sizeof(bool), .align = alignof(bool), .name = "bool"},
@@ -555,7 +559,7 @@ TypeInfo *typeinfo_table[100] = {
     [99] = NULL, // Func
 };
 int num_typeinfos = 100;
-const TypeInfo **typeinfos = typeinfo_table;
+const TypeInfo **typeinfos = (const TypeInfo **)typeinfo_table;
 
 // Definitions
 
@@ -1386,50 +1390,86 @@ void test_lvalue(void) {
 }
 
 #line 656
-int main(int argc, const char *(*argv)) {
+void test_if(void) {
     #line 657
+    if (1) {
+    }
+    #line 659
+    {
+        #line 659
+        Thing (*x) = &((Thing){0});
+        if (x) {
+            #line 660
+            (x->a) = 3;
+        }
+    }
+    #line 662
+    {
+        #line 662
+        int x = 42;
+        if (x) {
+            #line 663
+            (x) = 43;
+        }
+    }
+    #line 665
+    {
+        #line 665
+        int x = 42;
+        if ((x) >= (0)) {
+            #line 666
+            (x) = 2;
+        }
+    }
+}
+
+#line 670
+int main(int argc, const char *(*argv)) {
+    #line 671
     if ((argv) == (0)) {
-        #line 658
+        #line 672
         (printf)("argv is null\n");
     }
-    #line 660
-    (test_modify)();
-    #line 661
-    (test_lvalue)();
-    #line 662
-    (test_alignof)();
-    #line 663
-    (test_offsetof)();
-    #line 664
-    (test_complete)();
-    #line 665
-    (test_compound_literals)();
-    #line 666
-    (test_loops)();
-    #line 667
-    (test_sizeof)();
-    #line 668
-    (test_assign)();
-    #line 669
-    (test_enum)();
-    #line 670
-    (test_arrays)();
-    #line 671
-    (test_cast)();
-    #line 672
-    (test_init)();
-    #line 673
-    (test_lits)();
-    #line 674
-    (test_const)();
     #line 675
-    (test_bool)();
+    (test_if)();
     #line 676
-    (test_ops)();
+    (test_modify)();
     #line 677
-    (test_typeinfo)();
+    (test_lvalue)();
     #line 678
-    (getchar)();
+    (test_alignof)();
     #line 679
+    (test_offsetof)();
+    #line 680
+    (test_complete)();
+    #line 681
+    (test_compound_literals)();
+    #line 682
+    (test_loops)();
+    #line 683
+    (test_sizeof)();
+    #line 684
+    (test_assign)();
+    #line 685
+    (test_enum)();
+    #line 686
+    (test_arrays)();
+    #line 687
+    (test_cast)();
+    #line 688
+    (test_init)();
+    #line 689
+    (test_lits)();
+    #line 690
+    (test_const)();
+    #line 691
+    (test_bool)();
+    #line 692
+    (test_ops)();
+    #line 693
+    (test_typeinfo)();
+    #line 694
+    (getchar)();
+    #line 695
     return 0;
 }

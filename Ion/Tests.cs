@@ -392,6 +392,7 @@ namespace IonLang
                 new_stmt_expr(default, new_expr_call(default, new_expr_name(default, "print".ToPtr()), (Expr**) CreateArray(new_expr_int(default, 1, 0, 0), new_expr_int(default, 2, 0, 0)), 2)),
                 new_stmt_init(default, "x".ToPtr(), null, new_expr_int(default, 42, 0, 0)),
                 new_stmt_if(default,
+                    null,
                     new_expr_name(default, "flag1".ToPtr()),
                     new StmtList {
                         stmts = (Stmt**)

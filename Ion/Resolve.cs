@@ -1276,7 +1276,7 @@ namespace IonLang
         private void resolve_cond_expr(Expr* expr) {
             var cond = resolve_expr_rvalue(expr);
             if (!is_scalar_type(cond.type)) {
-                fatal_error(expr->pos, "Conditional expression must have arithmetic or operand type");
+                fatal_error(expr->pos, "Conditional expression must have arithmetic or scalar type");
             }
         }
 
@@ -1374,7 +1374,19 @@ namespace IonLang
                     }
                     return false;
                 case STMT_IF: {
-                    resolve_cond_expr(stmt->if_stmt.cond);
+                    Sym *scope = sym_enter();
+                    if (stmt->if_stmt.init != null) {
+                        resolve_stmt_init(stmt->if_stmt.init);
+                    }
+                    if (stmt->if_stmt.cond != null) {
+                        resolve_cond_expr(stmt->if_stmt.cond);
+                    }
+                    else {
+                        Operand operand = operand_decay(resolve_name_operand(stmt->pos, stmt->if_stmt.init->init.name));
+                        if (!is_scalar_type(operand.type)) {
+                            fatal_error(stmt->pos, "Conditional expression must have scalar type");
+                        }
+                    }
                     bool returns = resolve_stmt_block(stmt->if_stmt.then_block, ret_type, ctx);
                     for (var i = 0; i < stmt->if_stmt.num_elseifs; i++) {
                         var elseif = stmt->if_stmt.elseifs[i];
@@ -1387,6 +1399,8 @@ namespace IonLang
                     }
                     else
                         returns = false;
+
+                    sym_leave(scope);
                     return returns;
                 }
                 case STMT_WHILE:
@@ -1723,11 +1737,10 @@ namespace IonLang
             return default;
         }
 
-        private Operand resolve_expr_name(Expr* expr) {
-            assert(expr->kind == EXPR_NAME);
-            var sym = resolve_name(expr->name);
+        Operand resolve_name_operand(SrcPos pos, char *name) {
+            Sym *sym = resolve_name(name);
             if (sym == null) {
-                fatal_error(expr->pos, "Unresolved name '{0}'", new string(expr->name));
+                fatal_error(pos, "Unresolved name '{0}'", new string(name));
             }
             if (sym->kind == SYM_VAR)
                 return operand_lvalue(sym->type);
@@ -1738,9 +1751,14 @@ namespace IonLang
             if (sym->kind == SYM_FUNC)
                 return operand_rvalue(sym->type);
 
-            fatal_error(expr->pos, "{0} must denote a var func or const", new string(expr->name));
+            fatal_error(pos, "{0} must denote a var func or const", new string(name));
             return default;
         }
+        Operand resolve_expr_name(Expr* expr) {
+            assert(expr->kind == EXPR_NAME);
+            return resolve_name_operand(expr->pos, expr->name);
+        }
+
 
         Operand resolve_unary_op(TokenKind op, Operand operand) {
             promote_operand(&operand);

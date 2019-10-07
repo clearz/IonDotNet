@@ -386,11 +386,12 @@ namespace IonLang
             return s;
         }
 
-        private Stmt* new_stmt_if(SrcPos pos, Expr* cond, StmtList then_block, ElseIf** elseifs, int num_elseifs,
+        private Stmt* new_stmt_if(SrcPos pos, Stmt* init, Expr* cond, StmtList then_block, ElseIf** elseifs, int num_elseifs,
             StmtList else_block)
         {
             var s = new_stmt(STMT_IF, pos);
             s->if_stmt.cond = cond;
+            s->if_stmt.init = init;
             s->if_stmt.then_block = then_block;
             s->if_stmt.elseifs = (ElseIf**) ast_dup(elseifs, num_elseifs * sizeof(ElseIf*));
             s->if_stmt.num_elseifs = num_elseifs;

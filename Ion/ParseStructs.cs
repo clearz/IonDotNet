@@ -328,6 +328,7 @@ namespace IonLang
         internal struct IfStmt
         {
             public Expr* cond;
+            public Stmt *init;
             public StmtList then_block;
             public ElseIf** elseifs;
             public int num_elseifs;

@@ -421,7 +421,18 @@ namespace IonLang
         }
 
         private Stmt* parse_stmt_if(SrcPos pos) {
-            var cond = parse_paren_expr();
+            expect_token(TOKEN_LPAREN);
+            Expr *cond = parse_expr();
+            Stmt *init = parse_init_stmt(cond);
+            if (init != null) {
+                if (match_token(TOKEN_SEMICOLON)) {
+                    cond = parse_expr();
+                }
+                else {
+                    cond = null;
+                }
+            }
+            expect_token(TOKEN_RPAREN);
             var then_block = parse_stmt_block();
             var else_block = default(StmtList);
 
@@ -441,7 +452,7 @@ namespace IonLang
                     buf->Add(elif);
                 }
 
-                return new_stmt_if(pos, cond, then_block, (ElseIf**)buf->_begin, buf->count,
+                return new_stmt_if(pos, init, cond, then_block, (ElseIf**)buf->_begin, buf->count,
                     else_block);
             }
             finally {
@@ -470,42 +481,49 @@ namespace IonLang
             return TOKEN_FIRST_ASSIGN <= token.kind && token.kind <= TOKEN_LAST_ASSIGN;
         }
 
-        private Stmt* parse_simple_stmt() {
+        private Stmt* parse_init_stmt(Expr* left) {
             var pos = token.pos;
-            var expr = parse_expr();
             Stmt* stmt = null;
             if (match_token(TOKEN_COLON_ASSIGN)) {
-                if (expr->kind != EXPR_NAME) {
+                if (left->kind != EXPR_NAME) {
                     fatal_error_here(":= must be preceded by a name");
                     return null;
                 }
 
-                stmt = new_stmt_init(pos, expr->name, null, parse_expr());
+                return new_stmt_init(left->pos, left->name, null, parse_expr());
             }
             else if (match_token(TOKEN_COLON)) {
-                if (expr->kind != EXPR_NAME) {
+                if (left->kind != EXPR_NAME) {
                     fatal_error_here(": must be preceded by a name");
                     return null;
                 }
-                char *name = expr->name;
+                Expr *expr = null;
+                char *name = left->name;
                 Typespec *type = parse_type();
                 if (match_token(TOKEN_ASSIGN)) {
                     expr = parse_expr();
                 }
-                else
-                    expr = null;
 
-                stmt = new_stmt_init(pos, name, type, expr);
-            }
-            else if (is_assign_op()) {
-                var op = token.kind;
-                next_token();
-                stmt = new_stmt_assign(pos, op, expr, parse_expr());
-            }
-            else {
-                stmt = new_stmt_expr(pos, expr);
+                return new_stmt_init(left->pos, name, type, expr);
             }
 
+            return null;
+        }
+
+        Stmt* parse_simple_stmt() {
+            SrcPos pos = token.pos;
+            Expr *expr = parse_expr();
+            Stmt *stmt = parse_init_stmt(expr);
+            if (stmt == null) {
+                if (is_assign_op()) {
+                    TokenKind op = token.kind;
+                    next_token();
+                    stmt = new_stmt_assign(pos, op, expr, parse_expr());
+                }
+                else {
+                    stmt = new_stmt_expr(pos, expr);
+                }
+            }
             return stmt;
         }
 

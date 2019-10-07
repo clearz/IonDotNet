@@ -877,10 +877,20 @@ namespace IonLang
                     }
                     break;
                 case STMT_IF:
+                    if (stmt->if_stmt.init != null) {
+                        genlnf('{');
+                        gen_indent++;
+                        gen_stmt(stmt->if_stmt.init);
+                    }
                     genlnf(if_keyword);
                     c_write(' ');
                     c_write('(');
-                    gen_expr(stmt->if_stmt.cond);
+                    if (stmt->if_stmt.cond != null) {
+                        gen_expr(stmt->if_stmt.cond);
+                    }
+                    else {
+                        c_write(stmt->if_stmt.init->init.name);
+                    }
                     c_write(')');
                     c_write(' ');
                     gen_stmt_block(stmt->if_stmt.then_block);
@@ -919,6 +929,10 @@ namespace IonLang
                         }
                     }
 
+                    if (stmt->if_stmt.init != null) {
+                        gen_indent--;
+                        genlnf('}');
+                    }
                     break;
                 case STMT_WHILE:
                     genlnf(while_keyword);
