@@ -1849,8 +1849,15 @@ namespace IonLang
             if (sym == null) {
                 fatal_error(pos, "Unresolved name '{0}'", _S(name));
             }
+
             if (sym->kind == SYM_VAR)
-                return operand_lvalue(sym->type);
+            {
+                Operand operand = operand_lvalue(sym->type);
+                if (is_array_type(operand.type)) {
+                    operand = operand_decay(operand);
+                }
+                return operand;
+            }
 
             if (sym->kind == SYM_CONST)
                 return operand_const(sym->type, sym->val);
