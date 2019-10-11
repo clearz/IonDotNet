@@ -14,17 +14,14 @@ namespace IonLang
 
             if (false) {
                 interns.free();
-                global_syms_buf->free();
                 local_syms.free();
                 sorted_syms->free();
                 intern_arena.free();
                 cached_array_types.free();
                 cached_func_types.free();
                 ast_arena.free();
-                global_syms_map.free();
             }
 
-            global_syms_buf = PtrBuffer.Create();
             local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
             sorted_syms = PtrBuffer.Create(capacity: 256);
             ast_arena = MemArena.Create();
@@ -37,10 +34,6 @@ namespace IonLang
 
         public static void Write<T>(void* p, ref T value) where T : unmanaged {
             *(T*)p = value;
-        }
-
-        public static T As<T>(object obj) where T : class {
-            return (T)obj;
         }
 
         public static void* AsPointer<T>(ref T value) where T : unmanaged {
@@ -140,130 +133,6 @@ namespace IonLang
             }
         }
 
-        private struct Map
-        {
-            private ulong* keys;
-            private void** vals;
-            private long len;
-            private long cap;
-
-
-            internal static ulong hash_uint64(ulong x) {
-                ulong a = x * 0xff51afd7ed558ccd;
-                ulong b = a ^ (x >> 32);
-                return b;
-            }
-
-
-            internal static ulong hash_ptr(void* ptr) {
-                return hash_uint64((ulong)ptr);
-            }
-
-            internal static ulong hash_mix(ulong x, ulong y) {
-                x ^= y;
-                x *= 0xff51afd7ed558ccd;
-                x ^= x >> 32;
-                return x;
-            }
-
-            public static ulong hash_bytes(void *ptr, long len) {
-                var x = 0xcbf29ce484222325;
-                char *buf = (char *)ptr;
-                for (long i = 0; i < len; i++) {
-                    x ^= buf[i];
-                    x *= 0x100000001b3;
-                    x ^= x >> 32;
-                }
-
-                return x;
-            }
-
-            public static ulong hash_ptr(void* ptr, long len) {
-                var buf = (char*) ptr;
-                return hash_bytes(buf, len);
-            }
-
-
-            private void map_grow(long new_cap) {
-                new_cap = MAX(new_cap, 16);
-                var new_map = new Map
-                {
-                    keys = (ulong*) xcalloc((int) new_cap, sizeof(ulong)),
-                    vals = (void**) xmalloc((int) new_cap * sizeof(void*)),
-                    cap = new_cap
-                };
-
-                for (long i = 0; i < cap; i++)
-                    if (keys[i] != 0)
-                        new_map.map_put(keys[i], vals[i]);
-                xfree(keys);
-                xfree(vals);
-                this = new_map;
-            }
-
-            public T* map_get<T>(void* key) where T : unmanaged{
-                return (T*)map_get(hash_ptr(key));
-            }
-
-            public void* map_get(ulong key) {
-                if (len == 0)
-                    return null;
-                assert(IS_POW2(cap));
-                var i = key;
-                assert(len < cap);
-                for (; ; )
-                {
-                    i &= (ulong)cap - 1;
-                    if (keys[i] == key)
-                        return vals[i];
-                    if (keys[i] == 0)
-                        return null;
-                    i++;
-                }
-            }
-
-            public void** map_put(void* key, void* val) {
-                return map_put(hash_ptr(key), val);
-            }
-
-            public void** map_put(ulong key, void* val) {
-                assert(key != 0);
-                assert(val != null);
-                if (2 * len >= cap)
-                    map_grow(2 * cap);
-                assert(2 * len < cap);
-                assert(IS_POW2(cap));
-                var i = key;
-
-                for (; ; )
-                {
-                    i &= (ulong)cap - 1;
-                    if (keys[i] == 0) {
-                        len++;
-                        keys[i] = key;
-                        vals[i] = val;
-                        return vals + i;
-                    }
-
-                    if (keys[i] == key) {
-                        vals[i] = val;
-                        return vals + i;
-                    }
-
-                    i++;
-                }
-            }
-
-            internal bool exists(char* key) => map_get(hash_ptr(key)) != null;
-
-            internal void free() {
-                xfree(keys);
-                xfree(vals);
-                len = cap = 0;
-                keys = null;
-                vals = null;
-            }
-        }
 
         #region Macros*
 
@@ -364,7 +233,7 @@ namespace IonLang
         }
 
         private static bool write_file(string path, char* buf) {
-            File.WriteAllText(path, new string(buf));
+            File.WriteAllText(path, _S(buf));
             return true;
         }
 
@@ -386,11 +255,66 @@ namespace IonLang
             memcpy(new_path, path, base_len * 2);
             memcpy(new_path + base_len, new_ext, new_ext_len * 2);
             new_path[new_path_len] = '\0';
-            return new string(new_path);
+            return _S(new_path);
+        }
+
+        void path_normalize(char* path) {
+            char* ptr;
+            for (ptr = path; *ptr != 0; ptr++) {
+                if (*ptr == '\\') {
+                    *ptr = '/';
+                }
+            }
+            if (ptr != path && ptr[-1] == '/') {
+                ptr[-1] = '\0';
+            }
+        }
+
+        bool path_copy(char* path, char* src) {
+
+            long src_len = strlen(src);
+            long copy_len = MIN(src_len, MAX_PATH - 1);
+            memcpy(path, src, (int)copy_len<<1);
+            path[copy_len] = '\0';
+            path_normalize(path);
+            return src_len < MAX_PATH;
+        }
+
+        void path_join(char* path, char* src) {
+            char* ptr = path + strlen(path);
+            if (ptr != path && ptr[-1] == '/') {
+                //ptr--;
+            }
+            else
+                *ptr = '/';
+            if (*src == '/') {
+                src++;
+            }
+            strcat(path, src);
+        }
+
+        char* path_file(char* path) {
+            path_normalize(path);
+            for (char* ptr = path + strlen(path); ptr != path; ptr--) {
+                if (ptr[-1] == '/') {
+                    return ptr;
+                }
+            }
+            return path;
+        }
+
+        char* path_ext(char* path) {
+            for (char* ptr = path + strlen(path); ptr != path; ptr--) {
+                if (ptr[-1] == '.') {
+                    return ptr;
+                }
+            }
+            return path;
         }
 
         #endregion
 
+        static string _S(char* c) => new string(c);
 
         #region Buffers
 
@@ -408,19 +332,7 @@ namespace IonLang
                 return b._begin;
             }
 
-            public static Buffer<T>* CreateP(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
-                assert(capacity >= START_CAPACITY);
-                assert(multiplier > 1);
-                var b = xmalloc<Buffer<T>>();
-                b->item_size = sizeof(T);
-                b->_capacity = capacity;
-                b->_multiplier = multiplier;
-                b->count = 0;
-                b->buffer_size = b->_capacity * b->item_size;
-                b->_begin = (T*)xmalloc(b->buffer_size);
-                b->_top = b->_begin;
-                return b;
-            }
+            public T* this[int i] => _begin;
 
             public static Buffer<T> Create(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
                 assert(capacity >= START_CAPACITY);
@@ -486,10 +398,8 @@ namespace IonLang
 
             public int count, buf_byte_size;
             private int _capacity, _multiplier;
-            internal static PtrBuffer* buffers = Create();
 
-            static PtrBuffer() {
-            }
+            internal static PtrBuffer* buffers = Create();
 
             public static PtrBuffer* GetPooledBuffer() {
                 if (buffers->count > 0)
@@ -539,6 +449,10 @@ namespace IonLang
                 return (T**)_begin;
             }
 
+            public T* Get<T>(int i) where T : unmanaged {
+                return *(((T**)_begin) + i);
+            }
+
             public void free() {
                 xfree(_begin);
             }
@@ -586,18 +500,47 @@ namespace IonLang
             return c >= ' ' && c <= '~';
         }
 
-
         public static char tolower(char c) {
             return c >= 'a' ? c : (char)(c + 32);
         }
 
+        public static void strcpy(char* c1, char* c2) {
+            while ((*c1++ = *c2++) != 0);
+        }
 
+        public static int strncpy(char* c1, char* c2, int n = 0) {
+            while ((c1[n] = *c2++) != 0)
+                n++;
+            return n;
+        }
         public static int strcmp(char* c1, char* c2) {
             while (*c1++ == *c2++)
                 if (*c1 == '\0')
                     return 0;
 
             return 1;
+        }
+
+        public static char* strcat2(char* c1, char* c2) {
+            var s = strlen(c1) + strlen(c2)+ 1;
+            char* rtn = xmalloc<char>(s);
+            char* p = rtn;
+
+            while (*c1 != '\0')
+                *p++ = *c1++;
+            while (*c2 != '\0')
+                *p++ = *c2++;
+
+            *p = '\0';
+            return rtn;
+        }
+
+        public static char* strcat(char* c1, char* c2) {
+            c1 += strlen(c1);
+            while ((*c1 = *c2++) != 0)
+                c1++;
+
+            return c1;
         }
 
         public static int strlen(char* c) {
@@ -609,6 +552,131 @@ namespace IonLang
         }
 
         #endregion
+
+        internal unsafe struct Map
+        {
+            private ulong* keys;
+            private void** vals;
+            private long len;
+            private long cap;
+
+
+            internal static ulong hash_uint64(ulong x) {
+                ulong a = x * 0xff51afd7ed558ccd;
+                ulong b = a ^ (x >> 32);
+                return b;
+            }
+
+
+            internal static ulong hash_ptr(void* ptr) {
+                return hash_uint64((ulong)ptr);
+            }
+
+            internal static ulong hash_mix(ulong x, ulong y) {
+                x ^= y;
+                x *= 0xff51afd7ed558ccd;
+                x ^= x >> 32;
+                return x;
+            }
+
+            public static ulong hash_bytes(void* ptr, long len) {
+                var x = 0xcbf29ce484222325;
+                char *buf = (char *)ptr;
+                for (long i = 0; i < len; i++) {
+                    x ^= buf[i];
+                    x *= 0x100000001b3;
+                    x ^= x >> 32;
+                }
+
+                return x;
+            }
+
+            public static ulong hash_ptr(void* ptr, long len) {
+                var buf = (char*) ptr;
+                return hash_bytes(buf, len);
+            }
+
+
+            private void map_grow(long new_cap) {
+                new_cap = MAX(new_cap, 16);
+                var new_map = new Map
+                {
+                    keys = (ulong*) xcalloc((int) new_cap, sizeof(ulong)),
+                    vals = (void**) xmalloc((int) new_cap * sizeof(void*)),
+                    cap = new_cap
+                };
+
+                for (long i = 0; i < cap; i++)
+                    if (keys[i] != 0)
+                        new_map.map_put(keys[i], vals[i]);
+                xfree(keys);
+                xfree(vals);
+                this = new_map;
+            }
+
+            public T* map_get<T>(void* key) where T : unmanaged {
+                return (T*)map_get(hash_ptr(key));
+            }
+
+            public void* map_get(ulong key) {
+                if (len == 0)
+                    return null;
+                assert(IS_POW2(cap));
+                var i = key;
+                assert(len < cap);
+                for (; ; )
+                {
+                    i &= (ulong)cap - 1;
+                    if (keys[i] == key)
+                        return vals[i];
+                    if (keys[i] == 0)
+                        return null;
+                    i++;
+                }
+            }
+
+            public void** map_put(void* key, void* val) {
+                return map_put(hash_ptr(key), val);
+            }
+
+            public void** map_put(ulong key, void* val) {
+                assert(key != 0);
+                assert(val != null);
+                if (2 * len >= cap)
+                    map_grow(2 * cap);
+                assert(2 * len < cap);
+                assert(IS_POW2(cap));
+                var i = key;
+
+                for (; ; )
+                {
+                    i &= (ulong)cap - 1;
+                    if (keys[i] == 0) {
+                        len++;
+                        keys[i] = key;
+                        vals[i] = val;
+                        return vals + i;
+                    }
+
+                    if (keys[i] == key) {
+                        vals[i] = val;
+                        return vals + i;
+                    }
+
+                    i++;
+                }
+            }
+
+            internal bool exists(char* key) => map_get(hash_ptr(key)) != null;
+
+            internal void free() {
+                xfree(keys);
+                xfree(vals);
+                len = cap = 0;
+                keys = null;
+                vals = null;
+            }
+        }
     }
 
 

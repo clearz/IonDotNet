@@ -172,11 +172,30 @@ namespace IonLang
             return d;
         }
 
-        private Expr* new_expr(ExprKind kind, SrcPos pos)
+        Decl* new_decl_import(SrcPos pos, bool is_relative, char** names, int num_names, bool import_all, ImportItem* items, int num_items) {
+            Decl *d = new_decl(DECL_IMPORT, pos, null);
+            d->import.is_relative = is_relative;
+            d->import.names = (char**)ast_dup(names, sizeof(char**) * num_names);
+            d->import.num_names = num_names;
+            d->import.import_all = import_all;
+            d->import.items = (ImportItem*)ast_dup(items, sizeof(ImportItem) * num_items);
+            d->import.num_items = num_items;
+            return d;
+        }
+
+
+
+        Expr* new_expr(ExprKind kind, SrcPos pos)
         {
             var e = (Expr*) ast_alloc(sizeof(Expr));
             e->pos = pos;
             e->kind = kind;
+            return e;
+        }
+
+        Expr* new_expr_paren(SrcPos pos, Expr* expr) {
+            Expr *e = new_expr(EXPR_PAREN, pos);
+            e->paren.expr = expr;
             return e;
         }
 

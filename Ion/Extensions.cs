@@ -22,21 +22,6 @@ namespace IonLang
             return ptr;
         }
 
-        public static void ToCharArrayPointer(this Dictionary<TokenKind, string> dict, char*** ptr) {
-            *ptr = (char**)Ion.xmalloc(dict.Count * sizeof(char**));
-            var keys = dict.Keys.ToArray();
-            for (var i = 0; i < (long)dict.Count; i++) {
-                var kVal = keys[i];
-                var sVal = dict[kVal];
-                sVal.ToPtr(*ptr, (long)kVal);
-            }
-        }
-
-
-        private static void ToPtr(this string s, char** cptr, long pos = 0) {
-            *(cptr + pos) = s.ToPtr();
-        }
-
         public static char* ToPtr(this string s) {
             var stream = Ion.xmalloc<char>(s.Length + 1);
             fixed (char* c = s) {
@@ -62,6 +47,9 @@ namespace IonLang
                 return c;
             }
         }
+
+
+
         #region Numeric Conversion
 
         static char* ZERO = "0".ToPtr();
@@ -84,8 +72,7 @@ namespace IonLang
 
         }
         public static char* itoa(this uint i) {
-            if (i == 0)
-                return ZERO;
+            if (i == 0) return ZERO;
             int pos = 11;
 
             tmp[pos] = '\0';
@@ -116,6 +103,7 @@ namespace IonLang
             return tmp + pos;
 
         }
+
         public static char* itoa(this ulong i, ulong @base = 10) {
             if (i == 0)
                 return ZERO;

@@ -244,7 +244,7 @@ namespace IonLang
 
                 var expr = parse_expr();
                 expect_token(TOKEN_RPAREN);
-                return expr;
+                return new_expr_paren(pos, expr);
             }
 
             fatal_error_here("Unexpected token {0} in expression", token_info());
@@ -869,6 +869,40 @@ namespace IonLang
             return new_decl_note(pos, parse_note());
         }
 
+        Decl* parse_decl_import(SrcPos pos) {
+            var names = PtrBuffer.GetPooledBuffer();
+            bool is_relative = match_token(TOKEN_DOT);
+
+            names->Add(parse_name());
+
+            while (match_token(TOKEN_DOT)) {
+                names->Add(parse_name());
+            }
+            bool import_all = false;
+            var items = Buffer<ImportItem>.Create();
+            if (match_token(TOKEN_LBRACE)) {
+                while (!is_token(TOKEN_RBRACE)) {
+                    if (match_token(TOKEN_ELLIPSIS)) {
+                        import_all = true;
+                    }
+                    else {
+                        char *name = parse_name();
+                        if (match_token(TOKEN_ASSIGN)) {
+                            items.Add(new ImportItem { name = parse_name(), rename = name });
+                        }
+                        else {
+                            items.Add(new ImportItem { name =  name });
+                        }
+                        if (!match_token(TOKEN_COMMA)) {
+                            break;
+                        }
+                    }
+                }
+                expect_token(TOKEN_RBRACE);
+            }
+            return new_decl_import(pos, is_relative, (char**)names->_begin, names->count, import_all, items, items.count);
+        }
+
         private Decl* parse_decl_opt() {
             var pos = token.pos;
             if (match_keyword(enum_keyword))
@@ -885,6 +919,8 @@ namespace IonLang
                 return parse_decl_typedef(pos);
             if (match_keyword(func_keyword))
                 return parse_decl_func(pos);
+            if (match_keyword(import_keyword))
+                return parse_decl_import(pos);
             if (match_token(TOKEN_POUND))
                 return parse_decl_note(pos);
             return null;

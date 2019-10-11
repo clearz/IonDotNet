@@ -53,11 +53,35 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="test1.ion">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Update="system_packages\builtin\notes.ion">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
-    <None Update="test2.ion">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Update="system_packages\builtin\typeinfo.ion">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="system_packages\libc\math.ion">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="system_packages\libc\stdio.ion">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="system_packages\libc\stdlib.ion">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="system_packages\libc\string.ion">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="test1\subtest1\subtest1.ion">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="test1\test1.ion">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="test2\main.ion">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="test2\test2.ion">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
     <None Update="test3.ion">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -65,7 +89,11 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="$(TargetDir)$(TargetName) test1.ion -o $(SolutionDir)TestCompiler\test1.c" />
+    <Exec Command="REM $(TargetDir)$(TargetName) test1.ion -o $(SolutionDir)TestCompiler\test1.c" />
+  </Target>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="SET IONHOME=$(ProjectDir)" />
   </Target>
 
 </Project>

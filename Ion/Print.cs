@@ -28,7 +28,7 @@ namespace IonLang
 
         private void printf(string format, char* str)
         {
-            printf(format, new string(str));
+            printf(format, _S(str));
         }
 
         private void flush_print_buf(StreamWriter file)

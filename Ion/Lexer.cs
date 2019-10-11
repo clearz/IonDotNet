@@ -107,6 +107,7 @@ namespace IonLang
         private char *typeof_keyword;
         private char *alignof_keyword;
         private char *offsetof_keyword;
+        char *import_keyword;
 
         private Buffer<char> str_buf;
         private char* stream;
@@ -251,6 +252,9 @@ namespace IonLang
             case_keyword = _I("case");
             keywords->Add(case_keyword);
 
+            import_keyword = _I("import");
+            keywords->Add(import_keyword);
+
             default_keyword = _I("default");
             keywords->Add(default_keyword);
 
@@ -272,7 +276,7 @@ namespace IonLang
 
         private string token_kind_name(TokenKind kind) {
             if (kind < NUM_TOKEN_KINDS)
-                return new string(token_kind_names[(int)kind]);
+                return _S(token_kind_names[(int)kind]);
             return "<unknown>";
         }
 
@@ -284,7 +288,7 @@ namespace IonLang
 
         private string token_info() {
             if (token.kind == TOKEN_NAME || token.kind == TOKEN_KEYWORD)
-                return new string(token.name);
+                return _S(token.name);
 
             return token_kind_name(token.kind);
         }
@@ -972,7 +976,7 @@ repeat:
                 return true;
             }
 
-            error_here("Expected token {0}, got {1}", new string(token_kind_names[(int)kind]), token_info());
+            error_here("Expected token {0}, got {1}", _S(token_kind_names[(int)kind]), token_info());
             return false;
         }
 

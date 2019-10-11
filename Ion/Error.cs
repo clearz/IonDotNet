@@ -10,7 +10,7 @@ namespace IonLang
             if (pos.name == null) {
                 pos = pos_builtin;
             }
-            Console.Out.WriteLine($"{new string(pos.name)}({pos.line},{pos.col}): warning ION123: {string.Format(format, pmz)}");
+            Console.Out.WriteLine($"{_S(pos.name)}({pos.line},{pos.col}): warning ION123: {string.Format(format, pmz)}");
         }
 
 
@@ -25,7 +25,7 @@ namespace IonLang
             if (pos.name == null) {
                 pos = pos_builtin;
             }
-            Console.Error.WriteLine($"{new string(pos.name)}({pos.line},{pos.col}): error ION000: {string.Format(format, pmz)}");
+            Console.Error.WriteLine($"{_S(pos.name)}({pos.line},{pos.col}): error ION000: {string.Format(format, pmz)}");
         }
 
         [DebuggerHidden]

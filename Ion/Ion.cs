@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -6,148 +7,97 @@ namespace IonLang
 {
     public unsafe partial class Ion
     {
-        char *builtin_code =
-                    ("#declare_note(foreign)\n"    +
-                     "#declare_note(static_assert)\n"    +
-                    "\n"                           +
-                    "enum TypeKind {\n"            +
-                    "    TYPE_NONE,\n"             +
-                    "    TYPE_VOID,\n"             +
-                    "    TYPE_BOOL,\n"             +
-                    "    TYPE_CHAR,\n"             +
-                    "    TYPE_UCHAR,\n"            +
-                    "    TYPE_SCHAR,\n"            +
-                    "    TYPE_SHORT,\n"            +
-                    "    TYPE_USHORT,\n"           +
-                    "    TYPE_INT,\n"              +
-                    "    TYPE_UINT,\n"             +
-                    "    TYPE_LONG,\n"             +
-                    "    TYPE_ULONG,\n"            +
-                    "    TYPE_LLONG,\n"            +
-                    "    TYPE_ULLONG,\n"           +
-                    "    TYPE_FLOAT,\n"            +
-                    "    TYPE_DOUBLE,\n"           +
-                    "    TYPE_CONST,\n"            +
-                    "    TYPE_PTR,\n"              +
-                    "    TYPE_ARRAY,\n"            +
-                    "    TYPE_STRUCT,\n"           +
-                    "    TYPE_UNION,\n"            +
-                    "    TYPE_FUNC,\n"             +
-                    "}\n"                          +
-                    "\n"                           +
-                    "struct TypeFieldInfo {\n"         +
-                    "    name: char const*;\n"     +
-                    "    type: typeid;\n"          +
-                    "    offset: int;\n"           +
-                    "}\n"                          +
-                    "\n"                           +
-                    "struct TypeInfo {\n"          +
-                    "    kind: TypeKind;\n"        +
-                    "    size: int;\n"             +
-                    "    align: int;\n"            +
-                    "    name: char const*;\n"     +
-                    "    count: int;\n"            +
-                    "    base: typeid;\n"          +
-                    "    fields: TypeFieldInfo*;\n"    +
-                    "    num_fields: int;\n"       +
-                    "}\n"                          +
-                    "\n"                           +
-                    "@foreign\n"                   +
-                    "var typeinfos: TypeInfo const**;\n" +
-                    "\n"                           +
-                    "@foreign\n"                   +
-                    "var num_typeinfos: int;\n"    +
-                    "\n"                           +
-                    "func get_typeinfo(type: typeid): TypeInfo const* {\n" +
-                    "    if (typeinfos && type < num_typeinfos) {\n" +
-                    "        return typeinfos[type];\n" +
-                    "    } else {\n" +
-                    "        return NULL;\n" +
-                    "    }\n" +
-                    "}\n\n"           +
-                    "struct Any {\n"+
-                    "    ptr: void*;\n"+
-                    "    type: typeid;\n"+
-                    "}\n").ToPtr();
+        const int MAX_SEARCH_PATHS = 256;
+        PtrBuffer* package_search_paths = PtrBuffer.Create();
+
+        void add_package_search_path(string path) {
+            printf("Adding package search path {0}\n", path);
+            package_search_paths->Add(path.ToPtr());
+        }
+
+        void init_search_paths() {
+            string ionhome_var = Environment.GetEnvironmentVariable("IONHOME") ?? @"C:\Users\john\source\repos\IonDotNet\Ion";
+            if (string.IsNullOrEmpty(ionhome_var)) {
+                error_here("Set the environment variable IONHOME to the Ion home directory (where system_packages is located)\n");
+            }
+            string sys_path = ionhome_var + "\\system_packages";
+            add_package_search_path(sys_path);
+            add_package_search_path(ionhome_var);
+            string ionpath_var = Environment.GetEnvironmentVariable("IONPATH");
+            if (!string.IsNullOrEmpty(ionpath_var)) {
+                foreach (var d in ionpath_var.Split(';'))
+                    add_package_search_path(d);
+            }
+        }
 
         void init_compiler() {
             lex_init();
-            init_builtins();
+            init_search_paths();
+            init_keywords();
             init_types();
+            decl_note_names.map_put(declare_note_name, (void*)1);
         }
 
-        bool ion_compile_builtin() {
-            init_stream(builtin_code, "<builtin>".ToPtr());
-            init_compiler();
-            global_decls = parse_decls();
-            sym_global_decls();
-            return true;
+        private void ion_test(string pkg) {
+            var b = ion_main(new []{pkg, "-o", $@"C:\Users\john\source\repos\IonDotNet\TestCompiler\test.c"});
+            assert(b == 0);
         }
 
-
-        private bool ion_compile_file(string spath) {
-            initialise();
-            var path = spath.ToPtr();
-            char *str = read_file(spath);
-            if (str == null) {
-                printf("Failed to read %s\n", path);
-                return false;
-            }
-            if (compile_extras && !ion_compile_builtin()) {
-                printf("Failed to compile builtins\n");
-                return false;
-            }
-            init_stream(str, $"{spath}".ToPtr());
-            global_decls = parse_decls();
-            sym_global_decls();
-            finalize_syms();
-            gen_all();
-            return true;
-            //Console.WriteLine("Path: " + new string(path));
-            var c_path = replace_ext(spath.ToPtr(), "c".ToPtr());
-            if (c_path == null)
-                return false;
-           // if (!write_file(c_path, gen_buf))
-           //     return false;
-            return true;
+        int usage() {
+            printf("Usage: {0} <package> [-o <output-c-file>]\n", Assembly.GetEntryAssembly()?.FullName);
+            return 1;
         }
 
-        private char* ion_compile_str(string path) {
-            initialise();
-            init_stream(read_file(path), $"{path}".ToPtr());
-            global_decls = parse_decls();
-            sym_global_decls();
-            finalize_syms();
-            gen_all();
-            return gen_buf.ToString().ToPtr();
-        }
-
-        private void ion_test() {
-            var b = ion_compile_file("test1.ion");
-            assert(b);
-        }
-
-        private long ion_main(string[] args) {
+        private int ion_main(string[] args) {
             if (args.Length == 0) {
-                Console.WriteLine("Usage: {0} <ion-source-file>\n", Assembly.GetEntryAssembly()?.FullName);
-                return 1;
+                return usage();
             }
-            var path = args[0];
-            string output = replace_ext(path.ToPtr(), "c".ToPtr());
-            if(args.Any(s => s == "-o")) {
-                int pos = Array.IndexOf(args, "-o");
-                if(pos < args.Length) {
-                    output = args[pos + 1];
-                }
+            var package_name = args[0];
+            initialise();
+
+            builtin_package = import_package("builtin".ToPtr());
+            if (builtin_package == null) {
+                error_here("Failed to compile package 'builtin'.\n");
             }
-            bool b = ion_compile_file(path);
-            if (!b) {
-                printf("Compilation failed.\n");
-                return 1;
+            builtin_package->external_name = _I("");
+            init_builtin_syms();
+            Package *main_package = import_package(package_name.ToPtr());
+            if (main_package == null) {
+                error_here("Failed to compile package '{0}'\n", package_name);
             }
-            write_file(output, gen_buf.ToString().ToPtr());
-            //File.Copy(path, @"C:\Users\john\source\repos\Test\TestCompiler\test1.ion", true);
+            char *main_name = _I("main");
+            Sym *main_sym = get_package_sym(main_package , main_name);
+            if (main_sym == null) {
+                error_here("No 'main' entry point defined in package '{0}'\n", package_name);
+            }
+
+            main_sym->external_name = main_name;
+            resolve_package_syms(builtin_package);
+            resolve_package_syms(main_package);
             printf("Compilation succeeded.\n");
+
+            string c_path;
+            if (args.Any(s => s == "-o")) {
+                int pos = Array.IndexOf(args, "-o");
+                if (pos < args.Length) {
+                    c_path = args[pos + 1];
+                }
+                else
+                    return usage();
+            }
+            else {
+                c_path = $"out_{package_name}.c";
+            }
+            gen_all();
+            try {
+                File.WriteAllText(c_path, gen_buf.ToString());
+            }
+            catch {
+                printf("error: Failed to write file: {0}\n", c_path);
+                return 1;
+            }
+
+            printf("Compiled {0}\n", package_name);
             return 0;
         }
     }

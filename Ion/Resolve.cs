@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Linq;
 
 namespace IonLang
 {
@@ -16,14 +18,15 @@ namespace IonLang
     unsafe partial class Ion
     {
         public const int MAX_LOCAL_SYMS = 1024;
-        Decls *global_decls;
-        private Map global_syms_map;
+        Package *current_package;
+        Package *builtin_package;
+        Map package_map;
+        PtrBuffer* package_list = PtrBuffer.Create();
         Map decl_note_names;
-        private PtrBuffer* global_syms_buf;
         private Buffer<Sym> local_syms;
         private PtrBuffer* sorted_syms;
 
-        static int next_typeid = 16;
+        static uint next_typeid = 16;
 
         const ulong INT_MAX = int.MaxValue,
                     UINT_MAX = uint.MaxValue,
@@ -41,14 +44,41 @@ namespace IonLang
 
 
 
+        Sym* get_package_sym(Package* package, char* name) {
+            return package->syms_map.map_get<Sym>(name);
+        }
+
+        void add_package(Package* package) {
+            Package *old_package = package_map.map_get<Package>(package->path);
+            if (old_package != package) {
+                assert(old_package == null);
+                package_map.map_put(package->path, package);
+                package_list->Add(package);
+            }
+        }
+
+        Package* enter_package(Package* new_package) {
+            Package *old_package = current_package;
+            current_package = new_package;
+            return old_package;
+        }
+
+        void leave_package(Package* old_package) {
+            current_package = old_package;
+        }
+
+        bool is_local_sym(Sym* sym) {
+            return local_syms._begin <= sym && sym <= local_syms._top;
+        }
+
         private Sym* sym_new(SymKind kind, char* name, Decl* decl) {
-            var sym = xmalloc<Sym>();
+            var sym = xcalloc<Sym>();
 
             sym->kind = kind;
             sym->name = name;
             sym->decl = decl;
-            sym->state = 0;
-            sym->val = default;
+            sym->package = current_package;
+            set_resolved_sym(sym, sym);
             return sym;
         }
 
@@ -76,11 +106,25 @@ namespace IonLang
             }
 
             var sym = sym_new(kind, decl->name, decl);
-            if (decl->kind == DECL_STRUCT || decl->kind == DECL_UNION) {
-                sym->state = SYM_RESOLVED;
-                sym->type = type_incomplete(sym);
+            set_resolved_sym(decl, sym);
+            Note *foreign_note = get_decl_note(decl, foreign_name);
+            if (foreign_note != null) {
+                if (foreign_note->num_args > 1) {
+                    fatal_error(decl->pos, "@foreign takes 0 or 1 argument");
+                }
+                char *external_name;
+                if (foreign_note->num_args == 0) {
+                    external_name = sym->name;
+                }
+                else {
+                    Expr *arg = foreign_note->args[0].expr;
+                    if (arg->kind != EXPR_STR) {
+                        fatal_error(decl->pos, "@foreign argument 1 must be a string literal");
+                    }
+                    external_name = arg->str_lit.val;
+                }
+                sym->external_name = external_name;
             }
-
             return sym;
         }
 
@@ -93,7 +137,7 @@ namespace IonLang
         }
         Sym* sym_get(char* name) {
             Sym *sym = sym_get_local(name);
-            return sym != null ? sym : global_syms_map.map_get<Sym>(name);
+            return sym != null ? sym : get_package_sym(current_package, name);
         }
 
         private bool sym_push_var(char* name, Type* type) {
@@ -121,30 +165,37 @@ namespace IonLang
         private void sym_leave(Sym* sym) {
             local_syms._top = sym;
         }
-        void sym_global_typedef(char* name, Type* type) {
-            Sym *sym = sym_new(SYM_TYPE, _I(name), new_decl_typedef(pos_builtin, name, new_typespec_name(pos_builtin, name)));
+        Sym* sym_global_typedef(char* name, Type* type) {
+            name = _I(name);
+            Sym *sym = sym_new(SYM_TYPE, name, new_decl_typedef(pos_builtin, name, new_typespec_name(pos_builtin, name)));
             sym->state = SYM_RESOLVED;
             sym->type = type;
-            sym_global_put(sym);
+            sym->external_name = name;
+            sym_global_put(name, sym);
+            return sym;
         }
 
 
-        private void sym_global_put(Sym* sym) {
-            if (global_syms_map.exists(sym->name)) {
+        void sym_global_put(char* name, Sym* sym) {
+            Sym *old_sym = current_package->syms_map.map_get<Sym>(name);
+            if (old_sym != null) {
+                if (sym == old_sym) {
+                    return;
+                }
                 SrcPos pos = sym->decl != null ? sym->decl->pos : pos_builtin;
-                fatal_error(pos, "Duplicate definition of global symbol");
+                if (old_sym->decl != null) {
+                    warning(old_sym->decl->pos, "Previous definition of '{0}'", _S(name));
+                }
+                fatal_error(pos, "Duplicate definition of global symbol '{0}'.", _S(name));
             }
-            global_syms_map.map_put(sym->name, sym);
-            global_syms_buf->Add(sym);
+            current_package->syms_map.map_put(name, sym);
+            current_package->syms->Add(sym);
         }
 
         private Sym* sym_global_decl(Decl* decl) {
             var sym = sym_decl(decl);
-            sym_global_put(sym);
+            sym_global_put(sym->name, sym);
             if (decl->kind == DECL_ENUM) {
-                sym->state = SYM_RESOLVED;
-                sym->type = type_enum(sym);
-                sorted_syms->Add(sym);
                 Typespec *enum_typespec = new_typespec_name(decl->pos, _I("int"));
                 char *prev_item_name = null;
                 for (int i = 0; i < decl->enum_decl.num_items; i++) {
@@ -166,28 +217,37 @@ namespace IonLang
             return sym;
         }
 
-        private void sym_global_type(char* name, Type* type) {
-            var sym = sym_new(SYM_TYPE, _I(name), null);
+        Sym* sym_global_type(char* name, Type* type) {
+            name = _I(name);
+            Sym *sym = sym_new(SYM_TYPE, name, null);
             sym->state = SYM_RESOLVED;
             sym->type = type;
-            sym_global_put(sym);
+            sym->external_name = name;
+            sym_global_put(name, sym);
+            return sym;
         }
 
-        void sym_global_const(char* name, Type* type, Val val) {
-            Sym *sym = sym_new(SYM_CONST, _I(name), null);
+        Sym* sym_global_const(char* name, Type* type, Val val) {
+            name = _I(name);
+            Sym *sym = sym_new(SYM_CONST, name, null);
             sym->state = SYM_RESOLVED;
             sym->type = type;
             sym->val = val;
-            sym_global_put(sym);
+            sym->external_name = name;
+            sym_global_put(name, sym);
+            return sym;
         }
 
 
-        private void sym_global_func(char* name, Type* type) {
+        Sym* sym_global_func(char* name, Type* type) {
             assert(type->kind == TYPE_FUNC);
-            var sym = sym_new(SYM_FUNC, _I(name), null);
+            name = _I(name);
+            Sym *sym = sym_new(SYM_FUNC, name, null);
             sym->state = SYM_RESOLVED;
             sym->type = type;
-            sym_global_put(sym);
+            sym->external_name = name;
+            sym_global_put(name, sym);
+            return sym;
         }
 
         Map resolved_type_map;
@@ -198,6 +258,19 @@ namespace IonLang
 
         void set_resolved_type(void* ptr, Type* type) {
             resolved_type_map.map_put(ptr, type);
+        }
+
+
+        Map resolved_sym_map;
+
+        Sym* get_resolved_sym(void* ptr) {
+            return resolved_sym_map.map_get<Sym>(ptr);
+        }
+
+        void set_resolved_sym(void* ptr, Sym* sym) {
+            if (!is_local_sym(sym)) {
+                resolved_sym_map.map_put(ptr, sym);
+            }
         }
 
         Map resolved_expected_type_map;
@@ -1092,10 +1165,11 @@ namespace IonLang
                         fatal_error(typespec->pos, "Unresolved type name");
                     }
                     if (sym->kind != SYM_TYPE) {
-                        fatal_error(typespec->pos, "{0} must denote a type", new string(typespec->name));
+                        fatal_error(typespec->pos, "{0} must denote a type", _S(typespec->name));
                         return null;
                     }
 
+                    set_resolved_sym(typespec, sym);
                     result = sym->type;
                 }
                 break;
@@ -1189,12 +1263,7 @@ namespace IonLang
 
             sorted_syms->Add(type->sym);
         }
-
-        private Type* resolve_decl_type(Decl* decl) {
-            assert(decl->kind == DECL_TYPEDEF);
-            return resolve_typespec(decl->typedef_decl.type);
-        }
-
+        
         Type* resolve_typed_init(SrcPos pos, Type* type, Expr* expr) {
             Type *expected_type = unqualify_type(type);
             Operand operand = resolve_expected_expr(expr, expected_type);
@@ -1399,7 +1468,7 @@ namespace IonLang
                         resolve_static_assert(stmt->note);
                     }
                     else {
-                        warning(stmt->pos, "Unknown statement #directive '{0}'", new string(stmt->note.name));
+                        warning(stmt->pos, "Unknown statement #directive '{0}'", _S(stmt->note.name));
                     }
                     return false;
                 case STMT_IF: {
@@ -1534,18 +1603,27 @@ namespace IonLang
 
             assert(sym->state == SYM_UNRESOLVED);
             sym->state = SYM_RESOLVING;
+            Decl *decl = sym->decl;
             switch (sym->kind) {
                 case SYM_TYPE:
-                    sym->type = resolve_decl_type(sym->decl);
+                    if (decl != null && decl->kind == DECL_TYPEDEF) {
+                        sym->type = resolve_typespec(decl->typedef_decl.type);
+                    }
+                    else if (decl->kind == DECL_ENUM) {
+                        sym->type = type_enum(sym);
+                    }
+                    else {
+                        sym->type = type_incomplete(sym);
+                    }
                     break;
                 case SYM_VAR:
-                    sym->type = resolve_decl_var(sym->decl);
+                    sym->type = resolve_decl_var(decl);
                     break;
                 case SYM_CONST:
-                    sym->type = resolve_decl_const(sym->decl, &sym->val);
+                    sym->type = resolve_decl_const(decl, &sym->val);
                     break;
                 case SYM_FUNC:
-                    sym->type = resolve_decl_func(sym->decl);
+                    sym->type = resolve_decl_func(decl);
                     break;
                 default:
                     assert(false);
@@ -1553,19 +1631,22 @@ namespace IonLang
             }
 
             sym->state = SYM_RESOLVED;
-            sorted_syms->Add(sym);
+            if (decl->is_incomplete || (decl->kind != DECL_STRUCT && decl->kind != DECL_UNION)) {
+                sorted_syms->Add(sym);
+            }
+            if (sym->kind == SYM_FUNC) {
+                resolve_func_body(sym);
+            }
         }
 
         private void finalize_sym(Sym* sym) {
-            resolve_sym(sym);
+            Package *old_package = enter_package(sym->package);
             if (sym->kind == SYM_TYPE) {
-                if (sym->decl != null && sym->decl->is_incomplete) {
-                    return;
+                if (sym->decl != null && !is_decl_foreign(sym->decl) && !sym->decl->is_incomplete) {
+                    complete_type(sym->type);
                 }
-                complete_type(sym->type);
             }
-            else if (sym->kind == SYM_FUNC)
-                resolve_func_body(sym);
+            leave_package(old_package);
         }
 
         private Sym* resolve_name(char* name) {
@@ -1607,7 +1688,7 @@ namespace IonLang
                 }
             }
 
-            fatal_error(expr->pos, "No field named '{0}'", new string(expr->field.name));
+            fatal_error(expr->pos, "No field named '{0}'", _S(expr->field.name));
             return default;
         }
 
@@ -1766,7 +1847,7 @@ namespace IonLang
         Operand resolve_name_operand(SrcPos pos, char *name) {
             Sym *sym = resolve_name(name);
             if (sym == null) {
-                fatal_error(pos, "Unresolved name '{0}'", new string(name));
+                fatal_error(pos, "Unresolved name '{0}'", _S(name));
             }
             if (sym->kind == SYM_VAR)
                 return operand_lvalue(sym->type);
@@ -1777,7 +1858,7 @@ namespace IonLang
             if (sym->kind == SYM_FUNC)
                 return operand_rvalue(sym->type);
 
-            fatal_error(pos, "{0} must denote a var func or const", new string(name));
+            fatal_error(pos, "{0} must denote a var func or const", _S(name));
             return default;
         }
         Operand resolve_expr_name(Expr* expr) {
@@ -2093,6 +2174,7 @@ namespace IonLang
                     if (!cast_operand(&operand, sym->type)) {
                         fatal_error(expr->pos, "Invalid type cast");
                     }
+                    set_resolved_sym(expr->call.expr, sym);
                     return operand;
                 }
             }
@@ -2311,6 +2393,9 @@ namespace IonLang
         private Operand resolve_expected_expr(Expr* expr, Type* expected_type) {
             Operand result;
             switch (expr->kind) {
+                case EXPR_PAREN:
+                    result = resolve_expected_expr(expr->paren.expr, expected_type);
+                    break;
                 case EXPR_INT:
                     result = resolve_expr_int(expr);
                     break;
@@ -2321,7 +2406,9 @@ namespace IonLang
                     result = operand_rvalue(type_ptr(type_char));
                     break;
                 case EXPR_NAME:
+                    // HACK
                     result = resolve_expr_name(expr);
+                    set_resolved_sym(expr, resolve_name(expr->name));
                     break;
                 case EXPR_CAST:
                     result = resolve_expr_cast(expr);
@@ -2354,6 +2441,7 @@ namespace IonLang
                             complete_type(sym->type);
                             result = operand_const(type_usize, new Val { ll = type_sizeof(sym->type) });
                             set_resolved_type(expr->sizeof_expr, sym->type);
+                            set_resolved_sym(expr->sizeof_expr, sym);
                             break;
                         }
                     }
@@ -2371,20 +2459,20 @@ namespace IonLang
                 }
                 case EXPR_TYPEOF_TYPE: {
                     Type *type = resolve_typespec(expr->typeof_type);
-                    result = operand_const(type_int, new Val { i = type->typeid });
+                    result = operand_const(type_ullong, new Val { ull = type->typeid });
                     break;
                 }
                 case EXPR_TYPEOF_EXPR: {
                     if (expr->typeof_expr->kind == EXPR_NAME) {
                         Sym *sym = resolve_name(expr->typeof_expr->name);
                         if (sym != null && sym->kind == SYM_TYPE) {
-                            result = operand_const(type_int, new Val { i = sym->type->typeid });
+                            result = operand_const(type_ullong, new Val { ull = sym->type->typeid });
                             set_resolved_type(expr->typeof_expr, sym->type);
                             break;
                         }
                     }
                     Type *type = resolve_expr(expr->typeof_expr).type;
-                    result = operand_const(type_int, new Val { i = type->typeid });
+                    result = operand_const(type_ullong, new Val { ull = type->typeid });
                     break;
                 }
                 case EXPR_ALIGNOF_EXPR: {
@@ -2394,6 +2482,7 @@ namespace IonLang
                             complete_type(sym->type);
                             result = operand_const(type_usize, new Val { ll = type_alignof(sym->type) });
                             set_resolved_type(expr->alignof_expr, sym->type);
+                            set_resolved_sym(expr->alignof_expr, sym);
                             break;
                         }
                     }
@@ -2410,12 +2499,13 @@ namespace IonLang
                 }
                 case EXPR_OFFSETOF: {
                     Type *type = resolve_typespec(expr->offsetof_field.type);
+                    complete_type(type);
                     if (type->kind != TYPE_STRUCT && type->kind != TYPE_UNION) {
                         fatal_error(expr->pos, "offsetof can only be used with struct/union types");
                     }
                     int field = aggregate_field_index(type, expr->offsetof_field.name);
                     if (field < 0) {
-                        fatal_error(expr->pos, "No field '%s' in type", new string(expr->offsetof_field.name));
+                        fatal_error(expr->pos, "No field '%s' in type", _S(expr->offsetof_field.name));
                     }
                     result = operand_const(type_usize, new Val { ll = type->aggregate.fields[field].offset });
                     break;
@@ -2454,12 +2544,12 @@ namespace IonLang
             return operand_decay(resolve_expected_expr(expr, expected_type));
         }
 
-        internal void sym_global_decls() {
-            for (var i = 0; i < global_decls->num_decls; i++) {
-                Decl *decl = global_decls->decls[i];
+        internal void add_package_decls(Package* package) {
+            for (int i = 0; i < package->num_decls; i++) {
+                Decl *decl = package->decls[i];
                 if (decl->kind == DECL_NOTE) {
                     if (null == decl_note_names.map_get<byte>(decl->note.name)) {
-                        warning(decl->pos, "Unknown declaration #directive '{0}'", new string(decl->note.name));
+                        warning(decl->pos, "Unknown declaration #directive '{0}'", _S(decl->note.name));
                     }
                     if (decl->note.name == declare_note_name) {
                         if (decl->note.num_args != 1) {
@@ -2472,23 +2562,160 @@ namespace IonLang
                         decl_note_names.map_put(arg->name, (void*)1);
                     }
                     else if (decl->note.name == static_assert_name) {
-                        resolve_static_assert(decl->note);
+      //                resolve_static_assert(decl->note);
                     }
                 }
+                else if (decl->kind == DECL_IMPORT) {
+                    // Add to list of imports
+                }
                 else {
-                    sym_global_decl(global_decls->decls[i]);
+                    sym_global_decl(decl);
                 }
             }
         }
-        static bool is_init = false;
-        private void init_builtins() {
+        bool is_package_dir(char* search_path, char* package_path) {
+            char* path = stackalloc char[MAX_PATH];
+            path_copy(path, search_path);
+            path_join(path, package_path);
+            var str = new string(path);
+            if (!Directory.Exists(str))
+                return false;
 
-            if (is_init) {
-                return;
+            var dirs = Directory.GetFiles(str, "*.ion");
+            
+            return dirs.Any();
+        }
+
+        const int MAX_PATH = 1024;
+
+        bool copy_package_full_path(char* dest, char* package_path) {
+            for (int i = 0; i < package_search_paths->count; i++) {
+                char* c = package_search_paths->Get<char>(i);
+                if (is_package_dir(c, package_path)) {
+                    path_copy(dest, c);
+                    path_join(dest, package_path);
+                    return true;
+                }
             }
+            return false;
+        }
+        Package* import_package(char* package_path) {
+            Package *package = package_map.map_get<Package>(package_path);
+            if (package == null) {
+                package = (Package*)xcalloc(1, sizeof(Package));
+                package->path = package_path;
+                printf("Importing {0}\n", package_path);
+                var full_path = stackalloc char[MAX_PATH];
+                if (!copy_package_full_path(full_path, package_path)) {
+                    return null;
+                }
+                int len = strlen(full_path);
+                full_path[len] = '/';
+                package->full_path = xmalloc<char>(len + 1);
+                package->syms = PtrBuffer.Create();
+                strcpy(package->full_path, full_path);
+                add_package(package);
+                compile_package(package);
+            }
+            return package;
+        }
 
-            decl_note_names.map_put(declare_note_name, (void*)1);
+        void import_all_package_symbols(Package* package) {
+            Console.WriteLine("Importing {0} Symbols from Path '{1}'",package->syms->count, _S(package->path));
+            for (int i = 0; i < package->syms->count; i++) {
+                Sym* sym = package->syms->Get<Sym>(i);
+                if (sym->package == package) {
+                    sym_global_put(sym->name, sym);
+                }
+            }
+            
+        }
 
+        void import_package_symbols(Decl* decl, Package* package) {
+            for (int i = 0; i < decl->import.num_items; i++) {
+                ImportItem item = decl->import.items[i];
+                Sym *sym = get_package_sym(package, item.name);
+                if (sym == null) {
+                    fatal_error(decl->pos, "Symbol '{0}' does not exist in package '{1}'", _S(item.name), _S(package->path));
+                }
+                sym_global_put(item.rename != null ? item.rename : item.name, sym);
+            }
+        }
+        void process_package_imports(Package* package) {
+            for (int i = 0; i < package->num_decls; i++) {
+                int n = 0;
+                Decl *decl = package->decls[i];
+                if (decl->kind == DECL_IMPORT) {
+                    char *path_buf = stackalloc char[MAX_PATH];
+                    if (decl->import.is_relative) {
+                        n = strncpy(path_buf, package->path);
+                        *(path_buf + n++) = '/';
+                    }
+
+                    for (int k = 0; k < decl->import.num_names; k++) {
+                        if (k > 0)
+                            *(path_buf + n++) = '/';
+                        n = strncpy(path_buf, decl->import.names[k], n);
+                    }
+
+                    Package *imported_package = import_package(_I(path_buf));
+
+                    if (imported_package == null) {
+                        fatal_error(decl->pos, "Failed to import package '{0}'", _S(path_buf));
+                    }
+
+                    //buf_free(path_buf);
+                    import_package_symbols(decl, imported_package);
+                    if (decl->import.import_all) {
+                        import_all_package_symbols(imported_package);
+                    }
+                }
+            }
+        }
+        bool parse_package(Package* package) {
+            PtrBuffer* decls = PtrBuffer.GetPooledBuffer();
+            foreach (var f in Directory.EnumerateFiles(_S(package->full_path), "*.ion")) {
+                char *code = read_file(f);
+                init_stream(code, f.ToPtr());
+                Decls *file_decls = parse_decls();
+                for (int i = 0; i < file_decls->num_decls; i++) {
+                    decls->Add(file_decls->decls[i]);
+                }
+
+            }
+            package->decls = decls->Cast<Decl>(); // Optimise this
+            package->num_decls = decls->count;
+            return package != null;
+
+        }
+        bool compile_package(Package* package) {
+            if (!parse_package(package)) {
+                return false;
+            }
+            Package *old_package = enter_package(package);
+            if (builtin_package != null) {
+                import_all_package_symbols(builtin_package);
+            }
+            add_package_decls(package);
+            process_package_imports(package);
+            leave_package(old_package);
+            return true;
+        }
+        void resolve_package_syms(Package* package) {
+            Package *old_package = enter_package(package);
+            for (int i = 0; i < package->syms->count; i++) {
+                var sym = package->syms->Get<Sym>(i);
+                resolve_sym(sym);
+                finalize_sym(sym);
+            }
+            leave_package(old_package);
+        }
+
+        private void init_builtin_syms() {
+
+            assert(builtin_package);
+            Package *old_package = enter_package(builtin_package);
+            
             type_ranks[(int)TYPE_BOOL] = 1;
             type_ranks[(int)TYPE_CHAR] = 2;
             type_ranks[(int)TYPE_SCHAR] = 2;
@@ -2519,28 +2746,29 @@ namespace IonLang
             type_names[(int)TYPE_FLOAT] = "float".ToPtr();
             type_names[(int)TYPE_DOUBLE] = "double".ToPtr();
 
-            enum_type_names[(int)TYPE_VOID] = "TYPE_VOID".ToPtr();
-            enum_type_names[(int)TYPE_BOOL] = "TYPE_BOOL".ToPtr();
-            enum_type_names[(int)TYPE_CHAR] = "TYPE_CHAR".ToPtr();
-            enum_type_names[(int)TYPE_SCHAR] = "TYPE_SCHAR".ToPtr();
-            enum_type_names[(int)TYPE_UCHAR] = "TYPE_UCHAR".ToPtr();
-            enum_type_names[(int)TYPE_SHORT] = "TYPE_SHORT".ToPtr();
-            enum_type_names[(int)TYPE_USHORT] = "TYPE_USHORT".ToPtr();
-            enum_type_names[(int)TYPE_INT] = "TYPE_INT".ToPtr();
-            enum_type_names[(int)TYPE_UINT] = "TYPE_UINT".ToPtr();
-            enum_type_names[(int)TYPE_LONG] = "TYPE_LONG".ToPtr();
-            enum_type_names[(int)TYPE_ULONG] = "TYPE_ULONG".ToPtr();
-            enum_type_names[(int)TYPE_LLONG] = "TYPE_LLONG".ToPtr();
-            enum_type_names[(int)TYPE_ULLONG] = "TYPE_ULLONG".ToPtr();
-            enum_type_names[(int)TYPE_FLOAT] = "TYPE_FLOAT".ToPtr();
-            enum_type_names[(int)TYPE_DOUBLE] = "TYPE_DOUBLE".ToPtr();
+            typeid_kind_names[(int)TYPE_NONE] = "TYPE_NONE".ToPtr();
+            typeid_kind_names[(int)TYPE_VOID] = "TYPE_VOID".ToPtr();
+            typeid_kind_names[(int)TYPE_BOOL] = "TYPE_BOOL".ToPtr();
+            typeid_kind_names[(int)TYPE_CHAR] = "TYPE_CHAR".ToPtr();
+            typeid_kind_names[(int)TYPE_SCHAR] = "TYPE_SCHAR".ToPtr();
+            typeid_kind_names[(int)TYPE_UCHAR] = "TYPE_UCHAR".ToPtr();
+            typeid_kind_names[(int)TYPE_SHORT] = "TYPE_SHORT".ToPtr();
+            typeid_kind_names[(int)TYPE_USHORT] = "TYPE_USHORT".ToPtr();
+            typeid_kind_names[(int)TYPE_INT] = "TYPE_INT".ToPtr();
+            typeid_kind_names[(int)TYPE_UINT] = "TYPE_UINT".ToPtr();
+            typeid_kind_names[(int)TYPE_LONG] = "TYPE_LONG".ToPtr();
+            typeid_kind_names[(int)TYPE_ULONG] = "TYPE_ULONG".ToPtr();
+            typeid_kind_names[(int)TYPE_LLONG] = "TYPE_LLONG".ToPtr();
+            typeid_kind_names[(int)TYPE_ULLONG] = "TYPE_ULLONG".ToPtr();
+            typeid_kind_names[(int)TYPE_FLOAT] = "TYPE_FLOAT".ToPtr();
+            typeid_kind_names[(int)TYPE_DOUBLE] = "TYPE_DOUBLE".ToPtr();
 
-
-            enum_type_names[(int)TYPE_CONST] = "TYPE_CONST".ToPtr();
-            enum_type_names[(int)TYPE_PTR] = "TYPE_PTR".ToPtr();
-            enum_type_names[(int)TYPE_ARRAY] = "TYPE_ARRAY".ToPtr();
-            enum_type_names[(int)TYPE_STRUCT] = "TYPE_STRUCT".ToPtr();
-            enum_type_names[(int)TYPE_UNION] = "TYPE_UNION".ToPtr();
+            typeid_kind_names[(int)TYPE_CONST] = "TYPE_CONST".ToPtr();
+            typeid_kind_names[(int)TYPE_PTR] = "TYPE_PTR".ToPtr();
+            typeid_kind_names[(int)TYPE_ARRAY] = "TYPE_ARRAY".ToPtr();
+            typeid_kind_names[(int)TYPE_STRUCT] = "TYPE_STRUCT".ToPtr();
+            typeid_kind_names[(int)TYPE_UNION] = "TYPE_UNION".ToPtr();
+            typeid_kind_names[(int)TYPE_FUNC] = "TYPE_FUNC".ToPtr();
 
             sym_global_type("void".ToPtr(), type_void);
             sym_global_type("bool".ToPtr(), type_bool);
@@ -2577,15 +2805,7 @@ namespace IonLang
             sym_global_const("false".ToPtr(), type_bool, new Val { b = false });
             sym_global_const("NULL".ToPtr(), type_const(type_ptr(type_void)), new Val { p = null });
 
-            is_init = true;
-        }
-
-        private void finalize_syms() {
-            for (var it = (Sym**)global_syms_buf->_begin; it != global_syms_buf->_top; it++) {
-                var sym = *it;
-                if (sym->decl != null)
-                    finalize_sym(sym);
-            }
+            leave_package(old_package);
         }
     }
 
@@ -2614,12 +2834,25 @@ namespace IonLang
         SYM_RESOLVED
     }
 
+    internal unsafe struct Package
+    {
+        public char *path;
+        public char *full_path;
+        public Decl **decls;
+        public int num_decls;
+        public Ion.Map syms_map;
+        public Ion.PtrBuffer* syms;
+        public char *external_name;
+    }
 
     internal unsafe struct Sym
     {
         public char* name;
+        public Package* package;
         public SymKind kind;
         public SymState state;
+        public bool reachable;
+        public char *external_name;
         public Decl* decl;
         public Type* type;
         public Val val;

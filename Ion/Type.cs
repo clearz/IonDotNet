@@ -52,7 +52,7 @@ namespace IonLang
         [FieldOffset(4)] public long size;
         [FieldOffset(12)] public long align;
         [FieldOffset(20)] public bool nonmodifiable;
-        [FieldOffset(24)] public int typeid;
+        [FieldOffset(24)] public uint typeid;
         [FieldOffset(28)] public Sym* sym;
         [FieldOffset(    Ion.PTR_SIZE + 28)] public Type* @base;
         [FieldOffset(2 * Ion.PTR_SIZE + 28)] public _aggregate aggregate;
@@ -103,7 +103,7 @@ namespace IonLang
 
         static readonly int[] type_ranks = new int[(int)NUM_TYPE_KINDS];
         static readonly char*[] type_names = new char*[(int)NUM_TYPE_KINDS];
-        static readonly char*[] enum_type_names = new char*[(int)NUM_TYPE_KINDS];
+        static readonly char*[] typeid_kind_names = new char*[(int)NUM_TYPE_KINDS];
         bool is_const_type(Type* type) {
             return type->kind == TYPE_CONST;
         }
@@ -207,7 +207,11 @@ namespace IonLang
             }
         }
 
+        static bool types_inited;
         void init_types() {
+            if (!types_inited) {
+                return;
+            }
             register_typeid(type_void);
             register_typeid(type_bool);
             register_typeid(type_char);
@@ -223,9 +227,10 @@ namespace IonLang
             register_typeid(type_ullong);
             register_typeid(type_float);
             register_typeid(type_double);
+            types_inited = true;
         }
 
-        private static Type* basic_type_alloc(TypeKind kind, long size = 0, long align = 0, int typeid = 0) {
+        private static Type* basic_type_alloc(TypeKind kind, long size = 0, long align = 0, uint typeid = 0) {
             var type = (Type*) xmalloc(sizeof(Type));
             Unsafe.InitBlock(type, 0, (uint)sizeof(Type));
             type->kind = kind;

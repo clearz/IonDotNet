@@ -12,7 +12,7 @@ namespace IonLang
     {
         void main_test() {
             lex_init();
-            var tests = new Action[] {resolve_test, common_test, lex_test, print_test, parse_test, ion_test };
+            var tests = new Action[] {resolve_test, common_test, lex_test, print_test, parse_test, /*ion_test*/ };
             foreach(var test in tests) {
                 Console.Write($"\nPress a key to preform '{test.Method.Name}', Press Space to skip");
                 if (Console.ReadKey().KeyChar != ' ')
@@ -235,36 +235,36 @@ namespace IonLang
 
         private void cdecl_test() {
             var c = 'a';
-            init_builtins();
+            init_builtin_syms();
             type_to_cdecl(type_int, &c);
-            Console.WriteLine(new string(cdecl_buffer) + ";");
+            Console.WriteLine(_S(cdecl_buffer) + ";");
             type_to_cdecl(type_ptr(type_int), &c);
             c++;
-            Console.WriteLine(new string(cdecl_buffer) + ";");
+            Console.WriteLine(_S(cdecl_buffer) + ";");
             type_to_cdecl(type_array(type_int, 10), &c);
             c++;
-            Console.WriteLine(new string(cdecl_buffer) + ";");
+            Console.WriteLine(_S(cdecl_buffer) + ";");
             type_to_cdecl(type_func(new[] { type_int }, 1, type_int), &c);
             c++;
-            Console.WriteLine(new string(cdecl_buffer) + ";");
+            Console.WriteLine(_S(cdecl_buffer) + ";");
             type_to_cdecl(type_array(type_func(new[] { type_int }, 1, type_int), 10), &c);
             c++;
-            Console.WriteLine(new string(cdecl_buffer) + ";");
+            Console.WriteLine(_S(cdecl_buffer) + ";");
             type_to_cdecl(type_func(new[] { type_ptr(type_int) }, 1, type_int), &c);
             c++;
-            Console.WriteLine(new string(cdecl_buffer) + ";");
+            Console.WriteLine(_S(cdecl_buffer) + ";");
             var type1 = type_func(new[] {type_array(type_int, 10)}, 1, type_int);
             type_to_cdecl(type1, &c);
-            Console.WriteLine(new string(cdecl_buffer) + ";");
+            Console.WriteLine(_S(cdecl_buffer) + ";");
             c++;
             type_to_cdecl(type_func((Type**)null, 0, type1), &c);
             c++;
-            Console.WriteLine(new string(cdecl_buffer) + ";");
+            Console.WriteLine(_S(cdecl_buffer) + ";");
             type_to_cdecl(type_func((Type**)null, 0, type_array(type_func((Type**)null, 0, type_int), 10)), &c);
         }
 
         private void resolve_test() {
-            init_builtins();
+            init_builtin_syms();
             assert(promote_type(type_char) == type_int);
             assert(promote_type(type_schar) == type_int);
             assert(promote_type(type_uchar) == type_int);
@@ -321,7 +321,7 @@ namespace IonLang
                 sym_global_decl(decl);
             }
 
-            finalize_syms();
+           // finalize_syms();
             Console.WriteLine();
             for (var sym = (Sym**)sorted_syms->_begin; sym != sorted_syms->_top; sym++) {
                 if ((*sym)->decl != null)

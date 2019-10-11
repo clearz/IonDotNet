@@ -67,6 +67,11 @@ namespace IonLang
         public Typespec* type;
         public SrcPos pos;
     }
+    internal unsafe struct ImportItem
+    {
+        public char* name;
+        public char* rename;
+    }
 
     internal unsafe struct Decls
     {
@@ -82,8 +87,9 @@ namespace IonLang
         [FieldOffset(4)] public char* name;
         [FieldOffset(4 + Ion.PTR_SIZE)]public bool is_incomplete;
         [FieldOffset(8 + Ion.PTR_SIZE)] public SrcPos pos;
-        [FieldOffset(24 + 2 * Ion.PTR_SIZE)] public Notes notes; 
+        [FieldOffset(24 + 2 * Ion.PTR_SIZE)] public Notes notes;
         [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public Note note;
+        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public ImportDecl import;
         [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public EnumDecl enum_decl;
         [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public AggregateDecl aggregate;
         [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public FuncDecl func;
@@ -133,7 +139,16 @@ namespace IonLang
             public Typespec *type;
             public Expr* expr;
         }
-    }
+
+        internal struct ImportDecl {
+            public bool is_relative;
+            public char** names;
+            public long num_names;
+            public bool import_all;
+            public ImportItem *items;
+            public long num_items;
+        }
+}
     unsafe struct NoteArg
     {
         public SrcPos pos;
@@ -183,6 +198,7 @@ namespace IonLang
         [FieldOffset(20 + Ion.PTR_SIZE)] public _float_lit float_lit;
         [FieldOffset(20 + Ion.PTR_SIZE)] public _str_lit str_lit;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Expr* typeof_expr;
+        [FieldOffset(20 + Ion.PTR_SIZE)] public Paren paren;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* typeof_type;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Expr* sizeof_expr;
         [FieldOffset(20 + Ion.PTR_SIZE)] public Expr* alignof_expr;
@@ -237,6 +253,11 @@ namespace IonLang
             public int num_fields;
         }
 
+        internal struct Paren
+        {
+            public Expr *expr;
+        }
+    
 
         internal struct CastExpr
         {
@@ -398,11 +419,13 @@ namespace IonLang
         DECL_TYPEDEF,
         DECL_FUNC,
         DECL_NOTE,
+        DECL_IMPORT,
     }
 
     internal enum ExprKind
     {
         EXPR_NONE,
+        EXPR_PAREN,
         EXPR_INT,
         EXPR_FLOAT,
         EXPR_STR,

@@ -10,9 +10,9 @@ namespace IonLang
             if (args.Length > 0)
                 ion.ion_main(args);
             else {
-                Timer.Time(() => ion.ion_test(), 1);
+                Timer.Time(() => ion.ion_test("test1"), 1);
 #if DEBUG
-                WriteLine(ion.gen_buf);
+               // WriteLine(ion.gen_buf);
 #endif
                 ReadKey();
             }
