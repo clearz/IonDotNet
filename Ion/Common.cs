@@ -66,7 +66,7 @@ namespace IonLang
 
             private void arena_grow(long min_size) {
                 //Console.WriteLine("Growing: " + arenas->count);
-                var size = (int) ALIGN_UP(MAX(ARENA_BLOCK_SIZE, min_size), ARENA_ALIGNMENT);
+                var size = (int) ALIGN_UP(CLAMP_MIN(min_size, ARENA_BLOCK_SIZE), ARENA_ALIGNMENT);
                 ptr = (byte*)xmalloc(size);
                 assert(ptr == ALIGN_DOWN_PTR(ptr, ARENA_ALIGNMENT));
                 end = ptr + size;
@@ -273,7 +273,7 @@ namespace IonLang
         bool path_copy(char* path, char* src) {
 
             long src_len = strlen(src);
-            long copy_len = MIN(src_len, MAX_PATH - 1);
+            long copy_len = CLAMP_MAX(src_len, MAX_PATH - 1);
             memcpy(path, src, (int)copy_len<<1);
             path[copy_len] = '\0';
             path_normalize(path);
@@ -598,7 +598,7 @@ namespace IonLang
 
 
             private void map_grow(long new_cap) {
-                new_cap = MAX(new_cap, 16);
+                new_cap = CLAMP_MIN(new_cap, 16);
                 var new_map = new Map
                 {
                     keys = (ulong*) xcalloc((int) new_cap, sizeof(ulong)),

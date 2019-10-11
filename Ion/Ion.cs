@@ -15,7 +15,7 @@ namespace IonLang
             package_search_paths->Add(path.ToPtr());
         }
 
-        void init_search_paths() {
+        void init_package_search_paths() {
             string ionhome_var = Environment.GetEnvironmentVariable("IONHOME") ?? @"C:\Users\john\source\repos\IonDotNet\Ion";
             if (string.IsNullOrEmpty(ionhome_var)) {
                 error_here("Set the environment variable IONHOME to the Ion home directory (where system_packages is located)\n");
@@ -32,7 +32,7 @@ namespace IonLang
 
         void init_compiler() {
             lex_init();
-            init_search_paths();
+            init_package_search_paths();
             init_keywords();
             init_types();
             decl_note_names.map_put(declare_note_name, (void*)1);

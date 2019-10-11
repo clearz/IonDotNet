@@ -209,14 +209,14 @@ extern schar test1_sc;
 #line 35
 #define test1_N ((((char)(42)) + (8)) != (0))
 
-#line 160
+#line 161
 uchar test1_h(void);
 
-#line 229
+#line 230
 struct test1_Vector {
-    #line 230
+    #line 231
     int x;
-    #line 230
+    #line 231
     int y;
 };
 
@@ -254,251 +254,251 @@ void test1_f10(int (a[3]));
 
 void test1_test_arrays(void);
 
-#line 92
+#line 93
 void test1_test_loops(void);
 
-#line 126
+#line 127
 void test1_test_nonmodifiable(void);
 
-#line 138
+#line 139
 struct test1_UartCtrl {
-    #line 139
+    #line 140
     bool tx_enable;
-    #line 139
+    #line 140
     bool rx_enable;
 };
 
-#line 142
+#line 143
 #define test1_UART_CTRL_REG ((uint *)(0x12345678))
 
-#line 144
+#line 145
 uint32 test1_pack(test1_UartCtrl ctrl);
 
 test1_UartCtrl test1_unpack(uint32 word);
 
 void test1_test_uart(void);
 
-#line 187
+#line 188
 typedef test1_IntOrPtr test1_U;
 
-#line 193
+#line 194
 union test1_IntOrPtr {
-    #line 194
-    int i;
     #line 195
+    int i;
+    #line 196
     int(*p);
 };
 
-#line 170
+#line 171
 int test1_g(test1_U u);
 
 void test1_k(void(*vp), int(*ip));
 
-#line 179
+#line 180
 void test1_f1(void);
 
-#line 184
+#line 185
 void test1_f3(int (a[]));
 
-#line 189
+#line 190
 int test1_example_test(void);
 
-#line 245
+#line 246
 int test1_fact_rec(int n);
 
-#line 237
+#line 238
 int test1_fact_iter(int n);
 
-#line 198
+#line 199
 extern const char (test1_escape_to_char[256]);
 
-#line 208
+#line 209
 extern int (test1_a2[11]);
 
-#line 211
+#line 212
 int test1_is_even(int digit);
 
-#line 227
+#line 228
 extern int test1_i;
 
-#line 233
+#line 234
 void test1_f2(test1_Vector v);
 
-#line 255
+#line 256
 extern test1_T(*test1_p);
 
-#line 253
+#line 254
 #define test1_M ((1) + (sizeof(test1_p)))
 
 struct test1_T {
-    #line 258
+    #line 259
     int (a[test1_M]);
 };
 
-#line 261
+#line 262
 typedef int test1_Color;
 
-#line 262
+#line 263
 #define test1_COLOR_NONE ((int)(0))
 
-#line 263
+#line 264
 #define test1_COLOR_RED ((int)((test1_COLOR_NONE) + (1)))
 
-#line 264
+#line 265
 #define test1_COLOR_GREEN ((int)((test1_COLOR_RED) + (1)))
 
-#line 265
+#line 266
 #define test1_COLOR_BLUE ((int)((test1_COLOR_GREEN) + (1)))
 
-#line 266
+#line 267
 #define test1_NUM_COLORS ((int)((test1_COLOR_BLUE) + (1)))
 
-#line 269
+#line 270
 extern const char * (test1_color_names[test1_NUM_COLORS]);
 
-#line 276
+#line 277
 void test1_test_enum(void);
 
-#line 285
+#line 286
 void test1_test_assign(void);
 
-#line 308
+#line 309
 void test1_benchmark(int n);
 
-#line 315
+#line 316
 int test1_va_test(int x, ...);
 
 typedef int (*test1_F)(int, ...);
 
-#line 321
+#line 322
 void test1_test_lits(void);
 
-#line 338
+#line 339
 void test1_test_ops(void);
 
-#line 368
+#line 369
 #define test1_IS_DEBUG (true)
 
-#line 370
+#line 371
 void test1_test_bool(void);
 
-#line 377
+#line 378
 int test1_test_ctrl(void);
 
-#line 387
+#line 388
 extern const int (test1_j);
 
-#line 388
+#line 389
 extern const int(*test1_q);
 
-#line 389
+#line 390
 extern const test1_Vector (test1_cv);
 
-#line 391
+#line 392
 void test1_f4(const char(*x));
 
-#line 394
+#line 395
 struct test1_ConstVector {
-    #line 395
+    #line 396
     const int (x);
-    #line 395
+    #line 396
     const int (y);
 };
 
-#line 398
+#line 399
 void test1_f5(const int(*p));
 
-#line 401
+#line 402
 void test1_test_convert(void);
 
-#line 409
+#line 410
 void test1_test_const(void);
 
-#line 434
+#line 435
 void test1_test_init(void);
 
-#line 450
+#line 451
 void test1_test_sizeof(void);
 
-#line 458
+#line 459
 void test1_test_cast(void);
 
-#line 467
+#line 468
 void test1_print_any(Any any);
 
-#line 490
+#line 491
 void test1_print_type(typeid type);
 
-#line 485
+#line 486
 void test1_print_typeid(typeid type);
 
-#line 480
+#line 481
 void test1_println_any(Any any);
 
-#line 515
+#line 516
 void test1_println_type(typeid type);
 
-#line 520
+#line 521
 void test1_print_typeinfo(typeid type);
 
-#line 544
+#line 545
 void test1_println_typeinfo(typeid type);
 
-#line 549
+#line 550
 void test1_test_typeinfo(void);
 
-#line 569
+#line 570
 struct test1_Ints {
-    #line 570
-    int num_ints;
     #line 571
-    int(*int_ptr);
+    int num_ints;
     #line 572
+    int(*int_ptr);
+    #line 573
     int (int_arr[3]);
 };
 
-#line 575
+#line 576
 void test1_test_compound_literals(void);
 
-#line 591
+#line 592
 void test1_test_complete(void);
 
-#line 619
+#line 620
 void test1_test_alignof(void);
 
-#line 627
+#line 628
 struct test1_BufHdr {
-    #line 628
-    usize cap;
-    #line 628
-    usize len;
     #line 629
+    usize cap;
+    #line 629
+    usize len;
+    #line 630
     char (buf[1]);
 };
 
-#line 634
+#line 635
 void test1_test_offsetof(void);
 
-#line 639
+#line 640
 struct test1_Thing {
-    #line 640
+    #line 641
     int a;
 };
 
-#line 643
+#line 644
 extern test1_Thing test1_thing;
 
-#line 645
+#line 646
 test1_Thing * test1_returns_ptr(void);
 
 const test1_Thing * test1_returns_ptr_to_const(void);
 
 void test1_test_lvalue(void);
 
-#line 660
+#line 661
 void test1_test_if(void);
 
-#line 673
+#line 674
 int main(int argc, const char *(*argv));
 
 // Typeinfo
@@ -686,21 +686,21 @@ uchar test1_uc = 1;
 
 schar test1_sc = 1;
 
-#line 160 "C:/Users/john/source/repos/IonDotNet/Ion/test1/test1.ion"
+#line 161 "C:/Users/john/source/repos/IonDotNet/Ion/test1/test1.ion"
 uchar test1_h(void) {
-    #line 161
-    ((test1_Vector){.x = 1, .y = 2}.x) = 42;
     #line 162
-    test1_Vector (*v) = &((test1_Vector){1, 2});
+    ((test1_Vector){.x = 1, .y = 2}.x) = 42;
     #line 163
-    (v->x) = 42;
+    test1_Vector (*v) = &((test1_Vector){1, 2});
     #line 164
-    int (*p) = &((int){0});
+    (v->x) = 42;
     #line 165
-    ulong x = ((uint){1}) + ((long){2});
+    int (*p) = &((int){0});
     #line 166
-    int y = +(test1_c);
+    ulong x = ((uint){1}) + ((long){2});
     #line 167
+    int y = +(test1_c);
+    #line 168
     return (uchar)(x);
 }
 
@@ -774,149 +774,151 @@ void test1_test_arrays(void) {
     #line 87
     int (a[3]) = {1, 2, 3};
     (test1_f10)(a);
+    #line 90
+    int (*b) = a;
 }
 
-#line 92
+#line 93
 void test1_test_loops(void) {
-    #line 95
+    #line 96
     switch (0) {default: {
             if (1) {
-                #line 98
+                #line 99
                 break;
             }
-            #line 100
+            #line 101
             for (;;) {
-                #line 101
+                #line 102
                 continue;
             }
             break;
         }
     }
-    #line 106
+    #line 107
     while (0) {
     }
-    #line 108
+    #line 109
     for (int i = 0; (i) < (10); (i)++) {
     }
-    #line 110
+    #line 111
     for (;;) {
-        #line 111
+        #line 112
         break;
     }
-    #line 113
+    #line 114
     for (int i = 0;;) {
-        #line 114
+        #line 115
         break;
     }
-    #line 116
+    #line 117
     for (; 0;) {
     }
-    #line 118
+    #line 119
     for (int i = 0;; (i)++) {
-        #line 119
+        #line 120
         break;
     }
-    #line 121
-    int i = 0;
     #line 122
+    int i = 0;
+    #line 123
     for (;; (i)++) {
-        #line 123
+        #line 124
         break;
     }
 }
 
-#line 126
+#line 127
 void test1_test_nonmodifiable(void) {
-    #line 127
-    test1_S1 s1;
     #line 128
+    test1_S1 s1;
+    #line 129
     (s1.a) = 0;
-    #line 131
-    test1_S2 s2;
     #line 132
+    test1_S2 s2;
+    #line 133
     (s2.s1.a) = 0;
 }
 
-#line 144
+#line 145
 uint32 test1_pack(test1_UartCtrl ctrl) {
-    #line 145
+    #line 146
     return (((ctrl.tx_enable) & (1))) | (((((ctrl.rx_enable) & (1))) << (1)));
 }
 
-#line 148
+#line 149
 test1_UartCtrl test1_unpack(uint32 word) {
-    #line 149
+    #line 150
     return (test1_UartCtrl){.tx_enable = (word) & (0x1), .rx_enable = (((word) & (0x2))) >> (1)};
 }
 
-#line 152
+#line 153
 void test1_test_uart(void) {
-    #line 153
-    bool tx_enable = (test1_unpack)(*(test1_UART_CTRL_REG)).tx_enable;
     #line 154
-    (*(test1_UART_CTRL_REG)) = (test1_pack)((test1_UartCtrl){.tx_enable = !(tx_enable), .rx_enable = false});
+    bool tx_enable = (test1_unpack)(*(test1_UART_CTRL_REG)).tx_enable;
     #line 155
-    test1_UartCtrl ctrl = (test1_unpack)(*(test1_UART_CTRL_REG));
+    (*(test1_UART_CTRL_REG)) = (test1_pack)((test1_UartCtrl){.tx_enable = !(tx_enable), .rx_enable = false});
     #line 156
-    (ctrl.rx_enable) = true;
+    test1_UartCtrl ctrl = (test1_unpack)(*(test1_UART_CTRL_REG));
     #line 157
+    (ctrl.rx_enable) = true;
+    #line 158
     (*(test1_UART_CTRL_REG)) = (test1_pack)(ctrl);
 }
 
-#line 170
+#line 171
 int test1_g(test1_U u) {
-    #line 171
+    #line 172
     return u.i;
 }
 
-#line 174
+#line 175
 void test1_k(void(*vp), int(*ip)) {
-    #line 175
-    (vp) = ip;
     #line 176
+    (vp) = ip;
+    #line 177
     (ip) = vp;
 }
 
-#line 179
+#line 180
 void test1_f1(void) {
-    #line 180
-    int (*p) = &((int){0});
     #line 181
+    int (*p) = &((int){0});
+    #line 182
     (*(p)) = 42;
 }
 
-#line 184
+#line 185
 void test1_f3(int (a[])) {
 }
 
-#line 189
+#line 190
 int test1_example_test(void) {
-    #line 190
+    #line 191
     return ((test1_fact_rec)(10)) == ((test1_fact_iter)(10));
 }
 
-#line 245
+#line 246
 int test1_fact_rec(int n) {
-    #line 246
+    #line 247
     if ((n) == (0)) {
-        #line 247
+        #line 248
         return 1;
     } else {
-        #line 249
+        #line 250
         return (n) * ((test1_fact_rec)((n) - (1)));
     }
 }
 
-#line 237
+#line 238
 int test1_fact_iter(int n) {
-    #line 238
-    int r = 1;
     #line 239
+    int r = 1;
+    #line 240
     for (int i = 0; (i) <= (n); (i)++) {
-        #line 240
+        #line 241
         (r) *= i;
     }
-    #line 242
+    #line 243
     return r;
 }
 
@@ -924,31 +926,31 @@ const char (test1_escape_to_char[256]) = {['n'] = '\n', ['r'] = '\r', ['t'] = '\
 
 int (test1_a2[11]) = {1, 2, 3, [10] = 4};
 
-#line 211
+#line 212
 int test1_is_even(int digit) {
-    #line 212
-    int b = 0;
     #line 213
+    int b = 0;
+    #line 214
     switch (digit) {
         case 0:
         case 2:
         case 4:
         case 6:
         case 8: {
-            #line 215
+            #line 216
             (b) = 1;
             break;
         }
     }
-    #line 217
+    #line 218
     return b;
 }
 
 int test1_i;
 
-#line 233
+#line 234
 void test1_f2(test1_Vector v) {
-    #line 234
+    #line 235
     (v) = (test1_Vector){0};
 }
 
@@ -956,183 +958,183 @@ test1_T(*test1_p);
 
 const char * (test1_color_names[test1_NUM_COLORS]) = {[test1_COLOR_NONE] = "none", [test1_COLOR_RED] = "red", [test1_COLOR_GREEN] = "green", [test1_COLOR_BLUE] = "blue"};
 
-#line 276
+#line 277
 void test1_test_enum(void) {
-    #line 277
-    test1_Color a = test1_COLOR_RED;
     #line 278
-    int b = test1_COLOR_RED;
+    test1_Color a = test1_COLOR_RED;
     #line 279
-    int c = (a) + (b);
+    int b = test1_COLOR_RED;
     #line 280
-    int i = a;
+    int c = (a) + (b);
     #line 281
-    (a) = i;
+    int i = a;
     #line 282
+    (a) = i;
+    #line 283
     (printf)("%d %d %d %d\n", test1_COLOR_NONE, test1_COLOR_RED, test1_COLOR_GREEN, test1_COLOR_BLUE);
 }
 
-#line 285
+#line 286
 void test1_test_assign(void) {
-    #line 286
-    int i = 0;
     #line 287
-    float f = 3.14f;
+    int i = 0;
     #line 288
-    int(*p) = &(i);
+    float f = 3.14f;
     #line 289
-    (i)++;
+    int(*p) = &(i);
     #line 290
-    (i)--;
+    (i)++;
     #line 291
-    (p)++;
+    (i)--;
     #line 292
-    (p)--;
+    (p)++;
     #line 293
-    (p) += 1;
+    (p)--;
     #line 294
-    (i) /= 2;
+    (p) += 1;
     #line 295
-    (i) *= 123;
+    (i) /= 2;
     #line 296
-    (i) %= 3;
+    (i) *= 123;
     #line 297
-    (i) <<= 1;
+    (i) %= 3;
     #line 298
-    (i) >>= 2;
+    (i) <<= 1;
     #line 299
-    (i) &= 0xFF;
+    (i) >>= 2;
     #line 300
-    (i) |= 0xFF00;
+    (i) &= 0xFF;
     #line 301
+    (i) |= 0xFF00;
+    #line 302
     (i) ^= 0xFF0;
 }
 
-#line 308
+#line 309
 void test1_benchmark(int n) {
-    #line 309
-    int r = 1;
     #line 310
+    int r = 1;
+    #line 311
     for (int i = 1; (i) <= (n); (i)++) {
-        #line 311
+        #line 312
         (r) *= i;
     }
 }
 
-#line 315
+#line 316
 int test1_va_test(int x, ...) {
-    #line 316
+    #line 317
     return 0;
 }
 
-#line 321
+#line 322
 void test1_test_lits(void) {
-    #line 322
-    float f = 3.14f;
     #line 323
-    double d = 3.14;
+    float f = 3.14f;
     #line 324
-    int i = 1;
+    double d = 3.14;
     #line 325
-    uint u = 0xFFFFFFFFu;
+    int i = 1;
     #line 326
-    long l = 1l;
+    uint u = 0xFFFFFFFFu;
     #line 327
-    ulong ul = 1ul;
+    long l = 1l;
     #line 328
-    llong ll = 0x100000000ll;
+    ulong ul = 1ul;
     #line 329
-    ullong ull = 0xFFFFFFFFFFFFFFFFull;
+    llong ll = 0x100000000ll;
     #line 330
-    uint x1 = 0xFFFFFFFF;
+    ullong ull = 0xFFFFFFFFFFFFFFFFull;
     #line 331
-    llong x2 = 4294967295;
+    uint x1 = 0xFFFFFFFF;
     #line 332
-    ullong x3 = 0xFFFFFFFFFFFFFFFF;
+    llong x2 = 4294967295;
     #line 333
+    ullong x3 = 0xFFFFFFFFFFFFFFFF;
+    #line 334
     int x4 = (0xAA) + (0x55);
 }
 
-#line 338
+#line 339
 void test1_test_ops(void) {
-    #line 339
-    float pi = 3.14f;
     #line 340
-    float f = 0.0f;
+    float pi = 3.14f;
     #line 341
-    (f) = +(pi);
+    float f = 0.0f;
     #line 342
-    (f) = -(pi);
+    (f) = +(pi);
     #line 343
-    int n = -(1);
+    (f) = -(pi);
     #line 344
-    (n) = ~(n);
+    int n = -(1);
     #line 345
-    (f) = ((f) * (pi)) + (n);
+    (n) = ~(n);
     #line 346
-    (f) = (pi) / (pi);
+    (f) = ((f) * (pi)) + (n);
     #line 347
-    (n) = (3) % (2);
+    (f) = (pi) / (pi);
     #line 348
-    (n) = (n) + ((uchar)(1));
+    (n) = (3) % (2);
     #line 349
-    int (*p) = &(n);
+    (n) = (n) + ((uchar)(1));
     #line 350
-    (p) = (p) + (1);
+    int (*p) = &(n);
     #line 351
-    (n) = (int)((((p) + (1))) - (p));
+    (p) = (p) + (1);
     #line 352
-    (n) = (n) << (1);
+    (n) = (int)((((p) + (1))) - (p));
     #line 353
-    (n) = (n) >> (1);
+    (n) = (n) << (1);
     #line 354
-    int b = ((p) + (1)) > (p);
+    (n) = (n) >> (1);
     #line 355
-    (b) = ((p) + (1)) >= (p);
+    int b = ((p) + (1)) > (p);
     #line 356
-    (b) = ((p) + (1)) < (p);
+    (b) = ((p) + (1)) >= (p);
     #line 357
-    (b) = ((p) + (1)) <= (p);
+    (b) = ((p) + (1)) < (p);
     #line 358
-    (b) = ((p) + (1)) == (p);
+    (b) = ((p) + (1)) <= (p);
     #line 359
-    (b) = (1) > (2);
+    (b) = ((p) + (1)) == (p);
     #line 360
-    (b) = (1.23f) <= (pi);
+    (b) = (1) > (2);
     #line 361
-    (n) = 0xFF;
+    (b) = (1.23f) <= (pi);
     #line 362
-    (b) = (n) & (~(1));
+    (n) = 0xFF;
     #line 363
-    (b) = (n) & (1);
+    (b) = (n) & (~(1));
     #line 364
-    (b) = (((n) & (~(1)))) ^ (1);
+    (b) = (n) & (1);
     #line 365
+    (b) = (((n) & (~(1)))) ^ (1);
+    #line 366
     (b) = (p) && (pi);
 }
 
-#line 370
+#line 371
 void test1_test_bool(void) {
-    #line 371
-    bool b = false;
     #line 372
-    (b) = true;
+    bool b = false;
     #line 373
-    int i = 0;
+    (b) = true;
     #line 374
+    int i = 0;
+    #line 375
     (i) = test1_IS_DEBUG;
 }
 
-#line 377
+#line 378
 int test1_test_ctrl(void) {
-    #line 378
+    #line 379
     switch (1) {
         case 0: {
-            #line 380
+            #line 381
             return 0;
             break;
         }default: {
-            #line 382
+            #line 383
             return 1;
             break;
         }
@@ -1145,165 +1147,165 @@ const int(*test1_q);
 
 const test1_Vector (test1_cv);
 
-#line 391
+#line 392
 void test1_f4(const char(*x)) {
 }
 
-#line 398
+#line 399
 void test1_f5(const int(*p)) {
 }
 
-#line 401
+#line 402
 void test1_test_convert(void) {
-    #line 402
-    const int(*a) = 0;
     #line 403
-    int(*b) = 0;
+    const int(*a) = 0;
     #line 404
-    (a) = b;
+    int(*b) = 0;
     #line 405
-    void(*p) = 0;
+    (a) = b;
     #line 406
+    void(*p) = 0;
+    #line 407
     (test1_f5)(p);
 }
 
-#line 409
+#line 410
 void test1_test_const(void) {
-    #line 410
+    #line 411
     test1_ConstVector cv2 = {1, 2};
     int i = 0;
-    #line 413
+    #line 414
     (i) = 1;
-    #line 416
+    #line 417
     int x = test1_cv.x;
     char c = test1_escape_to_char[0];
     (test1_f4)(test1_escape_to_char);
-    #line 421
-    const char (*p) = (const char *)(0);
     #line 422
-    (p) = (test1_escape_to_char) + (1);
+    const char (*p) = (const char *)(0);
     #line 423
-    char (*q) = (char *)(test1_escape_to_char);
+    (p) = (test1_escape_to_char) + (1);
     #line 424
+    char (*q) = (char *)(test1_escape_to_char);
+    #line 425
     (c) = q['n'];
     (p) = (const char *)(1);
-    #line 429
+    #line 430
     (i) = (int)((ullong)(p));
 }
 
-#line 434
+#line 435
 void test1_test_init(void) {
-    #line 435
-    int x = (const int)(0);
     #line 436
+    int x = (const int)(0);
     #line 437
-    int y;
     #line 438
-    (y) = 0;
+    int y;
     #line 439
-    int z = 42;
+    (y) = 0;
     #line 440
+    int z = 42;
+    #line 441
     int (a[3]) = {1, 2, 3};
-    #line 443
+    #line 444
     for (ullong i = 0; (i) < (10); (i)++) {
-        #line 444
+        #line 445
         (printf)("%llu\n", i);
     }
-    #line 446
-    int (b[4]) = {1, 2, 3, 4};
     #line 447
+    int (b[4]) = {1, 2, 3, 4};
+    #line 448
     (b[0]) = a[2];
 }
 
-#line 450
+#line 451
 void test1_test_sizeof(void) {
-    #line 451
-    int i = 0;
     #line 452
-    ullong n = sizeof(i);
+    int i = 0;
     #line 453
-    (n) = sizeof(int);
+    ullong n = sizeof(i);
     #line 454
     (n) = sizeof(int);
     #line 455
+    (n) = sizeof(int);
+    #line 456
     (n) = sizeof(int *);
 }
 
-#line 458
+#line 459
 void test1_test_cast(void) {
-    #line 459
-    int(*p) = 0;
     #line 460
+    int(*p) = 0;
+    #line 461
     uint64 a = 0;
     (a) = (uint64)(p);
     (p) = (int *)(a);
 }
 
-#line 467
+#line 468
 void test1_print_any(Any any) {
-    #line 468
+    #line 469
     switch (any.type) {
         case TYPEID(8, TYPE_INT, int): {
-            #line 470
+            #line 471
             (printf)("%d", *((const int *)(any.ptr)));
             break;
         }
         case TYPEID(14, TYPE_FLOAT, float): {
-            #line 472
+            #line 473
             (printf)("%f", *((const float *)(any.ptr)));
             break;
         }default: {
-            #line 474
+            #line 475
             (printf)("<unknown>");
             break;
         }
     }
-    #line 476
-    (printf)(": ");
     #line 477
+    (printf)(": ");
+    #line 478
     (test1_print_type)(any.type);
 }
 
-#line 490
+#line 491
 void test1_print_type(typeid type) {
-    #line 491
-    const TypeInfo (*typeinfo) = (get_typeinfo)(type);
     #line 492
+    const TypeInfo (*typeinfo) = (get_typeinfo)(type);
+    #line 493
     if (!(typeinfo)) {
-        #line 493
-        (test1_print_typeid)(type);
         #line 494
+        (test1_print_typeid)(type);
+        #line 495
         return;
     }
-    #line 496
+    #line 497
     switch (typeinfo->kind) {
         case TYPE_PTR: {
-            #line 498
-            (test1_print_type)(typeinfo->base);
             #line 499
+            (test1_print_type)(typeinfo->base);
+            #line 500
             (printf)("*");
             break;
         }
         case TYPE_CONST: {
-            #line 501
-            (test1_print_type)(typeinfo->base);
             #line 502
+            (test1_print_type)(typeinfo->base);
+            #line 503
             (printf)(" const");
             break;
         }
         case TYPE_ARRAY: {
-            #line 504
-            (test1_print_type)(typeinfo->base);
             #line 505
+            (test1_print_type)(typeinfo->base);
+            #line 506
             (printf)("[%d]", typeinfo->count);
             break;
         }default: {
-            #line 507
+            #line 508
             if (typeinfo->name) {
-                #line 508
+                #line 509
                 (printf)("%s", typeinfo->name);
             } else {
-                #line 510
+                #line 511
                 (test1_print_typeid)(type);
             }
             break;
@@ -1311,154 +1313,154 @@ void test1_print_type(typeid type) {
     }
 }
 
-#line 485
+#line 486
 void test1_print_typeid(typeid type) {
-    #line 486
-    int index = (typeid_index)(type);
     #line 487
+    int index = (typeid_index)(type);
+    #line 488
     (printf)("typeid(%d)", index);
 }
 
-#line 480
+#line 481
 void test1_println_any(Any any) {
-    #line 481
-    (test1_print_any)(any);
     #line 482
+    (test1_print_any)(any);
+    #line 483
     (printf)("\n");
 }
 
-#line 515
+#line 516
 void test1_println_type(typeid type) {
-    #line 516
-    (test1_print_type)(type);
     #line 517
+    (test1_print_type)(type);
+    #line 518
     (printf)("\n");
 }
 
-#line 520
+#line 521
 void test1_print_typeinfo(typeid type) {
-    #line 521
-    const TypeInfo (*typeinfo) = (get_typeinfo)(type);
     #line 522
+    const TypeInfo (*typeinfo) = (get_typeinfo)(type);
+    #line 523
     if (!(typeinfo)) {
-        #line 523
-        (test1_print_typeid)(type);
         #line 524
+        (test1_print_typeid)(type);
+        #line 525
         return;
     }
-    #line 526
-    (printf)("<");
     #line 527
-    (test1_print_type)(type);
+    (printf)("<");
     #line 528
-    (printf)(" size=%d align=%d", typeinfo->size, typeinfo->align);
+    (test1_print_type)(type);
     #line 529
+    (printf)(" size=%d align=%d", typeinfo->size, typeinfo->align);
+    #line 530
     switch (typeinfo->kind) {
         case TYPE_STRUCT:
         case TYPE_UNION: {
-            #line 532
-            (printf)(" %s={ ", ((typeinfo->kind) == (TYPE_STRUCT) ? "struct" : "union"));
             #line 533
+            (printf)(" %s={ ", ((typeinfo->kind) == (TYPE_STRUCT) ? "struct" : "union"));
+            #line 534
             for (int i = 0; (i) < (typeinfo->num_fields); (i)++) {
-                #line 534
-                TypeFieldInfo field = typeinfo->fields[i];
                 #line 535
-                (printf)("@offset(%d) %s: ", field.offset, field.name);
+                TypeFieldInfo field = typeinfo->fields[i];
                 #line 536
-                (test1_print_type)(field.type);
+                (printf)("@offset(%d) %s: ", field.offset, field.name);
                 #line 537
+                (test1_print_type)(field.type);
+                #line 538
                 (printf)("; ");
             }
-            #line 539
+            #line 540
             (printf)("}");
             break;
         }
     }
-    #line 541
+    #line 542
     (printf)(">");
 }
 
-#line 544
+#line 545
 void test1_println_typeinfo(typeid type) {
-    #line 545
-    (test1_print_typeinfo)(type);
     #line 546
+    (test1_print_typeinfo)(type);
+    #line 547
     (printf)("\n");
 }
 
-#line 549
+#line 550
 void test1_test_typeinfo(void) {
-    #line 550
-    int i = 42;
     #line 551
-    float f = 3.14f;
+    int i = 42;
     #line 552
+    float f = 3.14f;
+    #line 553
     void (*p) = NULL;
     (test1_println_any)((Any){&(i), TYPEID(8, TYPE_INT, int)});
-    #line 555
-    (test1_println_any)((Any){&(f), TYPEID(14, TYPE_FLOAT, float)});
     #line 556
+    (test1_println_any)((Any){&(f), TYPEID(14, TYPE_FLOAT, float)});
+    #line 557
     (test1_println_any)((Any){&(p), TYPEID(16, TYPE_PTR, void *)});
     (test1_println_type)(TYPEID(8, TYPE_INT, int));
-    #line 559
-    (test1_println_type)(TYPEID(68, TYPE_PTR, const int *));
     #line 560
-    (test1_println_type)(TYPEID(82, TYPE_ARRAY, const int * [42]));
+    (test1_println_type)(TYPEID(68, TYPE_PTR, const int *));
     #line 561
+    (test1_println_type)(TYPEID(82, TYPE_ARRAY, const int * [42]));
+    #line 562
     (test1_println_type)(TYPEID(48, TYPE_STRUCT, test1_UartCtrl));
     (test1_println_typeinfo)(TYPEID(8, TYPE_INT, int));
-    #line 564
-    (test1_println_typeinfo)(TYPEID(48, TYPE_STRUCT, test1_UartCtrl));
     #line 565
-    (test1_println_typeinfo)(TYPEID(83, TYPE_PTR, test1_IntOrPtr *));
+    (test1_println_typeinfo)(TYPEID(48, TYPE_STRUCT, test1_UartCtrl));
     #line 566
+    (test1_println_typeinfo)(TYPEID(83, TYPE_PTR, test1_IntOrPtr *));
+    #line 567
     (test1_println_typeinfo)(TYPEID(52, TYPE_UNION, test1_IntOrPtr));
 }
 
-#line 575
+#line 576
 void test1_test_compound_literals(void) {
-    #line 576
-    int (a[3]) = {1, 2, 3};
     #line 577
-    int i = 42;
+    int (a[3]) = {1, 2, 3};
     #line 578
-    const Any (x) = {&(i), TYPEID(8, TYPE_INT, int)};
+    int i = 42;
     #line 579
-    Any y = {&(i), TYPEID(8, TYPE_INT, int)};
+    const Any (x) = {&(i), TYPEID(8, TYPE_INT, int)};
     #line 580
+    Any y = {&(i), TYPEID(8, TYPE_INT, int)};
+    #line 581
     test1_Ints v = {.num_ints = 3, .int_ptr = (int []){1, 2, 3}, .int_arr = {1, 2, 3}};
-    #line 585
+    #line 586
     test1_Ints (ints_of_ints[2]) = {{.num_ints = 3, .int_arr = {1, 2, 3}}, {.num_ints = 2, .int_ptr = (int [2]){-(1), -(2)}}};
 }
 
 void test1_test_complete(void) {
-    #line 592
+    #line 593
     int x = 0;
-    #line 595
+    #line 596
     int y = 0;
     if ((x) == (0)) {
-        #line 598
+        #line 599
         (y) = 1;
     } else if ((x) == (1)) {
-        #line 600
+        #line 601
         (y) = 2;
     } else {
-        #line 596
+        #line 597
         assert("@complete if/elseif chain failed to handle case" && 0);
     }
-    #line 603
+    #line 604
     (x) = 1;
     assert((x) >= (0));
     (x) = 0;
-    #line 611
+    #line 612
     switch (x) {
         case 0: {
-            #line 613
+            #line 614
             (y) = 3;
             break;
         }
         case 1: {
-            #line 615
+            #line 616
             (y) = 4;
             break;
         }default:
@@ -1467,123 +1469,123 @@ void test1_test_complete(void) {
     }
 }
 
-#line 619
+#line 620
 void test1_test_alignof(void) {
-    #line 620
-    int i = 42;
     #line 621
-    ullong n1 = alignof(int);
+    int i = 42;
     #line 622
-    ullong n2 = alignof(int);
+    ullong n1 = alignof(int);
     #line 623
-    ullong n3 = alignof(ullong);
+    ullong n2 = alignof(int);
     #line 624
+    ullong n3 = alignof(ullong);
+    #line 625
     ullong n4 = alignof(int *);
 }
 
-#line 634
+#line 635
 void test1_test_offsetof(void) {
-    #line 635
+    #line 636
     ullong n = offsetof(test1_BufHdr, buf);
 }
 
 test1_Thing test1_thing;
 
 test1_Thing * test1_returns_ptr(void) {
-    #line 646
+    #line 647
     return &(test1_thing);
 }
 
-#line 649
+#line 650
 const test1_Thing * test1_returns_ptr_to_const(void) {
-    #line 650
+    #line 651
     return &(test1_thing);
 }
 
-#line 653
+#line 654
 void test1_test_lvalue(void) {
-    #line 654
+    #line 655
     ((test1_returns_ptr)()->a) = 5;
     const test1_Thing (*p) = (test1_returns_ptr_to_const)();
 }
 
-#line 660
+#line 661
 void test1_test_if(void) {
-    #line 661
+    #line 662
     if (1) {
     }
     {
-        #line 665
+        #line 666
         int x = 42;
         if (x) {
         }
     }
-    #line 667
+    #line 668
     {
-        #line 667
+        #line 668
         int x = 42;
         if ((x) >= (0)) {
         }
     }
-    #line 669
+    #line 670
     {
-        #line 669
+        #line 670
         int x = 42;
         if ((x) >= (0)) {
         }
     }
 }
 
-#line 673
+#line 674
 int main(int argc, const char *(*argv)) {
-    #line 674
+    #line 675
     if ((argv) == (0)) {
-        #line 675
+        #line 676
         (printf)("argv is null\n");
     }
-    #line 677
-    (test1_test_packages)();
     #line 678
-    (test1_test_if)();
+    (test1_test_packages)();
     #line 679
-    (test1_test_modify)();
+    (test1_test_if)();
     #line 680
-    (test1_test_lvalue)();
+    (test1_test_modify)();
     #line 681
-    (test1_test_alignof)();
+    (test1_test_lvalue)();
     #line 682
-    (test1_test_offsetof)();
+    (test1_test_alignof)();
     #line 683
-    (test1_test_complete)();
+    (test1_test_offsetof)();
     #line 684
-    (test1_test_compound_literals)();
+    (test1_test_complete)();
     #line 685
-    (test1_test_loops)();
+    (test1_test_compound_literals)();
     #line 686
-    (test1_test_sizeof)();
+    (test1_test_loops)();
     #line 687
-    (test1_test_assign)();
+    (test1_test_sizeof)();
     #line 688
-    (test1_test_enum)();
+    (test1_test_assign)();
     #line 689
-    (test1_test_arrays)();
+    (test1_test_enum)();
     #line 690
-    (test1_test_cast)();
+    (test1_test_arrays)();
     #line 691
-    (test1_test_init)();
+    (test1_test_cast)();
     #line 692
-    (test1_test_lits)();
+    (test1_test_init)();
     #line 693
-    (test1_test_const)();
+    (test1_test_lits)();
     #line 694
-    (test1_test_bool)();
+    (test1_test_const)();
     #line 695
-    (test1_test_ops)();
+    (test1_test_bool)();
     #line 696
-    (test1_test_typeinfo)();
+    (test1_test_ops)();
     #line 697
-    (getchar)();
+    (test1_test_typeinfo)();
     #line 698
+    (getchar)();
+    #line 699
     return 0;
 }
 
