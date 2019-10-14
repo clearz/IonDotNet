@@ -223,7 +223,8 @@ namespace IonLang
         }
 
         private static char* read_file(string path) {
-            var buf = File.ReadAllText(path).ToPtr();
+            var text = File.ReadAllText(path);
+            var buf = text.ToPtr();
             return buf;
         }
 
@@ -242,12 +243,6 @@ namespace IonLang
             if (ptr != path && ptr[-1] == '/') {
                 ptr[-1] = '\0';
             }
-        }
-
-        void path_copy(char* path, char* src) {
-
-            strcpy(path, src);
-            path[MAX_PATH - 1] = '\0';
         }
 
         void path_join(char* path, char* src) {
@@ -485,7 +480,6 @@ namespace IonLang
             return c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\v';
         }
 
-
         public static bool islower(char c) {
             return c >= 'a' && c <= 'z';
         }
@@ -510,11 +504,6 @@ namespace IonLang
             while ((*c1++ = *c2++) != 0);
         }
 
-        public static int copy_to_pos(char* c1, char* c2, int n = 0) {
-            while ((c1[n] = *c2++) != 0)
-                n++;
-            return n;
-        }
         public static int strcmp(char* c1, char* c2) {
             while (*c1++ == *c2++)
                 if (*c1 == '\0')
@@ -554,6 +543,12 @@ namespace IonLang
         }
 
         #endregion
+
+        public static int copy_to_pos(char* c1, char* c2, int n = 0) {
+            while ((c1[n] = *c2++) != 0)
+                n++;
+            return n;
+        }
 
         internal unsafe struct Map
         {

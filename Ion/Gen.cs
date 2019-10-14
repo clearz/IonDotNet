@@ -1266,7 +1266,7 @@ namespace IonLang
                             fatal_error(decl->pos, "#foreign's source argument must be a quoted string");
                         }
                         char* source_path = stackalloc char[MAX_PATH];
-                        path_copy(source_path, package->full_path);
+                        strcpy(source_path, package->full_path);
                         path_join(source_path, expr->str_lit.val);
                         path_absolute(source_path);
                         genlnf("#include ".ToPtr());

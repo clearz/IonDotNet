@@ -20,7 +20,7 @@ namespace IonLang
             if (string.IsNullOrEmpty(ionhome_var)) {
                 error_here("Set the environment variable IONHOME to the Ion home directory (where system_packages is located)\n");
             }
-            string sys_path = ionhome_var + "\\system_packages";
+            string sys_path = ionhome_var + "/system_packages";
             add_package_search_path(sys_path);
             add_package_search_path(ionhome_var);
             string ionpath_var = Environment.GetEnvironmentVariable("IONPATH");
@@ -34,13 +34,20 @@ namespace IonLang
             lex_init();
             init_package_search_paths();
             init_keywords();
-            init_types();
+            init_builtin_types();
             decl_note_names.map_put(declare_note_name, (void*)1);
         }
 
         private void ion_test(string pkg) {
-            Environment.SetEnvironmentVariable("IONHOME", @"..\..\..\..", EnvironmentVariableTarget.Process);
-            var b = ion_main(new []{pkg, "-o", @"..\..\..\..\..\TestCompiler\test.c"});
+#if X64
+            string BACK_PATH = "../../../.."; // bin/x64/debug
+#else
+            string BACK_PATH = @"../../.."; // bin/debug
+#endif
+            var dir = new DirectoryInfo(BACK_PATH);
+
+            Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
+            var b = ion_main(new []{pkg, "-o", @$"{dir.Parent.FullName}/TestCompiler/test.c" });
             assert(b == 0);
         }
 
@@ -67,7 +74,7 @@ namespace IonLang
                 error_here("Failed to compile package '{0}'\n", package_name);
             }
             char *main_name = _I("main");
-            Sym *main_sym = get_package_sym(main_package , main_name);
+            Sym *main_sym = get_package_sym(main_package, main_name);
             if (main_sym == null) {
                 error_here("No 'main' entry point defined in package '{0}'\n", package_name);
             }

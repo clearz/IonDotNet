@@ -2584,26 +2584,27 @@ namespace IonLang
                 }
             }
         }
+
         bool is_package_dir(char* search_path, char* package_path) {
             char* path = stackalloc char[MAX_PATH];
-            path_copy(path, search_path);
+            strcpy(path, search_path);
             path_join(path, package_path);
             var str = new string(path);
             if (!Directory.Exists(str))
                 return false;
 
-            var dirs = Directory.GetFiles(str, "*.ion");
+            var dirs = Directory.EnumerateFiles(str, "*.ion");
             
             return dirs.Any();
         }
 
-        const int MAX_PATH = 1024;
+        const int MAX_PATH = 512;
 
         bool copy_package_full_path(char* dest, char* package_path) {
             for (int i = 0; i < package_search_paths->count; i++) {
                 char* c = package_search_paths->Get<char>(i);
                 if (is_package_dir(c, package_path)) {
-                    path_copy(dest, c);
+                    strcpy(dest, c);
                     path_join(dest, package_path);
                     return true;
                 }
@@ -2617,15 +2618,14 @@ namespace IonLang
                 package = (Package*)xcalloc(1, sizeof(Package));
                 package->path = package_path;
                 printf("Importing {0}\n", package_path);
-                var full_path = stackalloc char[MAX_PATH];
+                var full_path = stackalloc char[MAX_PATH]; //(char*)xcalloc(MAX_PATH, sizeof(char));
                 if (!copy_package_full_path(full_path, package_path)) {
                     return null;
                 }
-                int len = strlen(full_path);
-                full_path[len] = '/';
-                package->full_path = xmalloc<char>(len + 1);
-                package->syms = PtrBuffer.Create();
+                path_normalize(full_path);
+                package->full_path = (char*)xcalloc(strlen(full_path), sizeof(char));
                 strcpy(package->full_path, full_path);
+                package->syms = PtrBuffer.Create();
                 add_package(package);
                 compile_package(package);
             }
@@ -2683,7 +2683,8 @@ namespace IonLang
             }
         }
         bool parse_package(Package* package) {
-            PtrBuffer* decls = PtrBuffer.GetPooledBuffer();
+            PtrBuffer* decls = PtrBuffer.Create();
+
             foreach (var f in Directory.EnumerateFiles(_S(package->full_path), "*.ion")) {
                 char *code = read_file(f);
                 init_stream(code, f.ToPtr());

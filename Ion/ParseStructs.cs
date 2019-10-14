@@ -3,7 +3,6 @@
 namespace IonLang
 {
 
-    [StructLayout(LayoutKind.Sequential, Size = 24)]
     internal unsafe struct SrcPos
     {
         public char* name;
@@ -17,6 +16,7 @@ namespace IonLang
         public int num_stmts;
         public SrcPos pos;
     }
+
     internal struct StmtCtx
     {
         public bool is_break_legal;
@@ -28,10 +28,10 @@ namespace IonLang
     {
         [FieldOffset(0)] public TypespecKind kind;
         [FieldOffset(4)] public SrcPos pos;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* @base;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public char* name;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public FuncTypespec func;
-        [FieldOffset(20 + 2 * Ion.PTR_SIZE)] public Expr *num_elems;
+        [FieldOffset(28)] public Typespec* @base;
+        [FieldOffset(28 + Ion.PTR_SIZE)] public char* name;
+        [FieldOffset(28 + Ion.PTR_SIZE)] public FuncTypespec func;
+        [FieldOffset(28 + Ion.PTR_SIZE)] public Expr *num_elems;
 
 
         internal struct FuncTypespec
@@ -85,17 +85,17 @@ namespace IonLang
     {
         [FieldOffset(0)] public DeclKind kind;
         [FieldOffset(4)] public char* name;
-        [FieldOffset(4 + Ion.PTR_SIZE)]public bool is_incomplete;
-        [FieldOffset(8 + Ion.PTR_SIZE)] public SrcPos pos;
-        [FieldOffset(24 + 2 * Ion.PTR_SIZE)] public Notes notes;
-        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public Note note;
-        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public ImportDecl import;
-        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public EnumDecl enum_decl;
-        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public AggregateDecl aggregate;
-        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public FuncDecl func;
-        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public TypedefDecl typedef_decl;
-        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public VarDecl var;
-        [FieldOffset(40 + 2 * Ion.PTR_SIZE)] public ConstDecl const_decl;
+        [FieldOffset(4  + Ion.PTR_SIZE)] public bool is_incomplete;
+        [FieldOffset(8  + Ion.PTR_SIZE)] public SrcPos pos;
+        [FieldOffset(32 + Ion.PTR_SIZE)] public Notes notes;
+        [FieldOffset(48 + Ion.PTR_SIZE)] public Note note;
+        [FieldOffset(48 + Ion.PTR_SIZE)] public ImportDecl import;
+        [FieldOffset(48 + Ion.PTR_SIZE)] public EnumDecl enum_decl;
+        [FieldOffset(48 + Ion.PTR_SIZE)] public AggregateDecl aggregate;
+        [FieldOffset(48 + Ion.PTR_SIZE)] public FuncDecl func;
+        [FieldOffset(48 + Ion.PTR_SIZE)] public TypedefDecl typedef_decl;
+        [FieldOffset(48 + Ion.PTR_SIZE)] public VarDecl var;
+        [FieldOffset(48 + Ion.PTR_SIZE)] public ConstDecl const_decl;
 
 
         internal struct FuncDecl
@@ -163,7 +163,7 @@ namespace IonLang
         public int num_args;
     }
 
-    //[StructLayout(LayoutKind.Sequential, Size=16)]
+    [StructLayout(LayoutKind.Sequential, Size=16)]
     unsafe struct Notes
     {
         public Note *notes;
@@ -182,9 +182,9 @@ namespace IonLang
     {
         [FieldOffset(0)] public CompoundFieldKind kind;
         [FieldOffset(4)] public SrcPos pos;
-        [FieldOffset(20)] public Expr* init;
-        [FieldOffset(Ion.PTR_SIZE + 20)] public char* name;
-        [FieldOffset(Ion.PTR_SIZE + 20)] public Expr* index;
+        [FieldOffset(28)] public Expr* init;
+        [FieldOffset(Ion.PTR_SIZE + 28)] public char* name;
+        [FieldOffset(Ion.PTR_SIZE + 28)] public Expr* index;
     }
 
 
@@ -227,7 +227,6 @@ namespace IonLang
             public TokenSuffix suffix;
         }
 
-
         internal struct _float_lit
         {
             public double val;
@@ -253,12 +252,12 @@ namespace IonLang
             public int num_fields;
         }
 
+        [StructLayout(LayoutKind.Sequential, Size = 8)]
         internal struct Paren
         {
             public Expr *expr;
         }
     
-
         internal struct CastExpr
         {
             public Typespec* type;
@@ -333,17 +332,17 @@ namespace IonLang
     {
         [FieldOffset(0)] public StmtKind kind;
         [FieldOffset(4)] public SrcPos pos;
-        [FieldOffset(20)] public Notes notes;
-        [FieldOffset(36)] public IfStmt if_stmt;
-        [FieldOffset(36)] public Note note;
-        [FieldOffset(36)] public WhileStmt while_stmt;
-        [FieldOffset(36)] public ForStmt for_stmt;
-        [FieldOffset(36)] public SwitchStmt switch_stmt;
-        [FieldOffset(36)] public StmtList block;
-        [FieldOffset(36)] public AssignStmt assign;
-        [FieldOffset(36)] public InitStmt init;
-        [FieldOffset(36)] public Expr* expr;
-        [FieldOffset(36)] public Decl* decl;
+        [FieldOffset(28)] public Notes notes;
+        [FieldOffset(44)] public IfStmt if_stmt;
+        [FieldOffset(44)] public Note note;
+        [FieldOffset(44)] public WhileStmt while_stmt;
+        [FieldOffset(44)] public ForStmt for_stmt;
+        [FieldOffset(44)] public SwitchStmt switch_stmt;
+        [FieldOffset(44)] public StmtList block;
+        [FieldOffset(44)] public AssignStmt assign;
+        [FieldOffset(44)] public InitStmt init;
+        [FieldOffset(44)] public Expr* expr;
+        [FieldOffset(44)] public Decl* decl;
 
 
         internal struct IfStmt

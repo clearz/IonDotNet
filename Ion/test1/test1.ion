@@ -1,6 +1,5 @@
-import libc {printf}
 import .subtest1 {subtest1_func1 = func1}
-import libc {gc = getchar}
+import libc {gc = getchar, printf}
 
 #static_assert('\xFF' == 255)
 
@@ -87,7 +86,7 @@ func test_arrays() {
     a: int[] = {1, 2, 3};
     // a = a;
     f10(a);
-	b := a;
+    b := a;
 }
 
 func test_loops() {
@@ -671,6 +670,10 @@ func test_if() {
     }
 }
 
+func test_reachable() {
+  //  bogus_func();
+}
+
 func main(argc: int, argv: char const**): int {
     if (argv == 0) {
         printf("argv is null\n");
@@ -695,6 +698,7 @@ func main(argc: int, argv: char const**): int {
     test_bool();
     test_ops();
     test_typeinfo();
+    test_reachable();
     gc();
     return 0;
 }

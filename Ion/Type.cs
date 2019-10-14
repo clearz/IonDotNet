@@ -207,11 +207,7 @@ namespace IonLang
             }
         }
 
-        static bool types_inited;
-        void init_types() {
-            if (!types_inited) {
-                return;
-            }
+        void init_builtin_types() {
             register_typeid(type_void);
             register_typeid(type_bool);
             register_typeid(type_char);
@@ -227,7 +223,6 @@ namespace IonLang
             register_typeid(type_ullong);
             register_typeid(type_float);
             register_typeid(type_double);
-            types_inited = true;
         }
 
         private static Type* basic_type_alloc(TypeKind kind, long size = 0, long align = 0, uint typeid = 0) {

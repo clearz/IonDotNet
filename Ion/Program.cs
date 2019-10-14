@@ -1,4 +1,7 @@
-﻿namespace IonLang
+﻿using System;
+using System.Runtime.CompilerServices;
+
+namespace IonLang
 {
     partial class Ion
     {
@@ -7,7 +10,10 @@
             if (args.Length > 0)
                 ion.ion_main(args);
             else {
-                Timer.Time(() => ion.ion_test("test1"));
+                try {
+                    ion.ion_test("test1");
+                }
+                catch (Exception e) { Console.WriteLine(e); }
             }
             return 0;
         }

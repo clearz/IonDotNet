@@ -367,7 +367,7 @@ namespace IonLang
                     stream++;
 
                 if (!char.IsDigit(*stream))
-                    error_here("Expected digit after float literal exponent, found '%c'.", *stream);
+                    error_here("Expected digit after float literal exponent, found '{0}'.", *stream);
 
                 while (char.IsDigit(*stream))
                     stream++;
@@ -930,6 +930,7 @@ repeat:
 
         private void init_stream(char* str, char* name = null) {
             token.pos.name = name != null ? name : "<string>".ToPtr();
+            path_normalize(token.pos.name);
             token.pos.line = token.pos.col = 1;
             line_start = stream = str;
             next_token();
