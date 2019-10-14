@@ -1888,43 +1888,34 @@ namespace IonLang
             }
         }
         private Operand resolve_expr_unary(Expr* expr) {
-            assert(expr->kind == EXPR_UNARY);
-            if (expr->unary.op == TOKEN_AND) {
-                Operand operand = resolve_expr(expr->unary.expr);
-                if (!operand.is_lvalue) {
-                    fatal_error(expr->pos, "Cannot take address of non-lvalue");
-                }
-                return operand_rvalue(type_ptr(operand.type));
+            Operand operand = resolve_expr_rvalue(expr->unary.expr);
+            Type *type = operand.type;
+            switch (expr->unary.op) {
+                case TOKEN_MUL:
+                    if (!is_ptr_type(type)) {
+                        fatal_error(expr->pos, "Cannot deref non-ptr type");
+                    }
+                    return operand_lvalue(type->@base);
+                case TOKEN_ADD:
+                case TOKEN_SUB:
+                    if (!is_arithmetic_type(type)) {
+                        fatal_error(expr->pos, "Can only use unary {0} with arithmetic types", token_kind_name(expr->unary.op));
+                    }
+                    return resolve_unary_op(expr->unary.op, operand);
+                case TOKEN_NEG:
+                    if (!is_integer_type(type)) {
+                        fatal_error(expr->pos, "Can only use ~ with integer types");
+                    }
+                    return resolve_unary_op(expr->unary.op, operand);
+                case TOKEN_NOT:
+                    if (!is_scalar_type(type)) {
+                        fatal_error(expr->pos, " Can only use ! with scalar types");
+                    }
+                    return resolve_unary_op(expr->unary.op, operand);
             }
-            else {
-                Operand operand = resolve_expr_rvalue(expr->unary.expr);
-                Type *type = operand.type;
-                switch (expr->unary.op) {
-                    case TOKEN_MUL:
-                        if (type->kind != TYPE_PTR) {
-                            fatal_error(expr->pos, "Cannot deref non-ptr type");
-                        }
-                        return operand_lvalue(type->@base);
-                    case TOKEN_ADD:
-                    case TOKEN_SUB:
-                        if (!is_arithmetic_type(type)) {
-                            fatal_error(expr->pos, "Can only use unary {0} with arithmetic types", token_kind_name(expr->unary.op));
-                        }
-                        return resolve_unary_op(expr->unary.op, operand);
-                    case TOKEN_NEG:
-                        if (!is_integer_type(type)) {
-                            fatal_error(expr->pos, "Can only use ~ with integer types");
-                        }
-                        return resolve_unary_op(expr->unary.op, operand);
-                    case TOKEN_NOT:
-                        if (!is_scalar_type(type)) {
-                            fatal_error(expr->pos, " Can only use ! with scalar types");
-                        }
-                        return resolve_unary_op(expr->unary.op, operand);
-                }
-                return default;
-            }
+            return default;
         }
+        
         Operand resolve_binary_op(TokenKind op, Operand left, Operand right) {
             if (left.is_const && right.is_const) {
                 return operand_const(left.type, eval_binary_op(op, left.type, left.val, right.val));
@@ -2437,7 +2428,22 @@ namespace IonLang
                     result = resolve_expr_compound(expr, expected_type);
                     break;
                 case EXPR_UNARY:
-                    result = resolve_expr_unary(expr);
+                    if (expr->unary.op == TOKEN_AND) {
+                        Operand operand;
+                        if (expected_type != null && is_ptr_type(expected_type)) {
+                            operand = resolve_expected_expr(expr->unary.expr, expected_type->@base);
+                        }
+                        else {
+                            operand = resolve_expr(expr->unary.expr);
+                        }
+                        if (!operand.is_lvalue) {
+                            fatal_error(expr->pos, "Cannot take address of non-lvalue");
+                        }
+                        result = operand_rvalue(type_ptr(operand.type));
+                    }
+                    else {
+                        result = resolve_expr_unary(expr);
+                    }
                     break;
                 case EXPR_BINARY:
                     result = resolve_expr_binary(expr);
@@ -2573,7 +2579,8 @@ namespace IonLang
                         decl_note_names.map_put(arg->name, (void*)1);
                     }
                     else if (decl->note.name == static_assert_name) {
-      //                resolve_static_assert(decl->note);
+                        // TODO: decide how to handle top-level static asserts wrt laziness/tree shaking
+                        // resolve_static_assert(decl->note);
                     }
                 }
                 else if (decl->kind == DECL_IMPORT) {
