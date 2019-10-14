@@ -2728,8 +2728,10 @@ namespace IonLang
                 var sym = reachable_syms->Get<Sym>(i);
                 finalize_sym(sym);
                 if (cnt != reachable_syms->count) {
-                    for (int k = cnt; k < reachable_syms->count; k++)
-                        printf(" {0}", reachable_syms->Get<Sym>(i)->name);
+                    for (int k = cnt; k < reachable_syms->count; k++) {
+                        var s = reachable_syms->Get<Sym>(k);
+                        printf("\t{0}/{1}\n", _S(s->package->path), _S(s->name));
+                    }
                     cnt = reachable_syms->count;
                 }
             }
