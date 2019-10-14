@@ -2723,19 +2723,22 @@ namespace IonLang
 
         void finalize_reachable_syms() {
             printf("Finalizing reachable symbols\n");
-            var cnt = reachable_syms->count;
-            for (int i = 0; i < cnt; i++) {
+            int prev_num_reachable = 0;
+            var num_reachable = reachable_syms->count;
+            for (int i = 0; i < num_reachable; i++) {
                 var sym = reachable_syms->Get<Sym>(i);
                 finalize_sym(sym);
-                if (cnt != reachable_syms->count) {
-                    for (int k = cnt; k < reachable_syms->count; k++) {
+                num_reachable = reachable_syms->count;
+                if (prev_num_reachable != num_reachable) {
+                    printf("New reachable symbols:\n");
+                    for (int k = prev_num_reachable; k < num_reachable; k++) {
                         var s = reachable_syms->Get<Sym>(k);
                         printf("\t{0}/{1}\n", _S(s->package->path), _S(s->name));
                     }
-                    cnt = reachable_syms->count;
+                    printf("\n");
+                    prev_num_reachable = num_reachable;
                 }
             }
-            Console.WriteLine();
         }
 
         private void init_builtin_syms() {
