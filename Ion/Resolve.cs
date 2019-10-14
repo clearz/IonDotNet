@@ -2610,6 +2610,7 @@ namespace IonLang
             }
             return false;
         }
+
         Package* import_package(char* package_path) {
             Package *package = package_map.map_get<Package>(package_path);
             if (package == null) {
@@ -2658,14 +2659,14 @@ namespace IonLang
                 if (decl->kind == DECL_IMPORT) {
                     char *path_buf = stackalloc char[MAX_PATH];
                     if (decl->import.is_relative) {
-                        n = strncpy(path_buf, package->path);
+                        n = copy_to_pos(path_buf, package->path);
                         *(path_buf + n++) = '/';
                     }
 
                     for (int k = 0; k < decl->import.num_names; k++) {
                         if (k > 0)
                             *(path_buf + n++) = '/';
-                        n = strncpy(path_buf, decl->import.names[k], n);
+                        n = copy_to_pos(path_buf, decl->import.names[k], n);
                     }
 
                     Package *imported_package = import_package(_I(path_buf));

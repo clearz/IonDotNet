@@ -244,14 +244,10 @@ namespace IonLang
             }
         }
 
-        bool path_copy(char* path, char* src) {
+        void path_copy(char* path, char* src) {
 
-            long src_len = strlen(src);
-            long copy_len = CLAMP_MAX(src_len, MAX_PATH - 1);
-            memcpy(path, src, (int)copy_len<<1);
-            path[copy_len] = '\0';
-            path_normalize(path);
-            return src_len < MAX_PATH;
+            strcpy(path, src);
+            path[MAX_PATH - 1] = '\0';
         }
 
         void path_join(char* path, char* src) {
@@ -514,7 +510,7 @@ namespace IonLang
             while ((*c1++ = *c2++) != 0);
         }
 
-        public static int strncpy(char* c1, char* c2, int n = 0) {
+        public static int copy_to_pos(char* c1, char* c2, int n = 0) {
             while ((c1[n] = *c2++) != 0)
                 n++;
             return n;
