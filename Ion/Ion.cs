@@ -20,9 +20,10 @@ namespace IonLang
             if (string.IsNullOrEmpty(ionhome_var)) {
                 error_here("Set the environment variable IONHOME to the Ion home directory (where system_packages is located)\n");
             }
-            string sys_path = ionhome_var + "/system_packages";
-            add_package_search_path(sys_path);
+            string path = ionhome_var + "/system_packages";
+            add_package_search_path(path);
             add_package_search_path(ionhome_var);
+            add_package_search_path(".");
             string ionpath_var = Environment.GetEnvironmentVariable("IONPATH");
             if (!string.IsNullOrEmpty(ionpath_var)) {
                 foreach (var d in ionpath_var.Split(';'))

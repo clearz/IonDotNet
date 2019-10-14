@@ -884,11 +884,16 @@ namespace IonLang
                         else {
                             typespec_to_cdecl(stmt->init.type, stmt->init.name);
                         }
+                        c_write(' ');
+                        c_write('=');
+                        c_write(' ');
                         if (stmt->init.expr != null) {
-                            c_write(' ');
-                            c_write('=');
-                            c_write(' ');
                             gen_expr(stmt->init.expr);
+                        }
+                        else {
+                            c_write('{');
+                            c_write('0');
+                            c_write('}');
                         }
                     }
                     else {
