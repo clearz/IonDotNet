@@ -1399,7 +1399,7 @@ namespace IonLang
                     result = resolve_expr_binary_op(binary_op, ref assign_op_name, stmt->pos, left, right);
                 }
                 else {
-                    fatal_error(stmt->pos, "Invalid operand types for %s", assign_op_name);
+                    fatal_error(stmt->pos, "Invalid operand types for {0}", assign_op_name);
                 }
             }
             else {
@@ -1908,7 +1908,7 @@ namespace IonLang
                     case TOKEN_ADD:
                     case TOKEN_SUB:
                         if (!is_arithmetic_type(type)) {
-                            fatal_error(expr->pos, "Can only use unary %s with arithmetic types", token_kind_name(expr->unary.op));
+                            fatal_error(expr->pos, "Can only use unary {0} with arithmetic types", token_kind_name(expr->unary.op));
                         }
                         return resolve_unary_op(expr->unary.op, operand);
                     case TOKEN_NEG:
@@ -2010,7 +2010,7 @@ namespace IonLang
                         return result;
                     }
                     else {
-                        fatal_error(pos, "Operands of %s must both have integer type", op_name);
+                        fatal_error(pos, "Operands of {0} must both have integer type", op_name);
                     }
                     break;
                 case TOKEN_LT:
@@ -2034,7 +2034,7 @@ namespace IonLang
                         return operand_rvalue(type_int);
                     }
                     else {
-                        fatal_error(pos, "Operands of %s must be arithmetic types or compatible pointer types", op_name);
+                        fatal_error(pos, "Operands of {0} must be arithmetic types or compatible pointer types", op_name);
                     }
                     break;
                 case TOKEN_AND:
@@ -2044,7 +2044,7 @@ namespace IonLang
                         return resolve_binary_arithmetic_op(op, left, right);
                     }
                     else {
-                        fatal_error(pos, "Operands of %s must have arithmetic types", op_name);
+                        fatal_error(pos, "Operands of {0} must have arithmetic types", op_name);
                     }
                     break;
                 case TOKEN_AND_AND:
@@ -2068,7 +2068,7 @@ namespace IonLang
                         }
                     }
                     else {
-                        fatal_error(pos, "Operands of %s must have scalar types", op_name);
+                        fatal_error(pos, "Operands of {0} must have scalar types", op_name);
                     }
                     break;
                 default:
@@ -2394,7 +2394,7 @@ namespace IonLang
                 fatal_error(expr->pos, "Cannot modify non-modifiable type");
             }
             if (!(is_integer_type(type) || type->kind == TYPE_PTR)) {
-                fatal_error(expr->pos, "%s only valid for integer and pointer types", token_kind_name(expr->modify.op));
+                fatal_error(expr->pos, "{0} only valid for integer and pointer types", token_kind_name(expr->modify.op));
             }
             return operand_rvalue(type);
         }
@@ -2516,7 +2516,7 @@ namespace IonLang
                     }
                     int field = aggregate_field_index(type, expr->offsetof_field.name);
                     if (field < 0) {
-                        fatal_error(expr->pos, "No field '%s' in type", _S(expr->offsetof_field.name));
+                        fatal_error(expr->pos, "No field '{0}' in type", _S(expr->offsetof_field.name));
                     }
                     result = operand_const(type_usize, new Val { ll = type->aggregate.fields[field].offset });
                     break;
@@ -2716,8 +2716,11 @@ namespace IonLang
             Package *old_package = enter_package(package);
             for (int i = 0; i < package->syms->count; i++) {
                 var sym = package->syms->Get<Sym>(i);
-                resolve_sym(sym);
-               // finalize_sym(sym);
+                if (sym->package == package) {
+                    resolve_sym(sym);
+                }
+                else
+                    i = i;
             }
             leave_package(old_package);
         }
@@ -2730,7 +2733,7 @@ namespace IonLang
                 var sym = reachable_syms->Get<Sym>(i);
                 finalize_sym(sym);
                 num_reachable = reachable_syms->count;
-                if (prev_num_reachable != num_reachable) {
+                if (i == num_reachable - 1) {
                     printf("New reachable symbols:\n");
                     for (int k = prev_num_reachable; k < num_reachable; k++) {
                         var s = reachable_syms->Get<Sym>(k);
@@ -2738,6 +2741,7 @@ namespace IonLang
                     }
                     printf("\n");
                     prev_num_reachable = num_reachable;
+                    num_reachable = reachable_syms->count;
                 }
             }
         }

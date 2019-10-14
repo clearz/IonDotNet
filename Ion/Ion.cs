@@ -77,7 +77,7 @@ namespace IonLang
             resolve_package_syms(main_package);
 
             finalize_reachable_syms();
-            printf("Compilation succeeded.\n");
+            printf("Compiled {0} symbols in {1} packages\n", reachable_syms->count, package_list->count);
 
             string c_path;
             if (args.Any(s => s == "-o")) {
