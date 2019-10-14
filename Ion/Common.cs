@@ -232,27 +232,6 @@ namespace IonLang
             return true;
         }
 
-        private static char* get_ext(char* path) {
-            for (var ptr = path + strlen(path); ptr != path; ptr--)
-                if (ptr[-1] == '.')
-                    return ptr;
-            return null;
-        }
-
-        private static string replace_ext(char* path, char* new_ext) {
-            var ext = get_ext(path);
-            if (ext == null)
-                return null;
-            var base_len = (int) (ext - path);
-            var new_ext_len = strlen(new_ext);
-            var new_path_len = base_len + new_ext_len;
-            var new_path = xmalloc<char>(new_path_len + 1);
-            memcpy(new_path, path, base_len * 2);
-            memcpy(new_path + base_len, new_ext, new_ext_len * 2);
-            new_path[new_path_len] = '\0';
-            return _S(new_path);
-        }
-
         void path_normalize(char* path) {
             char* ptr;
             for (ptr = path; *ptr != 0; ptr++) {

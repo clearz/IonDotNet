@@ -91,6 +91,7 @@ namespace IonLang
             else {
                 c_path = $"out_{package_name}.c";
             }
+            printf("Generating {0}\n", c_path);
             gen_all();
             try {
                 File.WriteAllText(c_path, gen_buf.ToString());
@@ -100,7 +101,6 @@ namespace IonLang
                 return 1;
             }
 
-            printf("Compiled {0}\n", package_name);
             return 0;
         }
     }

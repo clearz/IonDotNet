@@ -24,6 +24,7 @@ namespace IonLang
         Map decl_note_names;
         Map resolved_sym_map;
         Map resolved_expected_type_map;
+        Map resolved_type_map;
         Buffer<Sym> local_syms;
         PtrBuffer* package_list;
         PtrBuffer* sorted_syms;
@@ -252,9 +253,7 @@ namespace IonLang
             sym_global_put(name, sym);
             return sym;
         }
-
-        Map resolved_type_map;
-
+        
         Type* get_resolved_type(void* ptr) {
             return resolved_type_map.map_get<Type>(ptr);
         }
@@ -1591,7 +1590,7 @@ namespace IonLang
         }
 
         private void resolve_sym(Sym* sym) {
-            if (!sym->reachable) {
+            if (!sym->reachable && !is_local_sym(sym)) {
                 reachable_syms->Add(sym);
                 sym->reachable = true;
             }
@@ -1641,6 +1640,7 @@ namespace IonLang
         }
 
         private void finalize_sym(Sym* sym) {
+            assert(sym->state == SYM_RESOLVED);
             Package* old_package = enter_package(sym->package);
             if (sym->decl != null && !is_decl_foreign(sym->decl) && !sym->decl->is_incomplete) {
                 if (sym->kind == SYM_TYPE) {
@@ -2632,7 +2632,6 @@ namespace IonLang
         }
 
         void import_all_package_symbols(Package* package) {
-            Console.WriteLine("Importing {0} Symbols from Path '{1}'",package->syms->count, _S(package->path));
             for (int i = 0; i < package->syms->count; i++) {
                 Sym* sym = package->syms->Get<Sym>(i);
                 if (sym->package == package) {
@@ -2675,7 +2674,6 @@ namespace IonLang
                         fatal_error(decl->pos, "Failed to import package '{0}'", _S(path_buf));
                     }
 
-                    //buf_free(path_buf);
                     import_package_symbols(decl, imported_package);
                     if (decl->import.import_all) {
                         import_all_package_symbols(imported_package);
@@ -2724,11 +2722,18 @@ namespace IonLang
         }
 
         void finalize_reachable_syms() {
+            printf("Finalizing reachable symbols\n");
             var cnt = reachable_syms->count;
             for (int i = 0; i < cnt; i++) {
                 var sym = reachable_syms->Get<Sym>(i);
                 finalize_sym(sym);
+                if (cnt != reachable_syms->count) {
+                    for (int k = cnt; k < reachable_syms->count; k++)
+                        printf(" {0}", reachable_syms->Get<Sym>(i)->name);
+                    cnt = reachable_syms->count;
+                }
             }
+            Console.WriteLine();
         }
 
         private void init_builtin_syms() {
