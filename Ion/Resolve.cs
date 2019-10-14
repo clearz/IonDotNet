@@ -17,14 +17,17 @@ namespace IonLang
 
     unsafe partial class Ion
     {
-        public const int MAX_LOCAL_SYMS = 1024;
+        const int MAX_LOCAL_SYMS = 1024;
         Package *current_package;
         Package *builtin_package;
         Map package_map;
-        PtrBuffer* package_list = PtrBuffer.Create();
         Map decl_note_names;
-        private Buffer<Sym> local_syms;
-        private PtrBuffer* sorted_syms;
+        Map resolved_sym_map;
+        Map resolved_expected_type_map;
+        Buffer<Sym> local_syms;
+        PtrBuffer* package_list;
+        PtrBuffer* sorted_syms;
+        PtrBuffer* reachable_syms;
 
         static uint next_typeid = 16;
 
@@ -259,10 +262,7 @@ namespace IonLang
         void set_resolved_type(void* ptr, Type* type) {
             resolved_type_map.map_put(ptr, type);
         }
-
-
-        Map resolved_sym_map;
-
+        
         Sym* get_resolved_sym(void* ptr) {
             return resolved_sym_map.map_get<Sym>(ptr);
         }
@@ -272,9 +272,7 @@ namespace IonLang
                 resolved_sym_map.map_put(ptr, sym);
             }
         }
-
-        Map resolved_expected_type_map;
-
+        
         Type* get_resolved_expected_type(Expr* expr) {
             return resolved_expected_type_map.map_get<Type>(expr);
         }
@@ -1593,6 +1591,11 @@ namespace IonLang
         }
 
         private void resolve_sym(Sym* sym) {
+            if (!sym->reachable) {
+                reachable_syms->Add(sym);
+                sym->reachable = true;
+            }
+
             if (sym->state == SYM_RESOLVED)
                 return;
 
@@ -1634,16 +1637,17 @@ namespace IonLang
             if (decl->is_incomplete || (decl->kind != DECL_STRUCT && decl->kind != DECL_UNION)) {
                 sorted_syms->Add(sym);
             }
-            if (sym->kind == SYM_FUNC) {
-                resolve_func_body(sym);
-            }
+           
         }
 
         private void finalize_sym(Sym* sym) {
-            Package *old_package = enter_package(sym->package);
-            if (sym->kind == SYM_TYPE) {
-                if (sym->decl != null && !is_decl_foreign(sym->decl) && !sym->decl->is_incomplete) {
+            Package* old_package = enter_package(sym->package);
+            if (sym->decl != null && !is_decl_foreign(sym->decl) && !sym->decl->is_incomplete) {
+                if (sym->kind == SYM_TYPE) {
                     complete_type(sym->type);
+                }
+                else if (sym->kind == SYM_FUNC) {
+                    resolve_func_body(sym);
                 }
             }
             leave_package(old_package);
@@ -2708,14 +2712,23 @@ namespace IonLang
             leave_package(old_package);
             return true;
         }
+
         void resolve_package_syms(Package* package) {
             Package *old_package = enter_package(package);
             for (int i = 0; i < package->syms->count; i++) {
                 var sym = package->syms->Get<Sym>(i);
                 resolve_sym(sym);
-                finalize_sym(sym);
+               // finalize_sym(sym);
             }
             leave_package(old_package);
+        }
+
+        void finalize_reachable_syms() {
+            var cnt = reachable_syms->count;
+            for (int i = 0; i < cnt; i++) {
+                var sym = reachable_syms->Get<Sym>(i);
+                finalize_sym(sym);
+            }
         }
 
         private void init_builtin_syms() {

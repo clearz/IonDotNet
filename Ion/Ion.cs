@@ -16,7 +16,7 @@ namespace IonLang
         }
 
         void init_package_search_paths() {
-            string ionhome_var = Environment.GetEnvironmentVariable("IONHOME") ?? @"C:\Users\john\source\repos\IonDotNet\Ion";
+            string ionhome_var = Environment.GetEnvironmentVariable("IONHOME");
             if (string.IsNullOrEmpty(ionhome_var)) {
                 error_here("Set the environment variable IONHOME to the Ion home directory (where system_packages is located)\n");
             }
@@ -39,7 +39,8 @@ namespace IonLang
         }
 
         private void ion_test(string pkg) {
-            var b = ion_main(new []{pkg, "-o", $@"C:\Users\john\source\repos\IonDotNet\TestCompiler\test.c"});
+            Environment.SetEnvironmentVariable("IONHOME", @"..\..\..\..", EnvironmentVariableTarget.Process);
+            var b = ion_main(new []{pkg, "-o", @"..\..\..\..\..\TestCompiler\test.c"});
             assert(b == 0);
         }
 
@@ -74,6 +75,8 @@ namespace IonLang
             main_sym->external_name = main_name;
             resolve_package_syms(builtin_package);
             resolve_package_syms(main_package);
+
+            finalize_reachable_syms();
             printf("Compilation succeeded.\n");
 
             string c_path;

@@ -11,18 +11,9 @@ namespace IonLang
         private static MemArena intern_arena;
 
         private void initialise() {
-
-            if (false) {
-                interns.free();
-                local_syms.free();
-                sorted_syms->free();
-                intern_arena.free();
-                cached_array_types.free();
-                cached_func_types.free();
-                ast_arena.free();
-            }
-
             local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
+            reachable_syms = PtrBuffer.Create();
+            package_list = PtrBuffer.Create();
             sorted_syms = PtrBuffer.Create(capacity: 256);
             ast_arena = MemArena.Create();
             intern_arena = MemArena.Create();
@@ -34,6 +25,10 @@ namespace IonLang
 
         public static void Write<T>(void* p, ref T value) where T : unmanaged {
             *(T*)p = value;
+        }
+
+        public static void Write<T>(void* p, T* value) where T : unmanaged {
+            *(T*)p = *value;
         }
 
         public static void* AsPointer<T>(ref T value) where T : unmanaged {
@@ -324,8 +319,8 @@ namespace IonLang
 
             private const int START_CAPACITY = 4,
                 MULTIPLIER = 2;
-
-            public int count, buffer_size, item_size;
+            public int count { get; set; }
+            public int  buffer_size, item_size;
             private int _capacity, _multiplier;
 
             public static implicit operator T*(Buffer<T> b) {
@@ -352,6 +347,20 @@ namespace IonLang
 
             public void Add(T val) {
                 Write(_top, ref val);
+
+                if (++count == _capacity) {
+                    _capacity *= _multiplier;
+                    buffer_size = _capacity * item_size;
+                    _begin = xrealloc(_begin, buffer_size);
+                    _top = _begin + count;
+                }
+                else {
+                    _top++;
+                }
+            }
+
+            public void Add(T* val) {
+                Write(_top, val);
 
                 if (++count == _capacity) {
                     _capacity *= _multiplier;
@@ -394,9 +403,10 @@ namespace IonLang
             private const int START_CAPACITY = 8,
                 MULTIPLIER = 2;
 
+            public int count;
             internal void** _begin, _top, _end;
-
-            public int count, buf_byte_size;
+            public int Count => (int)(_top-_begin) / PTR_SIZE;
+            public int buf_byte_size;
             private int _capacity, _multiplier;
 
             internal static PtrBuffer* buffers = Create();
@@ -407,6 +417,7 @@ namespace IonLang
                 var buf = Create();
                 return buf;
             }
+
 
             public static PtrBuffer* Create(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
                 assert(multiplier >= MULTIPLIER);
@@ -420,6 +431,22 @@ namespace IonLang
                 b->_begin = (void**)xmalloc(b->buf_byte_size);
                 b->_top = b->_begin;
                 b->_end = b->_begin + b->buf_byte_size;
+                return b;
+            }
+
+            public static PtrBuffer Create2(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
+                assert(multiplier >= MULTIPLIER);
+                assert(capacity > 0);
+
+                var b = new PtrBuffer{
+                    _capacity = capacity,
+                    _multiplier = multiplier,
+                    count = 0,
+                    buf_byte_size = capacity * PTR_SIZE,
+                };
+                b._begin = (void**)xmalloc(b.buf_byte_size);
+                b._top = b._begin;
+                b._end = b._begin + b.buf_byte_size;
                 return b;
             }
 

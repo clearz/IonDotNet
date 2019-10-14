@@ -3,12 +3,12 @@
 namespace IonLang
 {
 
-    [StructLayout(LayoutKind.Sequential, Size = 16)]
+    [StructLayout(LayoutKind.Sequential, Size = 24)]
     internal unsafe struct SrcPos
     {
         public char* name;
         public long line;
-        public long col { get; set; }
+        public long col;
     }
 
     internal unsafe struct StmtList
@@ -193,27 +193,27 @@ namespace IonLang
     {
         [FieldOffset(0)] public ExprKind kind;
         [FieldOffset(4)] public SrcPos pos;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public char* name;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public _int_lit int_lit;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public _float_lit float_lit;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public _str_lit str_lit;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public Expr* typeof_expr;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public Paren paren;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* typeof_type;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public Expr* sizeof_expr;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public Expr* alignof_expr;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* alignof_type;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public _offsetof_field offsetof_field;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public _modify modify;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public Typespec* sizeof_type;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public CompoundExpr compound;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public CastExpr cast;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public UnaryExpr unary;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public BinaryExpr binary;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public TernaryExpr ternary;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public CallExpr call;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public IndexExpr index;
-        [FieldOffset(20 + Ion.PTR_SIZE)] public FieldExpr field;
+        [FieldOffset(28)] public char* name;
+        [FieldOffset(28)] public _int_lit int_lit;
+        [FieldOffset(28)] public _float_lit float_lit;
+        [FieldOffset(28)] public _str_lit str_lit;
+        [FieldOffset(28)] public Expr* typeof_expr;
+        [FieldOffset(28)] public Paren paren;
+        [FieldOffset(28)] public Typespec* typeof_type;
+        [FieldOffset(28)] public Expr* sizeof_expr;
+        [FieldOffset(28)] public Expr* alignof_expr;
+        [FieldOffset(28)] public Typespec* alignof_type;
+        [FieldOffset(28)] public _offsetof_field offsetof_field;
+        [FieldOffset(28)] public _modify modify;
+        [FieldOffset(28)] public Typespec* sizeof_type;
+        [FieldOffset(28)] public CompoundExpr compound;
+        [FieldOffset(28)] public CastExpr cast;
+        [FieldOffset(28)] public UnaryExpr unary;
+        [FieldOffset(28)] public BinaryExpr binary;
+        [FieldOffset(28)] public TernaryExpr ternary;
+        [FieldOffset(28)] public CallExpr call;
+        [FieldOffset(28)] public IndexExpr index;
+        [FieldOffset(28)] public FieldExpr field;
 
         internal struct _offsetof_field
         {
