@@ -1384,7 +1384,7 @@ namespace IonLang
             if (left.type->nonmodifiable) {
                 fatal_error(stmt->pos, "Left-hand side of assignment has non-modifiable type");
             }
-            string assign_op_name = token_kind_name(stmt->assign.op);
+            char* assign_op_name = _token_kind_name(stmt->assign.op);
             TokenKind binary_op = assign_token_to_binary_token[(int)stmt->assign.op];
             Operand right = resolve_expected_expr_rvalue(stmt->assign.right, left.type);
             Operand result;
@@ -1396,14 +1396,14 @@ namespace IonLang
                     result = operand_rvalue(left.type);
                 }
                 else if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
-                    result = resolve_expr_binary_op(binary_op, ref assign_op_name, stmt->pos, left, right);
+                    result = resolve_expr_binary_op(binary_op, assign_op_name, stmt->pos, left, right);
                 }
                 else {
-                    fatal_error(stmt->pos, "Invalid operand types for {0}", assign_op_name);
+                    fatal_error(stmt->pos, "Invalid operand types for {0}", _S(assign_op_name));
                 }
             }
             else {
-                result = resolve_expr_binary_op(binary_op, ref assign_op_name, stmt->pos, left, right);
+                result = resolve_expr_binary_op(binary_op, assign_op_name, stmt->pos, left, right);
             }
             if (!convert_operand(&result, left.type)) {
                 fatal_error(stmt->pos, "Invalid type in assignment");
@@ -1872,6 +1872,7 @@ namespace IonLang
             fatal_error(pos, "{0} must denote a var func or const", _S(name));
             return default;
         }
+
         Operand resolve_expr_name(Expr* expr) {
             assert(expr->kind == EXPR_NAME);
             return resolve_name_operand(expr->pos, expr->name);
@@ -1930,16 +1931,16 @@ namespace IonLang
             return resolve_binary_op(op, left, right);
         }
 
-        private Operand resolve_expr_binary_op(TokenKind op, ref string op_name, SrcPos pos, Operand left, Operand right) {
+        private Operand resolve_expr_binary_op(TokenKind op, char* op_name, SrcPos pos, Operand left, Operand right) {
 
             switch (op) {
                 case TOKEN_MUL:
                 case TOKEN_DIV:
                     if (!is_arithmetic_type(left.type)) {
-                        fatal_error(pos, "Left operand of {0} must have arithmetic type", op_name);
+                        fatal_error(pos, "Left operand of {0} must have arithmetic type", _S(op_name));
                     }
                     if (!is_arithmetic_type(right.type)) {
-                        fatal_error(pos, "Right operand of {0} must have arithmetic type", op_name);
+                        fatal_error(pos, "Right operand of {0} must have arithmetic type", _S(op_name));
                     }
                     return resolve_binary_arithmetic_op(op, left, right);
                 case TOKEN_MOD:
@@ -2001,7 +2002,7 @@ namespace IonLang
                         return result;
                     }
                     else {
-                        fatal_error(pos, "Operands of {0} must both have integer type", op_name);
+                        fatal_error(pos, "Operands of {0} must both have integer type", _S(op_name));
                     }
                     break;
                 case TOKEN_LT:
@@ -2025,7 +2026,7 @@ namespace IonLang
                         return operand_rvalue(type_int);
                     }
                     else {
-                        fatal_error(pos, "Operands of {0} must be arithmetic types or compatible pointer types", op_name);
+                        fatal_error(pos, "Operands of {0} must be arithmetic types or compatible pointer types", _S(op_name));
                     }
                     break;
                 case TOKEN_AND:
@@ -2035,7 +2036,7 @@ namespace IonLang
                         return resolve_binary_arithmetic_op(op, left, right);
                     }
                     else {
-                        fatal_error(pos, "Operands of {0} must have arithmetic types", op_name);
+                        fatal_error(pos, "Operands of {0} must have arithmetic types", _S(op_name));
                     }
                     break;
                 case TOKEN_AND_AND:
@@ -2059,7 +2060,7 @@ namespace IonLang
                         }
                     }
                     else {
-                        fatal_error(pos, "Operands of {0} must have scalar types", op_name);
+                        fatal_error(pos, "Operands of {0} must have scalar types", _S(op_name));
                     }
                     break;
                 default:
@@ -2075,8 +2076,8 @@ namespace IonLang
             Operand left = resolve_expr_rvalue(expr->binary.left);
             Operand right = resolve_expr_rvalue(expr->binary.right);
             TokenKind op = expr->binary.op;
-            var op_name = token_kind_name(op);
-            return resolve_expr_binary_op(op, ref op_name, expr->pos, left, right);
+            var op_name = _token_kind_name(op);
+            return resolve_expr_binary_op(op, op_name, expr->pos, left, right);
         }
 
         private Operand resolve_expr_compound(Expr* expr, Type* expected_type) {
@@ -2624,7 +2625,8 @@ namespace IonLang
             if (package == null) {
                 package = (Package*)xcalloc(1, sizeof(Package));
                 package->path = package_path;
-                printf("Importing {0}\n", package_path);
+                if (flag_verbose)
+                    printf("Importing {0}\n", package_path);
                 var full_path = stackalloc char[MAX_PATH]; //(char*)xcalloc(MAX_PATH, sizeof(char));
                 if (!copy_package_full_path(full_path, package_path)) {
                     return null;
@@ -2727,14 +2729,13 @@ namespace IonLang
                 if (sym->package == package) {
                     resolve_sym(sym);
                 }
-                else
-                    i = i;
             }
             leave_package(old_package);
         }
 
         void finalize_reachable_syms() {
-            printf("Finalizing reachable symbols\n");
+            if (flag_verbose)
+                printf("Finalizing reachable symbols\n");
             int prev_num_reachable = 0;
             var num_reachable = reachable_syms->count;
             for (int i = 0; i < num_reachable; i++) {
@@ -2742,12 +2743,15 @@ namespace IonLang
                 finalize_sym(sym);
                 num_reachable = reachable_syms->count;
                 if (i == num_reachable - 1) {
-                    printf("New reachable symbols:\n");
-                    for (int k = prev_num_reachable; k < num_reachable; k++) {
-                        var s = reachable_syms->Get<Sym>(k);
-                        printf("\t{0}/{1}\n", _S(s->package->path), _S(s->name));
+                    if (flag_verbose) {
+                        printf("New reachable symbols:\n");
+                        for (int k = prev_num_reachable; k < num_reachable; k++) {
+                            var s = reachable_syms->Get<Sym>(k);
+                            if (flag_verbose)
+                                printf("\t{0}/{1}\n", _S(s->package->path), _S(s->name));
+                        }
+                        printf("\n");
                     }
-                    printf("\n");
                     prev_num_reachable = num_reachable;
                     num_reachable = reachable_syms->count;
                 }

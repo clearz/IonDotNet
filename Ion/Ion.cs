@@ -9,9 +9,10 @@ namespace IonLang
     {
         const int MAX_SEARCH_PATHS = 256;
         PtrBuffer* package_search_paths = PtrBuffer.Create();
-
+        bool flag_verbose = false, flag_lazy = false;
         void add_package_search_path(string path) {
-            printf("Adding package search path {0}\n", path);
+            if (flag_verbose)
+                printf("Adding package search path {0}\n", path);
             package_search_paths->Add(path.ToPtr());
         }
 
@@ -48,12 +49,12 @@ namespace IonLang
             var dir = new DirectoryInfo(BACK_PATH);
 
             Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
-            var b = ion_main(new []{pkg, "-o", @$"{dir.Parent.FullName}/TestCompiler/test.c" });
+            var b = ion_main(new []{pkg, "-v", "-l", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
             assert(b == 0);
         }
 
         int usage() {
-            printf("Usage: {0} <package> [-o <output-c-file>]\n", Assembly.GetEntryAssembly()?.FullName);
+            printf("Usage: {0} <package> [-v -l] [-o <output-c-file>]\n", Assembly.GetEntryAssembly()?.FullName);
             return 1;
         }
 
@@ -63,7 +64,8 @@ namespace IonLang
             }
             var package_name = args[0];
             initialise();
-
+            flag_verbose = args.Contains("-v");
+            flag_lazy = args.Contains("-l");
             builtin_package = import_package("builtin".ToPtr());
             if (builtin_package == null) {
                 error_here("Failed to compile package 'builtin'.\n");
@@ -83,9 +85,14 @@ namespace IonLang
             main_sym->external_name = main_name;
             resolve_package_syms(builtin_package);
             resolve_package_syms(main_package);
-
+            if (flag_lazy) {
+                for (int i = 0; i < package_list->count; i++) {
+                    resolve_package_syms(package_list->Get<Package>(i));
+                }
+            }
             finalize_reachable_syms();
-            printf("Compiled {0} symbols in {1} packages\n", reachable_syms->count, package_list->count);
+            if (flag_verbose)
+                printf("Compiled {0} symbols in {1} packages\n", reachable_syms->count, package_list->count);
 
             string c_path;
             if (args.Any(s => s == "-o")) {

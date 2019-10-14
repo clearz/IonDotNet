@@ -11,7 +11,7 @@ namespace IonLang
                 ion.ion_main(args);
             else {
                 try {
-                    ion.ion_test("test1");
+                    ion.ion_test("test");
                 }
                 catch (Exception e) { Console.WriteLine(e); }
             }
