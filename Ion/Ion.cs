@@ -61,31 +61,57 @@ namespace IonLang
             return 1;
         }
 
+        bool parse_env_vars(string[] args) {
+            flag_verbose = args.Contains("-v");
+            flag_lazy = args.Contains("-l");
+
+            var sys = Environment.GetEnvironmentVariable("IONOS");
+            if (sys != null) {
+                target_os = get_os(sys.ToPtr());
+                if(target_os == 0)
+                    printf("Unknown operating system in IONARCH environment variable: {0}\n", sys);
+            }
+            else {
+                int pos = Array.IndexOf(args, "-s");
+                if (pos != -1) {
+                    if (pos < args.Length) {
+                        target_os = get_os(args[pos + 1].ToPtr());
+                    }
+                    else
+                        return false;
+
+                }
+            }
+            var arch = Environment.GetEnvironmentVariable("IONARCH");
+            if (sys != null) {
+                target_arch = get_arch(arch.ToPtr());
+                if (target_os == 0)
+                    printf("Unknown target architecture in IONARCH environment variable: {0}\n", sys);
+            }
+            else {
+                int pos = Array.IndexOf(args, "-a");
+                if (pos != -1) {
+                    if (pos < args.Length) {
+                        target_arch = get_arch(args[pos + 1].ToPtr());
+                    }
+                    else
+                        return false;
+
+                }
+            }
+            return true;
+        }
+
         private int ion_main(string[] args) {
             if (args.Length == 0) {
                 return usage();
             }
             init_target_names();
             var package_name = args[0];
-            flag_verbose = args.Contains("-v");
-            flag_lazy = args.Contains("-l");
-            int pos = Array.IndexOf(args, "-s");
-            if (pos != -1) {
-                if (pos < args.Length) {
-                    target_os = get_os(args[pos + 1].ToPtr());
-                }
-                else
-                    return usage();
-            }
-            pos = Array.IndexOf(args, "-a");
-            if (pos != -1) {
-                if (pos < args.Length) {
-                    target_arch = get_arch(args[pos + 1].ToPtr());
-                }
-                else
-                    return usage();
-            }
 
+            if(!parse_env_vars(args))
+                return usage();
+        
             initialise();
             if (flag_verbose) {
                 printf("Target operating system: {0}\n", os_names[(int)target_os]);
@@ -119,7 +145,7 @@ namespace IonLang
                 printf("Compiled {0} symbols in {1} packages\n", reachable_syms->count, package_list->count);
 
             string c_path;
-            pos = Array.IndexOf(args, "-o");
+            int pos = Array.IndexOf(args, "-o");
             if (pos != -1) {
                 if (pos < args.Length) {
                     c_path = args[pos + 1];
