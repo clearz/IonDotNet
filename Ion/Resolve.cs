@@ -2714,6 +2714,9 @@ namespace IonLang
                 return false;
             }
             Package *old_package = enter_package(package);
+            if (package_list->count == 1) {
+                init_builtin_syms();
+            }
             if (builtin_package != null) {
                 import_all_package_symbols(builtin_package);
             }
@@ -2761,8 +2764,7 @@ namespace IonLang
 
         private void init_builtin_syms() {
 
-            assert(builtin_package);
-            Package *old_package = enter_package(builtin_package);
+            assert(current_package);
             
             type_ranks[(int)TYPE_BOOL] = 1;
             type_ranks[(int)TYPE_CHAR] = 2;
@@ -2853,7 +2855,6 @@ namespace IonLang
             sym_global_const("false".ToPtr(), type_bool, new Val { b = false });
             sym_global_const("NULL".ToPtr(), type_const(type_ptr(type_void)), new Val { p = null });
 
-            leave_package(old_package);
         }
     }
 

@@ -69,35 +69,35 @@
             lp64_metrics = xmalloc<TypeMetrics>((int)NUM_TYPE_KINDS);
 
             var default_metrics = stackalloc TypeMetrics[(int)NUM_TYPE_KINDS];
-            default_metrics[(int)TYPE_BOOL] = new TypeMetrics { size = 1, align = 1 };
-            default_metrics[(int)TYPE_CHAR] = new TypeMetrics { size = 1, align = 1, max = 0x7f, sign = true };
-            default_metrics[(int)TYPE_SCHAR] = new TypeMetrics { size = 1, align = 1, max = 0x7f, sign = true };
-            default_metrics[(int)TYPE_UCHAR] = new TypeMetrics { size = 1, align = 1, max = 0xff };
-            default_metrics[(int)TYPE_SHORT] = new TypeMetrics { size = 2, align = 2, max = 0x7fff, sign = true };
-            default_metrics[(int)TYPE_USHORT] = new TypeMetrics { size = 2, align = 2, max = 0xffff };
-            default_metrics[(int)TYPE_INT] = new TypeMetrics { size = 4, align = 4, max = 0x7fffffff, sign = true };
-            default_metrics[(int)TYPE_UINT] = new TypeMetrics { size = 4, align = 4, max = 0xffffffff };
-            default_metrics[(int)TYPE_LLONG] = new TypeMetrics { size = 8, align = 8, max = 0x7fffffffffffffff, sign = true };
-            default_metrics[(int)TYPE_ULLONG] = new TypeMetrics { size = 8, align = 8, max = 0xffffffffffffffff };
-            default_metrics[(int)TYPE_FLOAT] = new TypeMetrics { size = 4, align = 4 };
-            default_metrics[(int)TYPE_DOUBLE] = new TypeMetrics { size = 8, align = 8 };
+                default_metrics[(int)TYPE_BOOL] = new TypeMetrics { size = 1, align = 1 };
+                default_metrics[(int)TYPE_CHAR] = new TypeMetrics { size = 1, align = 1, max = 0x7f, sign = true };
+                default_metrics[(int)TYPE_SCHAR] = new TypeMetrics { size = 1, align = 1, max = 0x7f, sign = true };
+                default_metrics[(int)TYPE_UCHAR] = new TypeMetrics { size = 1, align = 1, max = 0xff };
+                default_metrics[(int)TYPE_SHORT] = new TypeMetrics { size = 2, align = 2, max = 0x7fff, sign = true };
+                default_metrics[(int)TYPE_USHORT] = new TypeMetrics { size = 2, align = 2, max = 0xffff };
+                default_metrics[(int)TYPE_INT] = new TypeMetrics { size = 4, align = 4, max = 0x7fffffff, sign = true };
+                default_metrics[(int)TYPE_UINT] = new TypeMetrics { size = 4, align = 4, max = 0xffffffff };
+                default_metrics[(int)TYPE_LLONG] = new TypeMetrics { size = 8, align = 8, max = 0x7fffffffffffffff, sign = true };
+                default_metrics[(int)TYPE_ULLONG] = new TypeMetrics { size = 8, align = 8, max = 0xffffffffffffffff };
+                default_metrics[(int)TYPE_FLOAT] = new TypeMetrics { size = 4, align = 4 };
+                default_metrics[(int)TYPE_DOUBLE] = new TypeMetrics { size = 8, align = 8 };
 
-            *win32_x86_metrics = *default_metrics;
+            memcpy(win32_x86_metrics, default_metrics, sizeof(TypeMetrics) * (int)NUM_TYPE_KINDS);
             win32_x86_metrics[(int)TYPE_PTR] = new TypeMetrics { size = 4, align = 4 };
             win32_x86_metrics[(int)TYPE_LONG] = new TypeMetrics { size = 4, align = 4, max = 0x7fffffff, sign = true };
             win32_x86_metrics[(int)TYPE_ULONG] = new TypeMetrics { size = 4, align = 4, max = 0xffffffff, sign = true };
 
-            *win32_x64_metrics = *default_metrics;
+            memcpy(win32_x64_metrics, default_metrics, sizeof(TypeMetrics) * (int)NUM_TYPE_KINDS);
             win32_x64_metrics[(int)TYPE_PTR] = new TypeMetrics { size = 8, align = 8 };
             win32_x64_metrics[(int)TYPE_LONG] = new TypeMetrics { size = 4, align = 4, max = 0x7fffffff, sign = true };
             win32_x64_metrics[(int)TYPE_ULONG] = new TypeMetrics { size = 4, align = 4, max = 0xffffffff, sign = true };
 
-            *ilp32_metrics = *default_metrics;
+            memcpy(ilp32_metrics, default_metrics, sizeof(TypeMetrics) * (int)NUM_TYPE_KINDS);
             ilp32_metrics[(int)TYPE_PTR] = new TypeMetrics { size = 4, align = 4 };
             ilp32_metrics[(int)TYPE_LONG] = new TypeMetrics { size = 4, align = 4, max = 0x7fffffff, sign = true };
             ilp32_metrics[(int)TYPE_ULONG] = new TypeMetrics { size = 4, align = 4, max = 0xffffffff, sign = true };
 
-            *lp64_metrics = *default_metrics;
+            memcpy(lp64_metrics, default_metrics, sizeof(TypeMetrics) * (int)NUM_TYPE_KINDS);
             lp64_metrics[(int)TYPE_PTR] = new TypeMetrics { size = 8, align = 8 };
             lp64_metrics[(int)TYPE_LONG] = new TypeMetrics { size = 8, align = 8, max = 0x7fffffffffffffff, sign = true };
             lp64_metrics[(int)TYPE_ULONG] = new TypeMetrics { size = 8, align = 8, max = 0xffffffffffffffff, sign = true };
@@ -178,6 +178,7 @@ unsupported:
             else {
                 memcpy(str1, ptr1, (int)(end - ptr1));
                 str1[end - ptr1] = '\0';
+                ptr1--;
             }
 
             char *ptr2 = ptr1;

@@ -215,23 +215,28 @@ namespace IonLang
                     return null;
             }
         }
+        void init_builtin_type(Type* type) {
+            register_typeid(type);
+            type->size = type_metrics[(int)type->kind].size;
+            type->align = type_metrics[(int)type->kind].align;
+        }
 
         void init_builtin_types() {
-            register_typeid(type_void);
-            register_typeid(type_bool);
-            register_typeid(type_char);
-            register_typeid(type_uchar);
-            register_typeid(type_schar);
-            register_typeid(type_short);
-            register_typeid(type_ushort);
-            register_typeid(type_int);
-            register_typeid(type_uint);
-            register_typeid(type_long);
-            register_typeid(type_ulong);
-            register_typeid(type_llong);
-            register_typeid(type_ullong);
-            register_typeid(type_float);
-            register_typeid(type_double);
+            init_builtin_type(type_void);
+            init_builtin_type(type_bool);
+            init_builtin_type(type_char);
+            init_builtin_type(type_uchar);
+            init_builtin_type(type_schar);
+            init_builtin_type(type_short);
+            init_builtin_type(type_ushort);
+            init_builtin_type(type_int);
+            init_builtin_type(type_uint);
+            init_builtin_type(type_long);
+            init_builtin_type(type_ulong);
+            init_builtin_type(type_llong);
+            init_builtin_type(type_ullong);
+            init_builtin_type(type_float);
+            init_builtin_type(type_double);
         }
 
         private static Type* basic_type_alloc(TypeKind kind, long size = 0, long align = 0, uint typeid = 0) {

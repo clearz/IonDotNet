@@ -96,7 +96,6 @@ namespace IonLang
                 error_here("Failed to compile package 'builtin'.\n");
             }
             builtin_package->external_name = _I("");
-            init_builtin_syms();
             Package *main_package = import_package(package_name.ToPtr());
             if (main_package == null) {
                 error_here("Failed to compile package '{0}'\n", package_name);
