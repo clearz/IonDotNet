@@ -161,9 +161,6 @@ TypeKind typeid_kind(typeid type);
 
 int typeid_index(typeid type);
 
-#line 34 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/types.ion"
-typedef uint uint32;
-
 #line 3 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/types_x86.ion"
 typedef uint32 usize;
 
@@ -171,27 +168,6 @@ typedef uint32 usize;
 usize typeid_size(typeid type);
 
 const TypeInfo * get_typeinfo(typeid type);
-
-#line 29 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/types.ion"
-typedef schar int8;
-
-#line 30
-typedef uchar uint8;
-
-#line 31
-typedef short int16;
-
-#line 32
-typedef ushort uint16;
-
-#line 33
-typedef int int32;
-
-#line 35
-typedef llong int64;
-
-#line 36
-typedef ullong uint64;
 
 #line 1 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/types_win32.ion"
 typedef uint16 wchar;
