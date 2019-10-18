@@ -2625,8 +2625,8 @@ namespace IonLang
                 package = (Package*)xcalloc(1, sizeof(Package));
                 package->path = package_path;
                 if (flag_verbose)
-                    printf("Importing {0}\n", package_path);
-                var full_path = stackalloc char[MAX_PATH]; //(char*)xcalloc(MAX_PATH, sizeof(char));
+                    printf("Importing Package {0}:\n", package_path);
+                var full_path = stackalloc char[MAX_PATH];
                 if (!copy_package_full_path(full_path, package_path)) {
                     return null;
                 }
@@ -2694,11 +2694,15 @@ namespace IonLang
             PtrBuffer* decls = PtrBuffer.Create();
 
             foreach (var f in Directory.EnumerateFiles(_S(package->full_path), "*.ion")) {
-                if (is_excluded_target_filename(f.ToPtr())) {
+                var p = f.ToPtr();
+                if (is_excluded_target_filename(p)) {
                     continue;
                 }
+                else if(flag_verbose) {
+                    System.Console.WriteLine("\t" + f);
+                }
                 char *code = read_file(f);
-                init_stream(code, f.ToPtr());
+                init_stream(code, p);
                 Decls *file_decls = parse_decls();
                 for (int i = 0; i < file_decls->num_decls; i++) {
                     decls->Add(file_decls->decls[i]);
@@ -2751,8 +2755,8 @@ namespace IonLang
                         printf("New reachable symbols:\n");
                         for (int k = prev_num_reachable; k < num_reachable; k++) {
                             var s = reachable_syms->Get<Sym>(k);
-                            if (flag_verbose)
-                                printf("\t{0}/{1}\n", _S(s->package->path), _S(s->name));
+                       //     if (flag_verbose)
+                       //         printf("\t{0}/{1}\n", _S(s->package->path), _S(s->name));
                         }
                         printf("\n");
                     }
@@ -2836,24 +2840,7 @@ namespace IonLang
             sym_global_type("ullong".ToPtr(), type_ullong);
             sym_global_type("float".ToPtr(), type_float);
             sym_global_type("double".ToPtr(), type_double);
-            sym_global_typedef("uint8".ToPtr(), type_uchar);
-            sym_global_typedef("int8".ToPtr(), type_schar);
-            sym_global_typedef("uint16".ToPtr(), type_ushort);
-            sym_global_typedef("int16".ToPtr(), type_short);
-            sym_global_typedef("uint32".ToPtr(), type_uint);
-            sym_global_typedef("int32".ToPtr(), type_int);
-            sym_global_typedef("uint64".ToPtr(), type_ullong);
-            sym_global_typedef("int64".ToPtr(), type_llong);
 
-            sym_global_typedef("usize".ToPtr(), type_usize);
-            sym_global_typedef("ssize".ToPtr(), type_ssize);
-            sym_global_typedef("uintptr".ToPtr(), type_uintptr);
-            sym_global_typedef("typeid".ToPtr(), type_int);
-
-
-            sym_global_const("true".ToPtr(), type_bool, new Val { b = true });
-            sym_global_const("false".ToPtr(), type_bool, new Val { b = false });
-            sym_global_const("NULL".ToPtr(), type_const(type_ptr(type_void)), new Val { p = null });
 
         }
     }

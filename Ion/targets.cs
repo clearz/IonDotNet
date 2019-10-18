@@ -161,37 +161,34 @@ unsupported:
 
         bool is_excluded_target_filename(char* name) {
             int len = strlen(name) - 4;
+            char* str1 = stackalloc char[64];
+            char* str2 = stackalloc char[64];
+
             char *end = name + len;
-            for (int i = len; i >= 0; i--)
-                if (name[i] == '/' || name[i] == '\\') {
-                    name += i + 1;
+            char* start = end;
+
+            while(--start != name)
+                if (start[-1] == '/' || start[-1] == '\\') 
                     break;
-                }
+
+            if (start == name) return true;
+
             char *ptr1 = end;
-            while (ptr1 != name && ptr1[-1] != '_') {
+            while (ptr1 != start && ptr1[-1] != '_') {
                 ptr1--;
             }
-            char* str1 = stackalloc char[MAX_PATH];
-            if (ptr1 == name) {
-                str1[0] = '\0';
-            }
-            else {
-                memcpy(str1, ptr1, (int)(end - ptr1));
-                str1[end - ptr1] = '\0';
+
+            if (ptr1 != start) { 
+                memcpy(str1, ptr1, (int)((end - ptr1) * 2));
                 ptr1--;
             }
 
             char *ptr2 = ptr1;
-            while (ptr2 != name && ptr2[-1] != '_') {
+            while (ptr2 != start && ptr2[-1] != '_') {
                 ptr2--;
             }
-            char* str2 = stackalloc char[MAX_PATH];
-            if (ptr2 == name) {
-                str2[0] = '\0';
-            }
-            else {
-                memcpy(str2, ptr2, (int)(ptr1 - ptr2));
-                str2[ptr1 - ptr2] = '\0';
+            if (ptr2 != start) { 
+                memcpy(str2, ptr2, (int)((ptr1 - ptr2) * 2));
             }
 
             OS os1 = get_os(str1);
