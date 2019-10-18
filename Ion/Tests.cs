@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace IonLang
 {
     using static TokenKind;
     using static TokenMod;
-    using static TokenSuffix;
 
     unsafe partial class Ion
     {

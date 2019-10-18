@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 
 namespace IonLang
@@ -31,13 +30,6 @@ namespace IonLang
         PtrBuffer* reachable_syms;
 
         static uint next_typeid = 16;
-
-        const ulong INT_MAX = int.MaxValue,
-                    UINT_MAX = uint.MaxValue,
-                    LONG_MAX = int.MaxValue,
-                    ULONG_MAX = uint.MaxValue,
-                    LLONG_MAX = long.MaxValue,
-                    ULLONG_MAX = ulong.MaxValue;
 
 #if X64
         internal const int PTR_SIZE = 8;
@@ -2256,6 +2248,11 @@ namespace IonLang
         }
         Operand resolve_expr_int(Expr* expr) {
             assert(expr->kind == EXPR_INT);
+            ulong int_max = type_metrics[(int)TYPE_INT].max;
+            ulong uint_max = type_metrics[(int)TYPE_UINT].max;
+            ulong long_max = type_metrics[(int)TYPE_LONG].max;
+            ulong ulong_max = type_metrics[(int)TYPE_ULONG].max;
+            ulong llong_max = type_metrics[(int)TYPE_LLONG].max;
             ulong val = expr->int_lit.val;
             Operand operand = operand_const(type_ullong, new Val{ull = val});
             Type *type = type_ullong;
@@ -2265,39 +2262,39 @@ namespace IonLang
                     case SUFFIX_NONE:
                         type = type_int;
                         // TODO: MAX constants should be sourced from the backend target table, not from the host compiler's header files.
-                        if (val > INT_MAX) {
+                        if (val > int_max) {
                             type = type_long;
-                            if (val > LONG_MAX) {
+                            if (val > long_max) {
                                 type = type_llong;
-                                overflow = val > LLONG_MAX;
+                                overflow = val > llong_max;
                             }
                         }
                         break;
                     case SUFFIX_U:
                         type = type_uint;
-                        if (val > UINT_MAX) {
+                        if (val > uint_max) {
                             type = type_ulong;
-                            if (val > ULONG_MAX) {
+                            if (val > ulong_max) {
                                 type = type_ullong;
                             }
                         }
                         break;
                     case SUFFIX_L:
                         type = type_long;
-                        if (val > LONG_MAX) {
+                        if (val > long_max) {
                             type = type_llong;
-                            overflow = val > LLONG_MAX;
+                            overflow = val > llong_max;
                         }
                         break;
                     case SUFFIX_UL:
                         type = type_ulong;
-                        if (val > ULONG_MAX) {
+                        if (val > ulong_max) {
                             type = type_ullong;
                         }
                         break;
                     case SUFFIX_LL:
                         type = type_llong;
-                        overflow = val > LLONG_MAX;
+                        overflow = val > llong_max;
                         break;
                     case SUFFIX_ULL:
                         type = type_ullong;
@@ -2314,15 +2311,15 @@ namespace IonLang
                 switch (expr->int_lit.suffix) {
                     case SUFFIX_NONE:
                         type = type_int;
-                        if (val > INT_MAX) {
+                        if (val > int_max) {
                             type = type_uint;
-                            if (val > UINT_MAX) {
+                            if (val > uint_max) {
                                 type = type_long;
-                                if (val > LONG_MAX) {
+                                if (val > long_max) {
                                     type = type_ulong;
-                                    if (val > ULONG_MAX) {
+                                    if (val > ulong_max) {
                                         type = type_llong;
-                                        if (val > LLONG_MAX) {
+                                        if (val > llong_max) {
                                             type = type_ullong;
                                         }
                                     }
@@ -2332,20 +2329,20 @@ namespace IonLang
                         break;
                     case SUFFIX_U:
                         type = type_uint;
-                        if (val > UINT_MAX) {
+                        if (val > uint_max) {
                             type = type_ulong;
-                            if (val > ULONG_MAX) {
+                            if (val > ulong_max) {
                                 type = type_ullong;
                             }
                         }
                         break;
                     case SUFFIX_L:
                         type = type_long;
-                        if (val > LONG_MAX) {
+                        if (val > long_max) {
                             type = type_ulong;
-                            if (val > ULONG_MAX) {
+                            if (val > ulong_max) {
                                 type = type_llong;
-                                if (val > LLONG_MAX) {
+                                if (val > llong_max) {
                                     type = type_ullong;
                                 }
                             }
@@ -2353,13 +2350,13 @@ namespace IonLang
                         break;
                     case SUFFIX_UL:
                         type = type_ulong;
-                        if (val > ULONG_MAX) {
+                        if (val > ulong_max) {
                             type = type_ullong;
                         }
                         break;
                     case SUFFIX_LL:
                         type = type_llong;
-                        if (val > LLONG_MAX) {
+                        if (val > llong_max) {
                             type = type_ullong;
                         }
                         break;
@@ -2581,7 +2578,9 @@ namespace IonLang
                     }
                     else if (decl->note.name == static_assert_name) {
                         // TODO: decide how to handle top-level static asserts wrt laziness/tree shaking
-                        // resolve_static_assert(decl->note);
+                        if (!flag_lazy) {
+                            resolve_static_assert(decl->note);
+                        }
                     }
                 }
                 else if (decl->kind == DECL_IMPORT) {
@@ -2695,13 +2694,15 @@ namespace IonLang
             PtrBuffer* decls = PtrBuffer.Create();
 
             foreach (var f in Directory.EnumerateFiles(_S(package->full_path), "*.ion")) {
+                if (is_excluded_target_filename(f.ToPtr())) {
+                    continue;
+                }
                 char *code = read_file(f);
                 init_stream(code, f.ToPtr());
                 Decls *file_decls = parse_decls();
                 for (int i = 0; i < file_decls->num_decls; i++) {
                     decls->Add(file_decls->decls[i]);
                 }
-
             }
             package->decls = decls->Cast<Decl>(); // Optimise this
             package->num_decls = decls->count;

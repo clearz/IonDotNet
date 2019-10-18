@@ -1,6 +1,4 @@
-﻿using System;
-using System.Globalization;
-using System.Runtime.CompilerServices;
+﻿using System.Globalization;
 using System.Text;
 
 namespace IonLang
@@ -104,6 +102,11 @@ namespace IonLang
 
         private void c_write(char* c, int len) {
             gen_buf.Append(c, len);
+            //Unsafe.CopyBlock(gen_buf + gen_pos, c, (uint)len << 1);
+            //gen_pos += len;
+        }
+        private void c_write(string s) {
+            gen_buf.Append(s);
             //Unsafe.CopyBlock(gen_buf + gen_pos, c, (uint)len << 1);
             //gen_pos += len;
         }
@@ -382,14 +385,6 @@ namespace IonLang
                     if (str != null)
                         c_write(')');
                     
-                    //if(typespec->name != null) {
-                    //    c_write(typespec->name);
-                    //    c_write(' ');
-                    //    c_write('[');
-                    //    gen_expr(typespec->num_elems);
-                    //    c_write(']');
-                    //}
-
                     break;
                 case TYPESPEC_FUNC: {
                     if(typespec->func.ret != null)
@@ -1587,11 +1582,36 @@ namespace IonLang
             }
         }
 
+        void gen_target_preamble() {
+            var c = type_names[(int)TYPE_CHAR];
+            genln();
+            c_write(const_keyword, 5);
+            c_write(' ');
+            c_write(c, 4);
+            c_write(' ');
+            c_write('*');
+            c_write("ION_OS = ");
+            gen_str(os_names[(int)target_os], false);
+            c_write(';');
+            genln();
+            c_write(const_keyword, 5);
+            c_write(' ');
+            c_write(c, 4);
+            c_write(' ');
+            c_write('*');
+            c_write("ION_ARCH = ");
+            gen_str(arch_names[(int)target_arch], false);
+            c_write(';');
+        }
+
+
 
         private void gen_all() {
             gen_buf.Clear();
-            gen_package_external_names();
             c_write(preamble.ToPtr());
+            gen_target_preamble();
+            genln();
+            gen_package_external_names();
             genlnf("// Foreign header files".ToPtr());
             gen_foreign_headers();
             genln();

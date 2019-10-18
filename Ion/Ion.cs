@@ -33,6 +33,7 @@ namespace IonLang
         }
 
         void init_compiler() {
+            init_target();
             lex_init();
             init_package_search_paths();
             init_keywords();
@@ -43,18 +44,20 @@ namespace IonLang
         private void ion_test(string pkg) {
 #if X64
             string BACK_PATH = "../../../.."; // bin/x64/debug
+            string ARCH = "x64";
 #else
-            string BACK_PATH = @"../../.."; // bin/debug
+            string BACK_PATH = @"../../../.."; // bin/debug
+            string ARCH = "x86";
 #endif
             var dir = new DirectoryInfo(BACK_PATH);
 
             Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
-            var b = ion_main(new []{pkg, "-v", "-l", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
+            var b = ion_main(new []{pkg, "-v", "-hl", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
             assert(b == 0);
         }
 
         int usage() {
-            printf("Usage: {0} <package> [-v -l] [-o <output-c-file>]\n", Assembly.GetEntryAssembly()?.FullName);
+            printf("Usage: {0} <package> [-v -l] [-o <output-c-file>] [-a <architecture>] [-s <system-os>]\n", Assembly.GetEntryAssembly()?.FullName);
             return 1;
         }
 
@@ -62,10 +65,32 @@ namespace IonLang
             if (args.Length == 0) {
                 return usage();
             }
+            init_target_names();
             var package_name = args[0];
-            initialise();
             flag_verbose = args.Contains("-v");
             flag_lazy = args.Contains("-l");
+            int pos = Array.IndexOf(args, "-s");
+            if (pos != -1) {
+                if (pos < args.Length) {
+                    target_os = get_os(args[pos + 1].ToPtr());
+                }
+                else
+                    return usage();
+            }
+            pos = Array.IndexOf(args, "-a");
+            if (pos != -1) {
+                if (pos < args.Length) {
+                    target_arch = get_arch(args[pos + 1].ToPtr());
+                }
+                else
+                    return usage();
+            }
+
+            initialise();
+            if (flag_verbose) {
+                printf("Target operating system: {0}\n", os_names[(int)target_os]);
+                printf("Target architecture: {0}\n", arch_names[(int)target_arch]);
+            }
             builtin_package = import_package("builtin".ToPtr());
             if (builtin_package == null) {
                 error_here("Failed to compile package 'builtin'.\n");
@@ -85,7 +110,7 @@ namespace IonLang
             main_sym->external_name = main_name;
             resolve_package_syms(builtin_package);
             resolve_package_syms(main_package);
-            if (flag_lazy) {
+            if (!flag_lazy) {
                 for (int i = 0; i < package_list->count; i++) {
                     resolve_package_syms(package_list->Get<Package>(i));
                 }
@@ -95,8 +120,8 @@ namespace IonLang
                 printf("Compiled {0} symbols in {1} packages\n", reachable_syms->count, package_list->count);
 
             string c_path;
-            if (args.Any(s => s == "-o")) {
-                int pos = Array.IndexOf(args, "-o");
+            pos = Array.IndexOf(args, "-o");
+            if (pos != -1) {
                 if (pos < args.Length) {
                     c_path = args[pos + 1];
                 }

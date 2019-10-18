@@ -45,6 +45,14 @@ namespace IonLang
         public long offset;
     }
 
+    struct TypeMetrics
+    {
+        public long size;
+        public long align;
+        public bool sign;
+        public ulong max;
+    }
+
     [StructLayout(LayoutKind.Explicit)]
     internal unsafe struct Type
     {
@@ -97,9 +105,9 @@ namespace IonLang
         private static readonly Type* type_ullong  = basic_type_alloc(TYPE_ULLONG, 8, 8, 13);
         private static readonly Type* type_float   = basic_type_alloc(TYPE_FLOAT, 4, 4, 14);
         private static readonly Type* type_double  = basic_type_alloc(TYPE_DOUBLE, 8, 8, 15);
-        private static readonly Type* type_usize   = type_ullong;
-        private static readonly Type* type_ssize   = type_llong;
-        private static readonly Type* type_uintptr   = type_ullong;
+        private static Type* type_usize   = type_ullong;
+        private static Type* type_ssize   = type_llong;
+        private static Type* type_uintptr   = type_ullong;
 
         static readonly int[] type_ranks = new int[(int)NUM_TYPE_KINDS];
         static readonly char*[] type_names = new char*[(int)NUM_TYPE_KINDS];
@@ -139,7 +147,8 @@ namespace IonLang
 
         bool is_signed_type(Type* type) {
             switch (type->kind) {
-                // TODO: TYPE_CHAR signedness is platform independent, needs to factor into backend
+                case TYPE_CHAR:
+                    return type_metrics[(int)TYPE_CHAR].sign;
                 case TYPE_SCHAR:
                 case TYPE_SHORT:
                 case TYPE_INT:
@@ -259,8 +268,8 @@ namespace IonLang
             var type = cached_ptr_types.map_get<Type>(@base);
             if (type == null) {
                 type = type_alloc(TYPE_PTR);
-                type->size = PTR_SIZE;
-                type->align = PTR_ALIGN;
+                type->size = type_metrics[(int)TYPE_PTR].size;
+                type->align = type_metrics[(int)TYPE_PTR].align;
                 type->@base = @base;
 
                 cached_ptr_types.map_put(@base, type);
@@ -363,8 +372,8 @@ namespace IonLang
                 }
             }
             Type *type = type_alloc(TYPE_FUNC);
-            type->size = PTR_SIZE;
-            type->align = PTR_ALIGN;
+            type->size = type_metrics[(int)TYPE_PTR].size;
+            type->align = type_metrics[(int)TYPE_PTR].align;
             type->func.@params = (Type**)memdup(@params, params_size);
             type->func.num_params = num_params;
             type->func.has_varargs = has_varargs;

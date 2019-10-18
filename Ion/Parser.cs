@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace IonLang
+﻿namespace IonLang
 {
     using static TokenKind;
     using static DeclKind;
