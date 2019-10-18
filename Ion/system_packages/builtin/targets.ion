@@ -1,0 +1,5 @@
+﻿@foreign
+var ION_OS: char const*;
+
+@foreign
+var ION_ARCH: char const*;

@@ -1,0 +1,1 @@
+﻿#static_assert(sizeof(:void*) == 4)

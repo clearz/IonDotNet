@@ -42,7 +42,7 @@ typedef ullong typeid;
 #endif
 
 const char *ION_OS = "win32";
-const char *ION_ARCH = "x64";
+const char *ION_ARCH = "x86";
 
 // Foreign header files
 #include <math.h>
@@ -603,7 +603,7 @@ const TypeInfo *typeinfo_table[110] = {
         {"y", .type = TYPEID(8, TYPE_INT, int), .offset = offsetof(test1_Vector, y)},}},
     [56] = NULL, // Func
     [57] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(test1_T), .align = alignof(test1_T), .name = "test1_T", .num_fields = 1, .fields = (TypeFieldInfo[]) {
-        {"a", .type = TYPEID(94, TYPE_ARRAY, int [9]), .offset = offsetof(test1_T, a)},}},
+        {"a", .type = TYPEID(94, TYPE_ARRAY, int [5]), .offset = offsetof(test1_T, a)},}},
     [58] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(57, TYPE_STRUCT, test1_T)},
     [59] = NULL, // Enum
     [60] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const char * [4]), .align = alignof(const char * [4]), .base = TYPEID(22, TYPE_PTR, const char *), .count = 4},
@@ -623,8 +623,8 @@ const TypeInfo *typeinfo_table[110] = {
         {"int_ptr", .type = TYPEID(33, TYPE_PTR, int *), .offset = offsetof(test1_Ints, int_ptr)},
         {"int_arr", .type = TYPEID(35, TYPE_ARRAY, int [3]), .offset = offsetof(test1_Ints, int_arr)},}},
     [71] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(test1_BufHdr), .align = alignof(test1_BufHdr), .name = "test1_BufHdr", .num_fields = 3, .fields = (TypeFieldInfo[]) {
-        {"cap", .type = TYPEID(13, TYPE_ULLONG, ullong), .offset = offsetof(test1_BufHdr, cap)},
-        {"len", .type = TYPEID(13, TYPE_ULLONG, ullong), .offset = offsetof(test1_BufHdr, len)},
+        {"cap", .type = TYPEID(9, TYPE_UINT, uint), .offset = offsetof(test1_BufHdr, cap)},
+        {"len", .type = TYPEID(9, TYPE_UINT, uint), .offset = offsetof(test1_BufHdr, len)},
         {"buf", .type = TYPEID(109, TYPE_ARRAY, char [1]), .offset = offsetof(test1_BufHdr, buf)},}},
     [72] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(test1_Thing), .align = alignof(test1_Thing), .name = "test1_Thing", .num_fields = 1, .fields = (TypeFieldInfo[]) {
         {"a", .type = TYPEID(8, TYPE_INT, int), .offset = offsetof(test1_Thing, a)},}},
@@ -649,7 +649,7 @@ const TypeInfo *typeinfo_table[110] = {
     [91] = NULL, // Func
     [92] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(55, TYPE_STRUCT, test1_Vector)},
     [93] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [16]), .align = alignof(int [16]), .base = TYPEID(8, TYPE_INT, int), .count = 16},
-    [94] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [9]), .align = alignof(int [9]), .base = TYPEID(8, TYPE_INT, int), .count = 9},
+    [94] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [5]), .align = alignof(int [5]), .base = TYPEID(8, TYPE_INT, int), .count = 5},
     [95] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [4]), .align = alignof(int [4]), .base = TYPEID(8, TYPE_INT, int), .count = 4},
     [96] = &(TypeInfo){TYPE_CONST, .size = sizeof(const float), .align = alignof(const float), .base = TYPEID(14, TYPE_FLOAT, float)},
     [97] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(96, TYPE_CONST, const float)},
@@ -1068,9 +1068,9 @@ void test1_test_lits(void) {
     #line 329
     ullong ull = 0xFFFFFFFFFFFFFFFFull;
     #line 330
-    int x1 = 0xFFFFFFFF;
+    uint x1 = 0xFFFFFFFF;
     #line 331
-    int x2 = 4294967295;
+    llong x2 = 4294967295;
     #line 332
     ullong x3 = 0xFFFFFFFFFFFFFFFF;
     #line 333
@@ -1244,7 +1244,7 @@ void test1_test_sizeof(void) {
     #line 451
     int i = 0;
     #line 452
-    ullong n = sizeof(i);
+    uint n = sizeof(i);
     #line 453
     (n) = sizeof(int);
     #line 454
@@ -1500,19 +1500,19 @@ void test1_test_alignof(void) {
     #line 622
     int i = 42;
     #line 623
-    ullong n1 = alignof(int);
+    uint n1 = alignof(int);
     #line 624
-    ullong n2 = alignof(int);
+    uint n2 = alignof(int);
     #line 625
-    ullong n3 = alignof(ullong);
+    uint n3 = alignof(ullong);
     #line 626
-    ullong n4 = alignof(int *);
+    uint n4 = alignof(int *);
 }
 
 #line 636
 void test1_test_offsetof(void) {
     #line 637
-    ullong n = offsetof(test1_BufHdr, buf);
+    uint n = offsetof(test1_BufHdr, buf);
 }
 
 test1_Thing test1_thing;
