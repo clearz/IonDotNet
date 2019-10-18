@@ -90,24 +90,23 @@ namespace IonLang
         private Map cached_const_types;
         private static Map typeid_map;
 
-        private static readonly Type* type_void    = basic_type_alloc(TYPE_VOID, 0, 1, 1);
-        private static readonly Type* type_bool    = basic_type_alloc(TYPE_BOOL, 1, 1, 2);
-        private static readonly Type* type_char    = basic_type_alloc(TYPE_CHAR, 2, 2, 3);
-        private static readonly Type* type_uchar   = basic_type_alloc(TYPE_UCHAR, 1, 1, 4);
-        private static readonly Type* type_schar   = basic_type_alloc(TYPE_SCHAR, 1, 1, 5);
-        private static readonly Type* type_short   = basic_type_alloc(TYPE_SHORT, 2, 2, 6);
-        private static readonly Type* type_ushort  = basic_type_alloc(TYPE_USHORT, 2, 2, 7);
-        private static readonly Type* type_int     = basic_type_alloc(TYPE_INT, 4, 4, 8);
-        private static readonly Type* type_uint    = basic_type_alloc(TYPE_UINT, 4, 4, 9);
-        private static readonly Type* type_long    = basic_type_alloc(TYPE_LONG, 4, 4, 10); // 4 on 64-bit windows, 8 on 64-bit linux, probably factor this out to the backend
-        private static readonly Type* type_ulong   = basic_type_alloc(TYPE_ULONG, 4, 4, 11);
-        private static readonly Type* type_llong   = basic_type_alloc(TYPE_LLONG, 8, 8, 12);
-        private static readonly Type* type_ullong  = basic_type_alloc(TYPE_ULLONG, 8, 8, 13);
-        private static readonly Type* type_float   = basic_type_alloc(TYPE_FLOAT, 4, 4, 14);
-        private static readonly Type* type_double  = basic_type_alloc(TYPE_DOUBLE, 8, 8, 15);
-        private static Type* type_usize   = type_ullong;
-        private static Type* type_ssize   = type_llong;
-        private static Type* type_uintptr   = type_ullong;
+        private static readonly Type* type_void    = basic_type_alloc(TYPE_VOID);
+        private static readonly Type* type_bool    = basic_type_alloc(TYPE_BOOL);
+        private static readonly Type* type_char    = basic_type_alloc(TYPE_CHAR);
+        private static readonly Type* type_uchar   = basic_type_alloc(TYPE_UCHAR);
+        private static readonly Type* type_schar   = basic_type_alloc(TYPE_SCHAR);
+        private static readonly Type* type_short   = basic_type_alloc(TYPE_SHORT);
+        private static readonly Type* type_ushort  = basic_type_alloc(TYPE_USHORT);
+        private static readonly Type* type_int     = basic_type_alloc(TYPE_INT);
+        private static readonly Type* type_uint    = basic_type_alloc(TYPE_UINT);
+        private static readonly Type* type_long    = basic_type_alloc(TYPE_LONG); // 4 on 64-bit windows, 8 on 64-bit linux, probably factor this out to the backend
+        private static readonly Type* type_ulong   = basic_type_alloc(TYPE_ULONG);
+        private static readonly Type* type_llong   = basic_type_alloc(TYPE_LLONG);
+        private static readonly Type* type_ullong  = basic_type_alloc(TYPE_ULLONG);
+        private static readonly Type* type_float   = basic_type_alloc(TYPE_FLOAT);
+        private static readonly Type* type_double  = basic_type_alloc(TYPE_DOUBLE);
+
+        private static Type* type_usize, type_ssize, type_uintptr;
 
         static readonly int[] type_ranks = new int[(int)NUM_TYPE_KINDS];
         static readonly char*[] type_names = new char*[(int)NUM_TYPE_KINDS];
@@ -216,6 +215,7 @@ namespace IonLang
             }
         }
         void init_builtin_type(Type* type) {
+            type->typeid = next_typeid++;
             register_typeid(type);
             type->size = type_metrics[(int)type->kind].size;
             type->align = type_metrics[(int)type->kind].align;

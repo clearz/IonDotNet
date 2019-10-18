@@ -29,7 +29,7 @@ namespace IonLang
         PtrBuffer* sorted_syms;
         PtrBuffer* reachable_syms;
 
-        static uint next_typeid = 16;
+        static uint next_typeid = 1;
 
 #if X64
         internal const int PTR_SIZE = 8;

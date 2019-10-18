@@ -10,6 +10,8 @@ namespace IonLang
         const int MAX_SEARCH_PATHS = 256;
         PtrBuffer* package_search_paths = PtrBuffer.Create();
         bool flag_verbose = false, flag_lazy = false;
+        string output_name = null;
+
         void add_package_search_path(string path) {
             if (flag_verbose)
                 printf("Adding package search path {0}\n", path);
@@ -64,6 +66,7 @@ namespace IonLang
         bool parse_env_vars(string[] args) {
             flag_verbose = args.Contains("-v");
             flag_lazy = args.Contains("-l");
+            int pos;
 
             var sys = Environment.GetEnvironmentVariable("IONOS");
             if (sys != null) {
@@ -72,7 +75,7 @@ namespace IonLang
                     printf("Unknown operating system in IONARCH environment variable: {0}\n", sys);
             }
             else {
-                int pos = Array.IndexOf(args, "-s");
+                pos = Array.IndexOf(args, "-s");
                 if (pos != -1) {
                     if (pos < args.Length) {
                         target_os = get_os(args[pos + 1].ToPtr());
@@ -89,7 +92,7 @@ namespace IonLang
                     printf("Unknown target architecture in IONARCH environment variable: {0}\n", sys);
             }
             else {
-                int pos = Array.IndexOf(args, "-a");
+                pos = Array.IndexOf(args, "-a");
                 if (pos != -1) {
                     if (pos < args.Length) {
                         target_arch = get_arch(args[pos + 1].ToPtr());
@@ -98,6 +101,15 @@ namespace IonLang
                         return false;
 
                 }
+            }
+
+            pos = Array.IndexOf(args, "-o");
+            if (pos != -1) {
+                if (pos < args.Length) {
+                    output_name = args[pos + 1];
+                }
+                else
+                    return false;
             }
             return true;
         }
@@ -143,26 +155,17 @@ namespace IonLang
             finalize_reachable_syms();
             if (flag_verbose)
                 printf("Compiled {0} symbols in {1} packages\n", reachable_syms->count, package_list->count);
-
-            string c_path;
-            int pos = Array.IndexOf(args, "-o");
-            if (pos != -1) {
-                if (pos < args.Length) {
-                    c_path = args[pos + 1];
-                }
-                else
-                    return usage();
-            }
-            else {
-                c_path = $"out_{package_name}.c";
-            }
-            printf("Generating {0}\n", c_path);
+            
+            printf("Generating {0}\n", output_name);
             gen_all();
+
+            output_name = output_name ?? $"out_{package_name}.c";
+
             try {
-                File.WriteAllText(c_path, gen_buf.ToString());
+                File.WriteAllText(output_name, gen_buf.ToString());
             }
             catch {
-                printf("error: Failed to write file: {0}\n", c_path);
+                printf("error: Failed to write file: {0}\n", output_name);
                 return 1;
             }
 
