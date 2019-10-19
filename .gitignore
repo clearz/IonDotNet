@@ -260,3 +260,5 @@ paket-files/
 __pycache__/
 *.pyc
 /TestCompiler/template.txt
+/Ion/system_packages/sdl
+/Ion/win

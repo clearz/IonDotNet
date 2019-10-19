@@ -1,6 +1,11 @@
 ﻿import libc {...}
 
-func main(argc: int, argv: char**): int {
-    printf("Wazzup");
-    return 0;
+struct App {
+	text: char[32];
+}
+
+func main(argc: int, argv: char**) {
+    c : char[24] = {0};
+	app : App;
+	c1 := app.text;
 }

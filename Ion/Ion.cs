@@ -54,7 +54,7 @@ namespace IonLang
             var dir = new DirectoryInfo(BACK_PATH);
 
             Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
-            var b = ion_main(new []{pkg, "-v", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
+            var b = ion_main(new []{pkg, "-ccv", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
             assert(b == 0);
         }
 

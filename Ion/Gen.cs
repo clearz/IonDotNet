@@ -88,24 +88,29 @@ namespace IonLang
         }
 
         private void writeln() {
+            //System.Console.WriteLine();
             gen_buf.Append('\n');
         }
 
         private void c_write(char c) {
+            //System.Console.Write(c);
             gen_buf.Append(c);
         }
 
         private void c_write(char* c) {
+            //System.Console.Write(new string(c));
             gen_buf.Append(c, strlen(c));
             //while ((*(gen_buf + gen_pos) = *(c++)) != 0) gen_pos++;
         }
 
         private void c_write(char* c, int len) {
+            //System.Console.Write(new string(c));
             gen_buf.Append(c, len);
             //Unsafe.CopyBlock(gen_buf + gen_pos, c, (uint)len << 1);
             //gen_pos += len;
         }
         private void c_write(string s) {
+            //System.Console.Write(s);
             gen_buf.Append(s);
             //Unsafe.CopyBlock(gen_buf + gen_pos, c, (uint)len << 1);
             //gen_pos += len;
@@ -223,12 +228,15 @@ namespace IonLang
 
                     break;
                 case TYPE_FUNC: {
-                    if (str != null) {
-                        c_write('(');
-                        c_write('*');
+                    if(type->func.ret != null)
+                        type_to_cdecl(type->func.ret, null);
+                    else
+                        c_write(VOID, 4);
+                    c_write('(');
+                    c_write('*');
+                    if (str != null)
                         c_write(str);
-                        c_write(')');
-                    }
+                    c_write(')');
 
                     c_write('(');
                     if (type->func.num_params == 0)
@@ -250,7 +258,6 @@ namespace IonLang
                         c_write('.');
                     }
                     c_write(')');
-                    type_to_cdecl(type->func.ret, null);
                 }
                 break;
                 default:
@@ -389,14 +396,17 @@ namespace IonLang
                 case TYPESPEC_FUNC: {
                     if(typespec->func.ret != null)
                         typespec_to_cdecl(typespec->func.ret, null);
+                    else
+                        c_write(VOID, 4);
                     c_write(' ');
-                    if (str != null) {
+                   
 
                         c_write('(');
                         c_write('*');
-                        c_write(str);
+                        if (str != null)
+                            c_write(str);
                         c_write(')');
-                    }
+                    
 
                     c_write('(');
                     if (typespec->func.num_args == 0) {
@@ -419,8 +429,8 @@ namespace IonLang
                             c_write('.');
                             c_write('.');
                         }
-                        c_write(')');
                     }
+                    c_write(')');
 
                     break;
                 }
@@ -1607,7 +1617,6 @@ namespace IonLang
 
 
         private void gen_all() {
-            gen_buf.Clear();
             c_write(preamble.ToPtr());
             gen_target_preamble();
             genln();

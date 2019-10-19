@@ -8,6 +8,7 @@ namespace IonLang
 {
     internal static unsafe class Extensions
     {
+        [DebuggerHidden]
         public static void* ToArrayPtr<T>(this T[] objs) where T : unmanaged {
             var size_of = Marshal.SizeOf<T>();
             var size = size_of * objs.Length;
@@ -20,6 +21,7 @@ namespace IonLang
             return ptr;
         }
 
+        [DebuggerHidden]
         public static char* ToPtr(this string s) {
             var stream = Ion.xmalloc<char>(s.Length + 1);
             fixed (char* c = s) {
@@ -29,6 +31,7 @@ namespace IonLang
             stream[s.Length] = '\0';
             return stream;
         }
+        [DebuggerHidden]
         public static char* ToPtr(this string s, out int len) {
             len = s.Length;
             var stream = Ion.xmalloc<char>(len+ 1);
@@ -40,6 +43,7 @@ namespace IonLang
             return stream;
         }
 
+        [DebuggerHidden]
         public static char* ToPtr2(this string s) {
             fixed (char* c = s) {
                 return c;

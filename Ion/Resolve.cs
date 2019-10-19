@@ -206,7 +206,9 @@ namespace IonLang
                     else {
                         init = new_expr_int(item.pos, 0, 0, 0);
                     }
-                    sym_global_decl(new_decl_const(item.pos, item.name, enum_typespec, init));
+                    Decl *item_decl = new_decl_const(item.pos, item.name, enum_typespec, init);
+                    item_decl->notes = decl->notes;
+                    sym_global_decl(item_decl);
                     prev_item_name = item.name;
                 }
             }
@@ -268,7 +270,8 @@ namespace IonLang
             return resolved_expected_type_map.map_get<Type>(expr);
         }
         void set_resolved_expected_type(Expr* expr, Type* type) {
-            resolved_expected_type_map.map_put(expr, type);
+            if (expr != null && type != null)
+                resolved_expected_type_map.map_put(expr, type);
         }
 
         private Operand operand_rvalue(Type* type) {
@@ -1285,7 +1288,12 @@ namespace IonLang
             else {
                 assert(expr);
                 type = unqualify_type(resolve_expr(expr).type);
-                set_resolved_expected_type(expr, type);
+                if (is_array_type(type) && expr->kind != EXPR_COMPOUND) {
+                    type = type_decay(type);
+                    set_resolved_type(expr, type);
+                }
+                else
+                    set_resolved_expected_type(expr, type);
             }
             complete_type(type);
             if (type->size == 0) {
@@ -2009,7 +2017,7 @@ namespace IonLang
                         return result;
                     }
                     else if (is_ptr_type(left.type) && is_ptr_type(right.type)) {
-                        if (left.type->@base != right.type->@base) {
+                        if (unqualify_type(left.type->@base) != unqualify_type(right.type->@base)) {
                             fatal_error(pos, "Cannot compare pointers to different types");
                         }
                         return operand_rvalue(type_int);
@@ -2640,10 +2648,12 @@ namespace IonLang
             return package;
         }
 
-        void import_all_package_symbols(Package* package) {
+        void import_all_package_symbols(Package* package) {  
+            // TODO: should have a more general mechanism
+            char *main_name = _I("main");
             for (int i = 0; i < package->syms->count; i++) {
                 Sym* sym = package->syms->Get<Sym>(i);
-                if (sym->package == package) {
+                if (sym->package == package && sym->name != main_name) {
                     sym_global_put(sym->name, sym);
                 }
             }
@@ -2768,7 +2778,7 @@ namespace IonLang
 
         private void init_builtin_syms() {
 
-            assert(current_package);
+            //assert(current_package);
             
             type_ranks[(int)TYPE_BOOL] = 1;
             type_ranks[(int)TYPE_CHAR] = 2;
