@@ -346,6 +346,7 @@ namespace IonLang
                 case TYPESPEC_PTR:
                     if (str != null) {
                         typespec_to_cdecl(typespec->@base, null);
+                        c_write(' ');
                         c_write('(');
                         c_write('*');
                         c_write(str);
@@ -1578,34 +1579,8 @@ namespace IonLang
             }
         }
 
-        void gen_target_preamble() {
-            var c = type_names[(int)TYPE_CHAR];
-            genln();
-            c_write(const_keyword, 5);
-            c_write(' ');
-            c_write(c, 4);
-            c_write(' ');
-            c_write('*');
-            c_write("ION_OS = ");
-            gen_str(os_names[(int)target_os], false);
-            c_write(';');
-            genln();
-            c_write(const_keyword, 5);
-            c_write(' ');
-            c_write(c, 4);
-            c_write(' ');
-            c_write('*');
-            c_write("ION_ARCH = ");
-            gen_str(arch_names[(int)target_arch], false);
-            c_write(';');
-        }
-
-
-
         private void gen_all() {
             c_write(preamble.ToPtr());
-            gen_target_preamble();
-            genln();
             gen_package_external_names();
             genlnf("// Foreign header files".ToPtr());
             gen_foreign_headers();

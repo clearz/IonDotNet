@@ -21,28 +21,11 @@ typedef unsigned long ulong;
 typedef long long llong;
 typedef unsigned long long ullong;
 
-typedef uint8_t uint8;
-typedef int8_t int8;
-typedef uint16_t uint16;
-typedef int16_t int16;
-typedef uint32_t uint32;
-typedef int32_t int32;
-typedef uint64_t uint64;
-typedef int64_t int64;
-
-typedef uintptr_t uintptr;
-typedef size_t usize;
-typedef ptrdiff_t ssize;
-typedef ullong typeid;
-
 #ifdef _MSC_VER
 #define alignof(x) __alignof(x)
 #else
 #define alignof(x) __alignof__(x)
 #endif
-
-const char *ION_OS = "win32";
-const char *ION_ARCH = "x64";
 
 // Foreign header files
 #include <ctype.h>
@@ -68,126 +51,122 @@ typedef struct test1_Ints test1_Ints;
 typedef struct test1_BufHdr test1_BufHdr;
 
 // Sorted declarations
-#line 1 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/typeinfo.ion"
-typedef int TypeKind;
+#line 1 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/config_win32.ion"
+extern const char (*IONOS);
 
-#line 2
-#define TYPE_NONE ((int)(0))
+#line 1 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/config_x64.ion"
+extern const char (*IONARCH);
+
+#line 1 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/typeinfo.ion"
+typedef ullong typeid;
 
 #line 3
-#define TYPE_VOID ((int)((TYPE_NONE) + (1)))
+typedef int TypeKind;
 
 #line 4
-#define TYPE_BOOL ((int)((TYPE_VOID) + (1)))
+#define TYPE_NONE ((int)(0))
 
 #line 5
-#define TYPE_CHAR ((int)((TYPE_BOOL) + (1)))
+#define TYPE_VOID ((int)((TYPE_NONE) + (1)))
 
 #line 6
-#define TYPE_UCHAR ((int)((TYPE_CHAR) + (1)))
+#define TYPE_BOOL ((int)((TYPE_VOID) + (1)))
 
 #line 7
-#define TYPE_SCHAR ((int)((TYPE_UCHAR) + (1)))
+#define TYPE_CHAR ((int)((TYPE_BOOL) + (1)))
 
 #line 8
-#define TYPE_SHORT ((int)((TYPE_SCHAR) + (1)))
+#define TYPE_UCHAR ((int)((TYPE_CHAR) + (1)))
 
 #line 9
-#define TYPE_USHORT ((int)((TYPE_SHORT) + (1)))
+#define TYPE_SCHAR ((int)((TYPE_UCHAR) + (1)))
 
 #line 10
-#define TYPE_INT ((int)((TYPE_USHORT) + (1)))
+#define TYPE_SHORT ((int)((TYPE_SCHAR) + (1)))
 
 #line 11
-#define TYPE_UINT ((int)((TYPE_INT) + (1)))
+#define TYPE_USHORT ((int)((TYPE_SHORT) + (1)))
 
 #line 12
-#define TYPE_LONG ((int)((TYPE_UINT) + (1)))
+#define TYPE_INT ((int)((TYPE_USHORT) + (1)))
 
 #line 13
-#define TYPE_ULONG ((int)((TYPE_LONG) + (1)))
+#define TYPE_UINT ((int)((TYPE_INT) + (1)))
 
 #line 14
-#define TYPE_LLONG ((int)((TYPE_ULONG) + (1)))
+#define TYPE_LONG ((int)((TYPE_UINT) + (1)))
 
 #line 15
-#define TYPE_ULLONG ((int)((TYPE_LLONG) + (1)))
+#define TYPE_ULONG ((int)((TYPE_LONG) + (1)))
 
 #line 16
-#define TYPE_FLOAT ((int)((TYPE_ULLONG) + (1)))
+#define TYPE_LLONG ((int)((TYPE_ULONG) + (1)))
 
 #line 17
-#define TYPE_DOUBLE ((int)((TYPE_FLOAT) + (1)))
+#define TYPE_ULLONG ((int)((TYPE_LLONG) + (1)))
 
 #line 18
-#define TYPE_CONST ((int)((TYPE_DOUBLE) + (1)))
+#define TYPE_FLOAT ((int)((TYPE_ULLONG) + (1)))
 
 #line 19
-#define TYPE_PTR ((int)((TYPE_CONST) + (1)))
+#define TYPE_DOUBLE ((int)((TYPE_FLOAT) + (1)))
 
 #line 20
-#define TYPE_ARRAY ((int)((TYPE_PTR) + (1)))
+#define TYPE_CONST ((int)((TYPE_DOUBLE) + (1)))
 
 #line 21
-#define TYPE_STRUCT ((int)((TYPE_ARRAY) + (1)))
+#define TYPE_PTR ((int)((TYPE_CONST) + (1)))
 
 #line 22
-#define TYPE_UNION ((int)((TYPE_STRUCT) + (1)))
+#define TYPE_ARRAY ((int)((TYPE_PTR) + (1)))
 
 #line 23
+#define TYPE_STRUCT ((int)((TYPE_ARRAY) + (1)))
+
+#line 24
+#define TYPE_UNION ((int)((TYPE_STRUCT) + (1)))
+
+#line 25
 #define TYPE_FUNC ((int)((TYPE_UNION) + (1)))
 
-#line 32
+#line 34
 struct TypeInfo {
-    #line 33
-    TypeKind kind;
-    #line 34
-    int size;
     #line 35
-    int align;
+    TypeKind kind;
     #line 36
-    const char(*name);
+    int size;
     #line 37
-    int count;
+    int align;
     #line 38
-    typeid base;
+    const char (*name);
     #line 39
-    TypeFieldInfo(*fields);
+    int count;
     #line 40
+    typeid base;
+    #line 41
+    TypeFieldInfo (*fields);
+    #line 42
     int num_fields;
 };
 
-#line 49
+#line 51
 TypeKind typeid_kind(typeid type);
 
 int typeid_index(typeid type);
 
-#line 3 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/types_x64.ion"
-typedef uint64 usize;
-
-#line 57 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/typeinfo.ion"
-usize typeid_size(typeid type);
+size_t typeid_size(typeid type);
 
 const TypeInfo * get_typeinfo(typeid type);
-
-#line 1 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/types_win32.ion"
-typedef uint16 wchar;
-
-#line 4 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/types_x64.ion"
-typedef int64 ssize;
-
-#line 5
-typedef uint64 uintptr;
 
 #line 6 "C:/Users/john/source/repos/IonDotNet/Ion/test1/test1.ion"
 extern char (*test1_esc_test_str);
 
 #line 8
-extern int(*test1_some_array);
+extern int (*test1_some_array);
 
 #line 10
 
-extern test1_SomeIncompleteType(*test1_incomplete_ptr);
+extern test1_SomeIncompleteType (*test1_incomplete_ptr);
 
 #line 25
 #define test1_PI (3.14f)
@@ -196,7 +175,7 @@ extern test1_SomeIncompleteType(*test1_incomplete_ptr);
 #define test1_PI2 ((test1_PI) + (test1_PI))
 
 #line 28
-#define test1_U8 ((uint8)(42))
+#define test1_U8 ((uint8_t)(42))
 
 #line 30
 extern char test1_c;
@@ -256,9 +235,9 @@ struct test1_UartCtrl {
 };
 
 #line 148
-uint32 test1_pack(test1_UartCtrl ctrl);
+uint32_t test1_pack(test1_UartCtrl ctrl);
 
-test1_UartCtrl test1_unpack(uint32 word);
+test1_UartCtrl test1_unpack(uint32_t word);
 
 void test1_test_uart(void);
 
@@ -270,13 +249,13 @@ union test1_IntOrPtr {
     #line 198
     int i;
     #line 199
-    int(*p);
+    int (*p);
 };
 
 #line 174
 int test1_g(test1_U u);
 
-void test1_k(void(*vp), int(*ip));
+void test1_k(void (*vp), int (*ip));
 
 #line 183
 void test1_f1(void);
@@ -316,7 +295,7 @@ int test1_fact_iter(int n);
 int test1_fact_rec(int n);
 
 #line 259
-extern test1_T(*test1_p);
+extern test1_T (*test1_p);
 
 #line 257
 #define test1_M ((1) + (sizeof(test1_p)))
@@ -375,16 +354,16 @@ int test1_test_ctrl(void);
 extern const int (test1_j);
 
 #line 392
-extern const int(*test1_q);
+extern const int (*test1_q);
 
 #line 393
 extern const test1_Vector (test1_cv);
 
 #line 395
-void test1_f4(const char(*x));
+void test1_f4(const char (*x));
 
 #line 402
-void test1_f5(const int(*p));
+void test1_f5(const int (*p));
 
 #line 405
 void test1_test_convert(void);
@@ -401,11 +380,11 @@ void test1_test_sizeof(void);
 #line 462
 void test1_test_cast(void);
 
-#line 70 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/typeinfo.ion"
+#line 72 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/typeinfo.ion"
 struct Any {
-    #line 71
-    void(*ptr);
-    #line 72
+    #line 73
+    void (*ptr);
+    #line 74
     typeid type;
 };
 
@@ -467,15 +446,18 @@ void test1_test_if(void);
 #line 679
 void test1_test_reachable(void);
 
-int main(int argc, const char *(*argv));
+void test1_test_os_arch(void);
 
-#line 26 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/typeinfo.ion"
+#line 688
+int main(int argc, const char * (*argv));
+
+#line 28 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/typeinfo.ion"
 struct TypeFieldInfo {
-    #line 27
-    const char(*name);
-    #line 28
-    typeid type;
     #line 29
+    const char (*name);
+    #line 30
+    typeid type;
+    #line 31
     int offset;
 };
 
@@ -515,7 +497,7 @@ struct test1_Ints {
     #line 574
     int num_ints;
     #line 575
-    int(*int_ptr);
+    int (*int_ptr);
     #line 576
     int (int_arr[3]);
 };
@@ -523,9 +505,9 @@ struct test1_Ints {
 #line 633
 struct test1_BufHdr {
     #line 634
-    usize cap;
+    size_t cap;
     #line 634
-    usize len;
+    size_t len;
     #line 635
     char (buf[1]);
 };
@@ -561,33 +543,33 @@ const TypeInfo *typeinfo_table[103] = {
     [15] = &(TypeInfo){TYPE_DOUBLE, .size = sizeof(double), .align = alignof(double), .name = "double"},
     [16] = &(TypeInfo){TYPE_CONST, .size = sizeof(const char), .align = alignof(const char), .base = TYPEID(3, TYPE_CHAR, char)},
     [17] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(16, TYPE_CONST, const char)},
-    [18] = NULL, // Enum
-    [19] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(TypeFieldInfo), .align = alignof(TypeFieldInfo), .name = "TypeFieldInfo", .num_fields = 3, .fields = (TypeFieldInfo[]) {
+    [18] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(3, TYPE_CHAR, char)},
+    [19] = NULL, // Enum
+    [20] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(TypeFieldInfo), .align = alignof(TypeFieldInfo), .name = "TypeFieldInfo", .num_fields = 3, .fields = (TypeFieldInfo[]) {
         {"name", .type = TYPEID(17, TYPE_PTR, const char *), .offset = offsetof(TypeFieldInfo, name)},
         {"type", .type = TYPEID(13, TYPE_ULLONG, ullong), .offset = offsetof(TypeFieldInfo, type)},
         {"offset", .type = TYPEID(8, TYPE_INT, int), .offset = offsetof(TypeFieldInfo, offset)},}},
-    [20] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(TypeInfo), .align = alignof(TypeInfo), .name = "TypeInfo", .num_fields = 8, .fields = (TypeFieldInfo[]) {
-        {"kind", .type = TYPEID(18, TYPE_NONE, TypeKind), .offset = offsetof(TypeInfo, kind)},
+    [21] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(TypeInfo), .align = alignof(TypeInfo), .name = "TypeInfo", .num_fields = 8, .fields = (TypeFieldInfo[]) {
+        {"kind", .type = TYPEID(19, TYPE_NONE, TypeKind), .offset = offsetof(TypeInfo, kind)},
         {"size", .type = TYPEID(8, TYPE_INT, int), .offset = offsetof(TypeInfo, size)},
         {"align", .type = TYPEID(8, TYPE_INT, int), .offset = offsetof(TypeInfo, align)},
         {"name", .type = TYPEID(17, TYPE_PTR, const char *), .offset = offsetof(TypeInfo, name)},
         {"count", .type = TYPEID(8, TYPE_INT, int), .offset = offsetof(TypeInfo, count)},
         {"base", .type = TYPEID(13, TYPE_ULLONG, ullong), .offset = offsetof(TypeInfo, base)},
-        {"fields", .type = TYPEID(21, TYPE_PTR, TypeFieldInfo *), .offset = offsetof(TypeInfo, fields)},
+        {"fields", .type = TYPEID(22, TYPE_PTR, TypeFieldInfo *), .offset = offsetof(TypeInfo, fields)},
         {"num_fields", .type = TYPEID(8, TYPE_INT, int), .offset = offsetof(TypeInfo, num_fields)},}},
-    [21] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(19, TYPE_STRUCT, TypeFieldInfo)},
-    [22] = &(TypeInfo){TYPE_CONST, .size = sizeof(const TypeInfo), .align = alignof(const TypeInfo), .base = TYPEID(20, TYPE_STRUCT, TypeInfo)},
-    [23] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(22, TYPE_CONST, const TypeInfo)},
-    [24] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(23, TYPE_PTR, const TypeInfo *)},
-    [25] = NULL, // Func
+    [22] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(20, TYPE_STRUCT, TypeFieldInfo)},
+    [23] = &(TypeInfo){TYPE_CONST, .size = sizeof(const TypeInfo), .align = alignof(const TypeInfo), .base = TYPEID(21, TYPE_STRUCT, TypeInfo)},
+    [24] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(23, TYPE_CONST, const TypeInfo)},
+    [25] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(24, TYPE_PTR, const TypeInfo *)},
     [26] = NULL, // Func
     [27] = NULL, // Func
     [28] = NULL, // Func
-    [29] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(Any), .align = alignof(Any), .name = "Any", .num_fields = 2, .fields = (TypeFieldInfo[]) {
-        {"ptr", .type = TYPEID(30, TYPE_PTR, void *), .offset = offsetof(Any, ptr)},
+    [29] = NULL, // Func
+    [30] = &(TypeInfo){TYPE_STRUCT, .size = sizeof(Any), .align = alignof(Any), .name = "Any", .num_fields = 2, .fields = (TypeFieldInfo[]) {
+        {"ptr", .type = TYPEID(31, TYPE_PTR, void *), .offset = offsetof(Any, ptr)},
         {"type", .type = TYPEID(13, TYPE_ULLONG, ullong), .offset = offsetof(Any, type)},}},
-    [30] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID0(1, TYPE_VOID)},
-    [31] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(3, TYPE_CHAR, char)},
+    [31] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID0(1, TYPE_VOID)},
     [32] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(8, TYPE_INT, int)},
     [33] = NULL, // Incomplete array type
     [34] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [3]), .align = alignof(int [3]), .base = TYPEID(8, TYPE_INT, int), .count = 3},
@@ -665,15 +647,15 @@ const TypeInfo *typeinfo_table[103] = {
     [87] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [4]), .align = alignof(int [4]), .base = TYPEID(8, TYPE_INT, int), .count = 4},
     [88] = &(TypeInfo){TYPE_CONST, .size = sizeof(const float), .align = alignof(const float), .base = TYPEID(14, TYPE_FLOAT, float)},
     [89] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(88, TYPE_CONST, const float)},
-    [90] = &(TypeInfo){TYPE_CONST, .size = sizeof(const TypeKind), .align = alignof(const TypeKind), .base = TYPEID(18, TYPE_NONE, TypeKind)},
+    [90] = &(TypeInfo){TYPE_CONST, .size = sizeof(const TypeKind), .align = alignof(const TypeKind), .base = TYPEID(19, TYPE_NONE, TypeKind)},
     [91] = &(TypeInfo){TYPE_CONST, .size = sizeof(const ullong), .align = alignof(const ullong), .base = TYPEID(13, TYPE_ULLONG, ullong)},
     [92] = &(TypeInfo){TYPE_CONST, .size = sizeof(const const char *), .align = alignof(const const char *), .base = TYPEID(17, TYPE_PTR, const char *)},
-    [93] = &(TypeInfo){TYPE_CONST, .size = sizeof(const TypeFieldInfo *), .align = alignof(const TypeFieldInfo *), .base = TYPEID(21, TYPE_PTR, TypeFieldInfo *)},
+    [93] = &(TypeInfo){TYPE_CONST, .size = sizeof(const TypeFieldInfo *), .align = alignof(const TypeFieldInfo *), .base = TYPEID(22, TYPE_PTR, TypeFieldInfo *)},
     [94] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(14, TYPE_FLOAT, float)},
-    [95] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(30, TYPE_PTR, void *)},
+    [95] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(31, TYPE_PTR, void *)},
     [96] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const int * [42]), .align = alignof(const int * [42]), .base = TYPEID(66, TYPE_PTR, const int *), .count = 42},
     [97] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(49, TYPE_UNION, test1_IntOrPtr)},
-    [98] = &(TypeInfo){TYPE_CONST, .size = sizeof(const Any), .align = alignof(const Any), .base = TYPEID(29, TYPE_STRUCT, Any)},
+    [98] = &(TypeInfo){TYPE_CONST, .size = sizeof(const Any), .align = alignof(const Any), .base = TYPEID(30, TYPE_STRUCT, Any)},
     [99] = NULL, // Incomplete array type
     [100] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [2]), .align = alignof(int [2]), .base = TYPEID(8, TYPE_INT, int), .count = 2},
     [101] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(test1_Ints [2]), .align = alignof(test1_Ints [2]), .base = TYPEID(73, TYPE_STRUCT, test1_Ints), .count = 2},
@@ -683,43 +665,47 @@ int num_typeinfos = 103;
 const TypeInfo **typeinfos = (const TypeInfo **)typeinfo_table;
 
 // Definitions
-#line 49 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/typeinfo.ion"
+const char (*IONOS) = "win32";
+
+const char (*IONARCH) = "x64";
+
+#line 51 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/typeinfo.ion"
 TypeKind typeid_kind(typeid type) {
-    #line 50
+    #line 52
     return (TypeKind)((((type) >> (24))) & (0xFF));
 }
 
-#line 53
+#line 55
 int typeid_index(typeid type) {
-    #line 54
+    #line 56
     return (int)((type) & (0xFFFFFF));
 }
 
-#line 57
-usize typeid_size(typeid type) {
-    #line 58
-    return (usize)((type) >> (32));
+#line 59
+size_t typeid_size(typeid type) {
+    #line 60
+    return (size_t)((type) >> (32));
 }
 
-#line 61
+#line 63
 const TypeInfo * get_typeinfo(typeid type) {
-    #line 62
+    #line 64
     int index = (typeid_index)(type);
-    #line 63
+    #line 65
     if ((typeinfos) && ((index) < (num_typeinfos))) {
-        #line 64
+        #line 66
         return typeinfos[index];
     } else {
-        #line 66
+        #line 68
         return NULL;
     }
 }
 
 char (*test1_esc_test_str) = "Hello\nworld\nHex: \xFHello\xFF";
 
-int(*test1_some_array) = (int []){1, 2, 3};
+int (*test1_some_array) = (int []){1, 2, 3};
 
-test1_SomeIncompleteType(*test1_incomplete_ptr);
+test1_SomeIncompleteType (*test1_incomplete_ptr);
 
 char test1_c = 1;
 
@@ -781,7 +767,7 @@ void test1_test_modify(void) {
     #line 74
     int (stk[16]) = {0};
     #line 75
-    int(*sp) = stk;
+    int (*sp) = stk;
     #line 76
     (*((sp)++)) = 1;
     #line 77
@@ -875,13 +861,13 @@ void test1_test_nonmodifiable(void) {
 }
 
 #line 148
-uint32 test1_pack(test1_UartCtrl ctrl) {
+uint32_t test1_pack(test1_UartCtrl ctrl) {
     #line 149
     return (((ctrl.tx_enable) & (1))) | (((((ctrl.rx_enable) & (1))) << (1)));
 }
 
 #line 152
-test1_UartCtrl test1_unpack(uint32 word) {
+test1_UartCtrl test1_unpack(uint32_t word) {
     #line 153
     return (test1_UartCtrl){.tx_enable = (word) & (0x1), .rx_enable = (((word) & (0x2))) >> (1)};
 }
@@ -907,7 +893,7 @@ int test1_g(test1_U u) {
 }
 
 #line 178
-void test1_k(void(*vp), int(*ip)) {
+void test1_k(void (*vp), int (*ip)) {
     #line 179
     (vp) = ip;
     #line 180
@@ -989,7 +975,7 @@ int test1_fact_rec(int n) {
     }
 }
 
-test1_T(*test1_p);
+test1_T (*test1_p);
 
 const char * (test1_color_names[test1_NUM_COLORS]) = {[test1_COLOR_NONE] = "none", [test1_COLOR_RED] = "red", [test1_COLOR_GREEN] = "green", [test1_COLOR_BLUE] = "blue"};
 
@@ -1016,7 +1002,7 @@ void test1_test_assign(void) {
     #line 291
     float f = 3.14f;
     #line 292
-    int(*p) = &(i);
+    int (*p) = &(i);
     #line 293
     (i)++;
     #line 294
@@ -1178,28 +1164,28 @@ int test1_test_ctrl(void) {
 
 const int (test1_j);
 
-const int(*test1_q);
+const int (*test1_q);
 
 const test1_Vector (test1_cv);
 
 #line 395
-void test1_f4(const char(*x)) {
+void test1_f4(const char (*x)) {
 }
 
 #line 402
-void test1_f5(const int(*p)) {
+void test1_f5(const int (*p)) {
 }
 
 #line 405
 void test1_test_convert(void) {
     #line 406
-    const int(*a) = 0;
+    const int (*a) = 0;
     #line 407
-    int(*b) = 0;
+    int (*b) = 0;
     #line 408
     (a) = b;
     #line 409
-    void(*p) = 0;
+    void (*p) = 0;
     #line 410
     (test1_f5)(p);
 }
@@ -1269,10 +1255,10 @@ void test1_test_sizeof(void) {
 #line 462
 void test1_test_cast(void) {
     #line 463
-    int(*p) = 0;
+    int (*p) = 0;
     #line 464
-    uint64 a = 0;
-    (a) = (uint64)(p);
+    uint64_t a = 0;
+    (a) = (uint64_t)(p);
     (p) = (int *)(a);
 }
 
@@ -1435,7 +1421,7 @@ void test1_test_typeinfo(void) {
     #line 559
     (test1_println_any)((Any){&(f), TYPEID(14, TYPE_FLOAT, float)});
     #line 560
-    (test1_println_any)((Any){&(p), TYPEID(30, TYPE_PTR, void *)});
+    (test1_println_any)((Any){&(p), TYPEID(31, TYPE_PTR, void *)});
     (test1_println_type)(TYPEID(8, TYPE_INT, int));
     #line 563
     (test1_println_type)(TYPEID(66, TYPE_PTR, const int *));
@@ -1455,7 +1441,7 @@ void test1_test_typeinfo(void) {
 #line 579
 void test1_test_compound_literals(void) {
     #line 580
-    test1_Vector(*w) = {0};
+    test1_Vector (*w) = {0};
     #line 581
     (w) = &((test1_Vector){1, 2});
     #line 582
@@ -1580,57 +1566,67 @@ void test1_test_reachable(void) {
 }
 
 #line 683
-int main(int argc, const char *(*argv)) {
+void test1_test_os_arch(void) {
     #line 684
+    (printf)("Target operating system: %s\n", IONOS);
+    #line 685
+    (printf)("Target machine architecture: %s\n", IONARCH);
+}
+
+#line 688
+int main(int argc, const char * (*argv)) {
+    #line 689
     if ((argv) == (0)) {
-        #line 685
+        #line 690
         (printf)("argv is null\n");
     }
-    #line 687
-    (test1_test_packages)();
-    #line 688
-    (test1_test_if)();
-    #line 689
-    (test1_test_modify)();
-    #line 690
-    (test1_test_lvalue)();
-    #line 691
-    (test1_test_alignof)();
     #line 692
-    (test1_test_offsetof)();
+    (test1_test_os_arch)();
     #line 693
-    (test1_test_complete)();
+    (test1_test_packages)();
     #line 694
-    (test1_test_compound_literals)();
+    (test1_test_if)();
     #line 695
-    (test1_test_loops)();
+    (test1_test_modify)();
     #line 696
-    (test1_test_sizeof)();
+    (test1_test_lvalue)();
     #line 697
-    (test1_test_assign)();
+    (test1_test_alignof)();
     #line 698
-    (test1_test_enum)();
+    (test1_test_offsetof)();
     #line 699
-    (test1_test_arrays)();
+    (test1_test_complete)();
     #line 700
-    (test1_test_cast)();
+    (test1_test_compound_literals)();
     #line 701
-    (test1_test_init)();
+    (test1_test_loops)();
     #line 702
-    (test1_test_lits)();
+    (test1_test_sizeof)();
     #line 703
-    (test1_test_const)();
+    (test1_test_assign)();
     #line 704
-    (test1_test_bool)();
+    (test1_test_enum)();
     #line 705
-    (test1_test_ops)();
+    (test1_test_arrays)();
     #line 706
-    (test1_test_typeinfo)();
+    (test1_test_cast)();
     #line 707
-    (test1_test_reachable)();
+    (test1_test_init)();
     #line 708
-    (getchar)();
+    (test1_test_lits)();
     #line 709
+    (test1_test_const)();
+    #line 710
+    (test1_test_bool)();
+    #line 711
+    (test1_test_ops)();
+    #line 712
+    (test1_test_typeinfo)();
+    #line 713
+    (test1_test_reachable)();
+    #line 714
+    (getchar)();
+    #line 715
     return 0;
 }
 
