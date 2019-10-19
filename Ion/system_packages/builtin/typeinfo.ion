@@ -1,4 +1,6 @@
-﻿enum TypeKind {
+﻿typedef typeid = ullong;
+
+enum TypeKind {
     TYPE_NONE,
     TYPE_VOID,
     TYPE_BOOL,
