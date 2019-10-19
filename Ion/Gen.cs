@@ -712,7 +712,7 @@ namespace IonLang
                     break;
                 case EXPR_CAST:
                     c_write('(');
-                    type_to_cdecl(get_resolved_type(expr->cast.type), null);
+                    typespec_to_cdecl(expr->cast.type, null);
                     c_write(')');
                     c_write('(');
                     gen_expr(expr->cast.expr);
@@ -793,7 +793,7 @@ namespace IonLang
                 case EXPR_SIZEOF_TYPE:
                     c_write(sizeof_keyword);
                     c_write('(');
-                    type_to_cdecl(get_resolved_type(expr->sizeof_type), null);
+                    typespec_to_cdecl(expr->sizeof_type, null);
                     c_write(')');
                     break;
                 case EXPR_ALIGNOF_EXPR:
@@ -805,7 +805,7 @@ namespace IonLang
                 case EXPR_ALIGNOF_TYPE:
                     c_write(alignof_keyword);
                     c_write('(');
-                    type_to_cdecl(get_resolved_type(expr->alignof_type), null);
+                    typespec_to_cdecl(expr->alignof_type, null);
                     c_write(')');
                     break;
                 case EXPR_TYPEOF_EXPR: {
@@ -872,12 +872,12 @@ namespace IonLang
                     break;
                 case STMT_INIT:
                     if (stmt->init.type != null) {
+                        Typespec *init_typespec = stmt->init.type;
                         if (is_incomplete_array_typespec(stmt->init.type)) {
-                            type_to_cdecl(get_resolved_type(stmt->init.expr), stmt->init.name);
+                            Expr *size = new_expr_int(init_typespec->pos, (ulong)get_resolved_type(stmt->init.expr)->num_elems, 0, 0);
+                            init_typespec = new_typespec_array(init_typespec->pos, init_typespec->@base, size);
                         }
-                        else {
-                            typespec_to_cdecl(stmt->init.type, stmt->init.name);
-                        }
+                        typespec_to_cdecl(stmt->init.type, stmt->init.name);
                         c_write(' ');
                         c_write('=');
                         c_write(' ');

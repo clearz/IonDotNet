@@ -78,7 +78,7 @@ namespace IonLang
             return t;
         }
 
-        private Typespec* typespec_array(SrcPos pos, Typespec* elem, Expr* size)
+        private Typespec* new_typespec_array(SrcPos pos, Typespec* elem, Expr* size)
         {
             var t = typespec_new(TYPESPEC_ARRAY, pos);
             t->@base = elem;

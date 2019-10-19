@@ -88,7 +88,7 @@
                         expr = parse_expr();
 
                     expect_token(TOKEN_RBRACKET);
-                    type = typespec_array(pos, type, expr);
+                    type = new_typespec_array(pos, type, expr);
 
                 }
                 else if (match_keyword(const_keyword)) {
