@@ -369,7 +369,9 @@ namespace IonLang
             }
         }
 
+        bool print_lines = false;
         private void gen_sync_pos(SrcPos pos) {
+            if(!print_lines) return;
             assert(pos.name != null && pos.line != 0);
             if (gen_pos.line != pos.line || gen_pos.name != pos.name) {
                 genln();
