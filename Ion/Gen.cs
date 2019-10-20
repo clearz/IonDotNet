@@ -56,8 +56,8 @@ namespace IonLang
                                            "#define va_copy_ptr(dest, src) (va_copy(*(dest), *(src)))\n"    +
                                            "#define va_end_ptr(args) (va_end(*(args)))\n"                   +
                                            "\n"                                                             +
-                                           "void va_arg_ptr(va_list *args, void *dest, ullong type);\n";                                                    
-        
+                                           "void va_arg_ptr(va_list *args, void *dest, ullong type);\n";
+
         string gen_postamble =              "\n// Postamble\n"                                             +
                                             "void va_arg_ptr(va_list *args, void *arg, ullong type) {\n"   +
                                             "    switch (typeid_kind(type)) {\n"                           +
@@ -202,12 +202,15 @@ namespace IonLang
                 if (sym != null) {
                     if (sym->external_name != null) {
                         name = sym->external_name;
-                    } else if (sym->package->external_name != null) {
+                    }
+                    else if (sym->package->external_name != null) {
                         name = strcat2(sym->package->external_name, sym->name);
-                    } else {
+                    }
+                    else {
                         name = sym->name;
                     }
-                } else {
+                }
+                else {
                     assert(default_name);
                     name = default_name;
                 }
@@ -288,7 +291,7 @@ namespace IonLang
 
                     break;
                 case TYPE_FUNC: {
-                    if(type->func.ret != null)
+                    if (type->func.ret != null)
                         type_to_cdecl(type->func.ret, null);
                     else
                         c_write(VOID, 4);
@@ -353,7 +356,8 @@ namespace IonLang
                             c_write('\"');
                             genlnf('\"');
                         }
-                    } else {
+                    }
+                    else {
                         assert(!isprint(*str));
 
                         c_write('\\');
@@ -370,6 +374,8 @@ namespace IonLang
         }
 
         private void gen_sync_pos(SrcPos pos) {
+            if (flag_skip_lines)
+                return;
             assert(pos.name != null && pos.line != 0);
             if (gen_pos.line != pos.line || gen_pos.name != pos.name) {
                 genln();
@@ -384,7 +390,7 @@ namespace IonLang
         }
 
         private void typespec_to_cdecl(Typespec* typespec, char* str) {
-            if(typespec == null) {
+            if (typespec == null) {
                 c_write(VOID);
                 if (*str != 0)
                     c_write(' ');
@@ -427,7 +433,7 @@ namespace IonLang
                         c_write(')');
                     }
                     else {
-                        if(typespec->@base != null)
+                        if (typespec->@base != null)
                             typespec_to_cdecl(typespec->@base, null);
                         if (typespec->name != null)
                             c_write(typespec->name);
@@ -452,22 +458,22 @@ namespace IonLang
 
                     if (str != null)
                         c_write(')');
-                    
+
                     break;
                 case TYPESPEC_FUNC: {
-                    if(typespec->func.ret != null)
+                    if (typespec->func.ret != null)
                         typespec_to_cdecl(typespec->func.ret, null);
                     else
                         c_write(VOID, 4);
                     c_write(' ');
-                   
 
-                        c_write('(');
-                        c_write('*');
-                        if (str != null)
-                            c_write(str);
-                        c_write(')');
-                    
+
+                    c_write('(');
+                    c_write('*');
+                    if (str != null)
+                        c_write(str);
+                    c_write(')');
+
 
                     c_write('(');
                     if (typespec->func.num_args == 0) {
@@ -510,7 +516,7 @@ namespace IonLang
                     continue;
                 }
                 if (decl->kind == DECL_FUNC) {
-                    
+
                     gen_func_decl(decl);
                     c_write(' ');
                     gen_stmt_block(decl->func.block);
@@ -584,7 +590,7 @@ namespace IonLang
                     continue;
                 if (is_decl_foreign(decl))
                     continue;
-                
+
                 var name = get_gen_name(sym);
                 switch (decl->kind) {
                     case DECL_STRUCT:
@@ -1289,7 +1295,7 @@ namespace IonLang
                 gen_decl(*sym);
             }
         }
-               
+
         void gen_package_headers(Package* package) {
             char *header_arg_name = _I("header");
             for (var i = 0; i < package->num_decls; i++) {
@@ -1309,7 +1315,7 @@ namespace IonLang
                         }
                         char *header = expr->str_lit.val;
                         bool found = false;
-                        for (void** it = gen_headers_buf->_begin;  it != gen_headers_buf->_top;  it++) {
+                        for (void** it = gen_headers_buf->_begin; it != gen_headers_buf->_top; it++) {
                             if (*it == header) {
                                 found = true;
                             }
@@ -1374,7 +1380,7 @@ namespace IonLang
 
         private char*[] tiInfo;
         void gen_typeinfos() {
-            tiInfo = new [] {"const TypeInfo *typeinfo_table[".ToPtr(out int ti0),
+            tiInfo = new[] {"const TypeInfo *typeinfo_table[".ToPtr(out int ti0),
                           "] = {".ToPtr(out int ti1),
                           "int num_typeinfos = ".ToPtr(out int ti2),
                           "const TypeInfo **typeinfos = (const TypeInfo **)typeinfo_table;".ToPtr(out int ti3),
@@ -1440,7 +1446,7 @@ namespace IonLang
             c_write(tiInfo[3], ti3);
             genln();
 
-            void gen_typeinfo_header(char *kind, Type *type) {
+            void gen_typeinfo_header(char* kind, Type* type) {
                 if (type_sizeof(type) == 0) {
                     c_write(tiInfo[20], ti20);
                     c_write(kind);
@@ -1679,7 +1685,7 @@ namespace IonLang
             c_write(gen_postamble.ToPtr());
         }
 
-        private void init_chars() {            
+        private void init_chars() {
             // TODO: Need to expand this and also deal with non-printable chars via \x
             char_to_escape['\0'] = '0';
             char_to_escape['\n'] = 'n';

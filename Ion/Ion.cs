@@ -10,6 +10,7 @@ namespace IonLang
         const int MAX_SEARCH_PATHS = 256;
         PtrBuffer* package_search_paths = PtrBuffer.Create();
         bool flag_verbose = false, flag_lazy = false;
+        bool flag_skip_lines = false;
         string output_name = null;
 
         void add_package_search_path(string path) {
@@ -54,24 +55,25 @@ namespace IonLang
             var dir = new DirectoryInfo(BACK_PATH);
 
             Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
-            var b = ion_main(new []{pkg, "-ccv", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
+            var b = ion_main(new []{pkg, "-z", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
             assert(b == 0);
         }
 
         int usage() {
-            printf("Usage: {0} <package> [-v -l] [-o <output-c-file>] [-a <architecture>] [-s <system-os>]\n", Assembly.GetEntryAssembly()?.FullName);
+            printf("Usage: {0} <package> [flags] [-o <output-c-file>] [-a <architecture>] [-s <system-os>]\n", Assembly.GetEntryAssembly()?.FullName);
             return 1;
         }
 
         bool parse_env_vars(string[] args) {
             flag_verbose = args.Contains("-v");
-            flag_lazy = args.Contains("-l");
+            flag_lazy = args.Contains("-z");
+            flag_skip_lines = args.Contains("-l");
             int pos;
 
             var sys = Environment.GetEnvironmentVariable("IONOS");
             if (sys != null) {
                 target_os = get_os(sys.ToPtr());
-                if(target_os == 0)
+                if (target_os == 0)
                     printf("Unknown operating system in IONARCH environment variable: {0}\n", sys);
             }
             else {
@@ -121,9 +123,9 @@ namespace IonLang
             init_target_names();
             var package_name = args[0];
 
-            if(!parse_env_vars(args))
+            if (!parse_env_vars(args))
                 return usage();
-        
+
             initialise();
             if (flag_verbose) {
                 printf("Target operating system: {0}\n", os_names[(int)target_os]);
@@ -155,7 +157,7 @@ namespace IonLang
             finalize_reachable_syms();
             if (flag_verbose)
                 printf("Compiled {0} symbols in {1} packages\n", reachable_syms->count, package_list->count);
-            
+
             printf("Generating {0}\n", output_name);
             gen_all();
 
