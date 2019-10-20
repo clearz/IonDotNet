@@ -11,6 +11,7 @@ namespace IonLang
         PtrBuffer* package_search_paths = PtrBuffer.Create();
         bool flag_verbose = false, flag_lazy = false;
         bool flag_skip_lines = false;
+        bool flag_notypeinfo = false, flag_fullgen = false;
         string output_name = null;
 
         void add_package_search_path(string path) {
@@ -55,12 +56,19 @@ namespace IonLang
             var dir = new DirectoryInfo(BACK_PATH);
 
             Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
-            var b = ion_main(new []{pkg, "-z", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
+            var b = ion_main(new []{pkg, "-f", "-z", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
             assert(b == 0);
         }
 
         int usage() {
-            printf("Usage: {0} <package> [flags] [-o <output-c-file>] [-a <architecture>] [-s <system-os>]\n", Assembly.GetEntryAssembly()?.FullName);
+            printf("Usage: {0} <package> [flags]\n", Assembly.GetEntryAssembly()?.FullName);
+            printf("\t\t-s\t<Target operating system>\n");
+            printf("\t\t-a\t<Target machine architecture>\n");
+            printf("\t\t-z\tOnly compile what's reachable from the main package\n");
+            printf("\t\t-g\tDon't generate any typeinfo tables\n");
+            printf("\t\t-l\tDon't generate any line-info\n");
+            printf("\t\t-f\tForce full code generation even for non-reachable symbols\n");
+            printf("\t\t-v\tExtra diagnostic information\n\n");
             return 1;
         }
 
@@ -68,6 +76,8 @@ namespace IonLang
             flag_verbose = args.Contains("-v");
             flag_lazy = args.Contains("-z");
             flag_skip_lines = args.Contains("-l");
+            flag_fullgen = args.Contains("-f");
+            flag_notypeinfo = args.Contains("-g");
             int pos;
 
             var sys = Environment.GetEnvironmentVariable("IONOS");
@@ -147,16 +157,22 @@ namespace IonLang
             }
 
             main_sym->external_name = main_name;
+            reachable_phase = REACHABLE_NATURAL;
             resolve_package_syms(builtin_package);
             resolve_package_syms(main_package);
+            finalize_reachable_syms();
+
+            if (flag_verbose) {
+                printf("Reached {0} symbols in {1} packages from {2}\n", reachable_syms->count, package_list->count, package_name);
+            }
             if (!flag_lazy) {
+                reachable_phase = REACHABLE_FORCED;
                 for (int i = 0; i < package_list->count; i++) {
                     resolve_package_syms(package_list->Get<Package>(i));
                 }
+                finalize_reachable_syms();
             }
-            finalize_reachable_syms();
-            if (flag_verbose)
-                printf("Compiled {0} symbols in {1} packages\n", reachable_syms->count, package_list->count);
+            printf("Compiled {0} symbols in {1} packages\n", reachable_syms->count, package_list->count);
 
             printf("Generating {0}\n", output_name);
             gen_all();

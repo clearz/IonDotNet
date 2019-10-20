@@ -17,6 +17,11 @@ namespace IonLang
     unsafe partial class Ion
     {
         const int MAX_LOCAL_SYMS = 1024;
+
+        const byte REACHABLE_NONE = 0;
+        const byte REACHABLE_NATURAL = 1;
+        const byte REACHABLE_FORCED = 2;
+
         Package *current_package;
         Package *builtin_package;
         Map package_map;
@@ -38,7 +43,7 @@ namespace IonLang
 #endif
         private const long PTR_ALIGN = 8;
 
-
+        byte reachable_phase = REACHABLE_NATURAL;
 
         Sym* get_package_sym(Package* package, char* name) {
             return package->syms_map.map_get<Sym>(name);
@@ -1590,9 +1595,9 @@ namespace IonLang
         }
 
         private void resolve_sym(Sym* sym) {
-            if (!sym->reachable && !is_local_sym(sym)) {
+            if (sym->reachable == 0 && !is_local_sym(sym)) {
                 reachable_syms->Add(sym);
-                sym->reachable = true;
+                sym->reachable = reachable_phase;
             }
 
             if (sym->state == SYM_RESOLVED)
@@ -2897,7 +2902,7 @@ namespace IonLang
         public Package* package;
         public SymKind kind;
         public SymState state;
-        public bool reachable;
+        public byte reachable;
         public char *external_name;
         public Decl* decl;
         public Type* type;

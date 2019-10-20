@@ -631,14 +631,14 @@ namespace IonLang
 
                 for (ulong i = 0; i < cap; i++)
                     if (keys[i] != 0)
-                        new_map.map_put_from_uint64(keys[i], (void*)vals[i]);
+                        new_map.map_put_uint64_from_uint64(keys[i], vals[i]);
                 xfree(keys);
                 xfree(vals);
                 this = new_map;
             }
 
 
-            ulong map_get_raw(ulong key) {
+            ulong map_get_uint64_from_uint64(ulong key) {
                 if (len == 0)
                     return 0;
 
@@ -655,7 +655,7 @@ namespace IonLang
                 }
             }
 
-            void map_put_raw(ulong key, ulong val) { 
+            void map_put_uint64_from_uint64(ulong key, ulong val) { 
                 assert(key != 0);
                 assert(val != 0);
 
@@ -684,13 +684,13 @@ namespace IonLang
             }
 
 
-            public void map_put(void* key, void* val) => map_put_from_uint64(hash_ptr(key), val);
-            public void map_put_from_uint64(ulong key, void* val) => map_put_raw(key, (ulong)val);
+            public void map_put(void* key, void* val) => map_put_uint64_from_uint64((ulong)key, (ulong)val);
+            public void map_put_from_uint64(ulong key, void* val) => map_put_uint64_from_uint64(key, (ulong)val);
 
-            public T* map_get<T>(void* key) where T : unmanaged => (T*)map_get_from_uint64(hash_ptr(key));
-            public void* map_get_from_uint64(ulong key) => (void*)map_get_raw(key);
+            public T* map_get<T>(void* key) where T : unmanaged => (T*)map_get_from_uint64((ulong)key);
+            public void* map_get_from_uint64(ulong key) => (void*)map_get_uint64_from_uint64(key);
 
-            internal bool exists(void* key) => map_get_from_uint64(hash_ptr(key)) != null;
+            internal bool exists(void* key) => map_get_from_uint64((ulong)key) != null;
 
             internal void free() {
                 xfree(keys);

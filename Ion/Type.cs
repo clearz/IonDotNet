@@ -360,8 +360,16 @@ namespace IonLang
             return type;
         }
 
-        [DllImport("msvcrt.dll")]
-        private static extern unsafe int memcmp(void* b1, void* b2, int count);
+        private static bool memcmp(void* b1, void* b2, int count) {
+            for(int i=count;i>=0;i--) {
+#if X64
+                if((ulong)((ulong*)b1 + i) != (ulong)((ulong*)b1 + i)) return false;
+#else
+                if ((uint)((uint*)b1 + i) != (uint)((uint*)b1 + i)) return false;
+#endif
+            }
+            return true;
+        }
 
         private Type* type_func(Type** @params, int num_params, Type* ret, bool has_varargs = false) {
             var params_size = num_params * PTR_SIZE;
@@ -371,9 +379,10 @@ namespace IonLang
             for (CachedFuncType* it = cached; it != null; it = it->next) {
                 Type *type1 = it->type;
                 if (type1->func.num_params == num_params && type1->func.ret == ret && type1->func.has_varargs == has_varargs) {
-                    if (memcmp(type1->func.@params, @params, params_size) == 0) {
-                        return type1;
-                    }
+                    if(num_params > 0)
+                        if (memcmp(type1->func.@params, @params, num_params)) {
+                            return type1;
+                        }
                 }
             }
             Type *type = type_alloc(TYPE_FUNC);

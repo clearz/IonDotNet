@@ -119,15 +119,8 @@ namespace IonLang
         readonly char* defineStr = "#define ".ToPtr();
         readonly char* includeStr = "#include ".ToPtr();
         readonly char* lineStr = "#line ".ToPtr();
-        readonly char* VOID = "void".ToPtr();
+        readonly char* void_str = "void".ToPtr();
         readonly char* externStr = "extern".ToPtr();
-
-
-        readonly char* forward_includes     = "// Forward includes".ToPtr();
-        readonly char* forward_declarations = "// Forward declarations".ToPtr();
-        readonly char* sorted_declarations = "// Sorted declarations".ToPtr();
-        readonly char* definitions = "// Definitions".ToPtr();
-        char *include_name;
 
         SrcPos gen_pos;
         int gen_indent;
@@ -194,6 +187,14 @@ namespace IonLang
             writeln();
             indent();
             gen_pos.line++;
+        }
+
+        bool gen_reachable(Sym* sym) {
+            return flag_fullgen || sym->reachable == REACHABLE_NATURAL;
+        }
+
+        bool is_excluded_typeinfo(Type* type) {
+            return type->sym != null && !gen_reachable(type->sym);
         }
 
         Map gen_name_map;
@@ -292,7 +293,7 @@ namespace IonLang
                     if (type->func.ret != null)
                         type_to_cdecl(type->func.ret, null);
                     else
-                        c_write(VOID, 4);
+                        c_write(void_str, 4);
                     c_write('(');
                     c_write('*');
                     if (str != null)
@@ -301,7 +302,7 @@ namespace IonLang
 
                     c_write('(');
                     if (type->func.num_params == 0)
-                        c_write(VOID, 4);
+                        c_write(void_str, 4);
                     else
                         for (var i = 0; i < type->func.num_params; i++) {
                             if (i > 0) {
@@ -389,7 +390,7 @@ namespace IonLang
 
         private void typespec_to_cdecl(Typespec* typespec, char* str) {
             if (typespec == null) {
-                c_write(VOID);
+                c_write(void_str);
                 if (*str != 0)
                     c_write(' ');
             }
@@ -462,7 +463,7 @@ namespace IonLang
                     if (typespec->func.ret != null)
                         typespec_to_cdecl(typespec->func.ret, null);
                     else
-                        c_write(VOID, 4);
+                        c_write(void_str, 4);
                     c_write(' ');
 
 
@@ -475,7 +476,7 @@ namespace IonLang
 
                     c_write('(');
                     if (typespec->func.num_args == 0) {
-                        c_write(VOID, 4);
+                        c_write(void_str, 4);
                     }
                     else {
                         for (var i = 0; i < typespec->func.num_args; i++) {
@@ -510,7 +511,7 @@ namespace IonLang
             for (Sym** it = (Sym**)sorted_syms->_begin; it < sorted_syms->_top; it++) {
                 Sym* sym = *it;
                 Decl* decl = sym->decl;
-                if (sym->state != SymState.SYM_RESOLVED || decl == null || is_decl_foreign(decl) || decl->is_incomplete) {
+                if (sym->state != SymState.SYM_RESOLVED || decl == null || is_decl_foreign(decl) || !gen_reachable(sym)) {
                     continue;
                 }
                 if (decl->kind == DECL_FUNC) {
@@ -553,14 +554,14 @@ namespace IonLang
             }
             else {
                 genln();
-                c_write(VOID);
+                c_write(void_str);
                 c_write(' ');
                 c_write(get_gen_name(decl));
                 c_write('(');
             }
 
             if (decl->func.num_params == 0)
-                c_write(VOID);
+                c_write(void_str);
             else
                 for (var i = 0; i < decl->func.num_params; i++) {
                     var param = decl->func.@params + i;
@@ -584,7 +585,7 @@ namespace IonLang
                 var sym = *it;
 
                 var decl = sym->decl;
-                if (decl == null)
+                if (decl == null || !gen_reachable(sym))
                     continue;
                 if (is_decl_foreign(decl))
                     continue;
@@ -648,6 +649,7 @@ namespace IonLang
             c_write('}');
             c_write(';');
         }
+
         char* typeid_kind_name(Type* type) {
             if (type->kind < NUM_TYPE_KINDS) {
                 char *name = typeid_kind_names[(int)type->kind];
@@ -657,8 +659,9 @@ namespace IonLang
             }
             return typeid_kind_names[(int)TYPE_NONE];
         }
+
         void gen_typeid(Type* type) {
-            if (type->size == 0) {
+            if (type->size == 0 || is_excluded_typeinfo(type)) {
                 c_write("TYPEID0(".ToPtr(), 8);
                 c_write(type->typeid.itoa());
                 c_write(',');
@@ -678,7 +681,6 @@ namespace IonLang
                 c_write(')');
             }
         }
-
 
         void gen_expr_compound(Expr* expr) {
             Type *expected_type = get_resolved_expected_type(expr);
@@ -1288,9 +1290,10 @@ namespace IonLang
             var sym_cnt = sorted_syms->count;
 
             for (var i = 0; i < sym_cnt; i++) {
-                //Console.Write($"\r{i} of {sym_cnt}    ");
-                var sym = (Sym**) (sorted_syms->_begin + i);
-                gen_decl(*sym);
+                var sym = *(Sym**) (sorted_syms->_begin + i);
+                if (sym->reachable == REACHABLE_NATURAL) {
+                    gen_decl(sym);
+                }
             }
         }
 
@@ -1406,44 +1409,52 @@ namespace IonLang
                           ", .size = 0, .align = 0".ToPtr(out int ti23),
                           "#define TYPEID0(index, kind) ((ullong)(index) | ((ullong)(kind) << 24))".ToPtr(out int ti24),
                           "#define TYPEID(index, kind, ...) ((ullong)(index) | ((ullong)sizeof(__VA_ARGS__) << 32) | ((ullong)(kind) << 24))".ToPtr(out int ti25),
-        };
+            };
             genlnf(tiInfo[24], ti24);
             genlnf(tiInfo[25], ti25);
             genln();
-            uint num_typeinfos = next_typeid;
-            genln();
-            c_write(tiInfo[0], ti0);
-            c_write(num_typeinfos.itoa());
-            c_write(tiInfo[1], ti1);
-            gen_indent++;
-            for (int typeid = 0; typeid < num_typeinfos; typeid++) {
-                genln();
-                c_write('[');
-                c_write(typeid.itoa());
-                c_write(']');
-                c_write(' ');
-                c_write('=');
-                c_write(' ');
-                Type *type = get_type_from_typeid(typeid);
-                if (type != null) {
-                    gen_typeinfo(type);
-                }
-                else {
-                    c_write(tiInfo[4], ti4);
-                }
-            }
-            gen_indent--;
-            genln();
-            c_write('}');
-            c_write(';');
-            genln();
-            c_write(tiInfo[2], ti2);
-            c_write(num_typeinfos.itoa());
-            c_write(';');
-            genln();
-            c_write(tiInfo[3], ti3);
-            genln();
 
+            if (flag_notypeinfo) {
+                genln();
+                c_write("int num_typeinfos;");
+                genln();
+                c_write("const TypeInfo **typeinfos;");
+            }
+            else {
+                uint num_typeinfos = next_typeid;
+                genln();
+                c_write(tiInfo[0], ti0);
+                c_write(num_typeinfos.itoa());
+                c_write(tiInfo[1], ti1);
+                gen_indent++;
+                for (int typeid = 0; typeid < num_typeinfos; typeid++) {
+                    genln();
+                    c_write('[');
+                    c_write(typeid.itoa());
+                    c_write(']');
+                    c_write(' ');
+                    c_write('=');
+                    c_write(' ');
+                    Type *type = get_type_from_typeid(typeid);
+                    if (type != null && !is_excluded_typeinfo(type)) {
+                        gen_typeinfo(type);
+                    }
+                    else {
+                        c_write(tiInfo[4], ti4);
+                    }
+                }
+                gen_indent--;
+                genln();
+                c_write('}');
+                c_write(';');
+                genln();
+                c_write(tiInfo[2], ti2);
+                c_write(num_typeinfos.itoa());
+                c_write(';');
+                genln();
+                c_write(tiInfo[3], ti3);
+                genln();
+            }
             void gen_typeinfo_header(char* kind, Type* type) {
                 if (type_sizeof(type) == 0) {
                     c_write(tiInfo[20], ti20);
