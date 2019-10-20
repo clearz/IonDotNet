@@ -378,8 +378,8 @@ void test1_subtest1_func3(void);
 void test1_subtest1_func4(void);
 
 // Typeinfo
-#define TYPEID0(index, kind) ((ullong)(index) | ((kind) << 24ull))
-#define TYPEID(index, kind, ...) ((ullong)(index) | (sizeof(__VA_ARGS__) << 32ull) | ((kind) << 24ull))
+#define TYPEID0(index, kind) ((ullong)(index) | ((ullong)(kind) << 24))
+#define TYPEID(index, kind, ...) ((ullong)(index) | ((ullong)sizeof(__VA_ARGS__) << 32) | ((ullong)(kind) << 24))
 
 const TypeInfo *typeinfo_table[117] = {
     [0] = NULL, // No associated type
@@ -524,8 +524,8 @@ const TypeInfo *typeinfo_table[117] = {
     [107] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(106, TYPE_CONST, const char *)},
     [108] = NULL, // Func
     [109] = NULL, // Func
-    [110] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(12, TYPE_LLONG, llong)},
-    [111] = NULL, // Func
+    [110] = NULL, // Func
+    [111] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(12, TYPE_LLONG, llong)},
     [112] = &(TypeInfo){TYPE_CONST, .size = sizeof(const Any), .align = alignof(const Any), .base = TYPEID(30, TYPE_STRUCT, Any)},
     [113] = NULL, // Incomplete array type
     [114] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [2]), .align = alignof(int [2]), .base = TYPEID(8, TYPE_INT, int), .count = 2},
@@ -1032,6 +1032,7 @@ void test1_test_va_list(const char (*fmt), ...) {
     va_start_ptr(&(init_args), &(fmt));
     va_list args = {0};
     va_copy_ptr(&(args), &(init_args));
+    va_end_ptr(&(init_args));
     char c = {0};
     va_arg_ptr(&(args), (Any){&(c), TYPEID(3, TYPE_CHAR, char)});
     int i = {0};
@@ -1225,7 +1226,7 @@ void va_arg_ptr(va_list *args, Any any) {
         *(ullong *)any.ptr = va_arg(*args, ullong);
         break;
     case TYPE_FLOAT:
-        *(float *)any.ptr = va_arg(*args, double);
+        *(float *)any.ptr = (float)va_arg(*args, double);
         break;
     case TYPE_DOUBLE:
         *(double *)any.ptr = va_arg(*args, double);

@@ -62,7 +62,7 @@
             arch_names[(int)ARCH_X86] = "x86".ToPtr();
         }
         void init_target() {
-
+            type_metrics = null;
             win32_x86_metrics = xmalloc<TypeMetrics>((int)NUM_TYPE_KINDS);
             win32_x64_metrics = xmalloc<TypeMetrics>((int)NUM_TYPE_KINDS);
             ilp32_metrics = xmalloc<TypeMetrics>((int)NUM_TYPE_KINDS);
@@ -112,7 +112,7 @@
                             type_metrics = win32_x64_metrics;
                             break;
                         default:
-                            goto unsupported;
+                            break;
                     }
                     break;
                 case OS_LINUX:
@@ -124,23 +124,23 @@
                             type_metrics = lp64_metrics;
                             break;
                         default:
-                            goto unsupported;
+                            break;
                     }
                     break;
                 case OS_OSX:
                     switch (target_arch) {
-                        case ARCH_X86:
-                            type_metrics = ilp32_metrics;
-                            break;
                         case ARCH_X64:
                             type_metrics = lp64_metrics;
                             break;
                         default:
-                            goto unsupported;
+                            break;
                     }
                     break;
                 default:
-                    goto unsupported;
+                    break;
+            }
+            if(type_metrics == null) {
+                error_here("Unsupported os/arch combination: {0}/{1}\n", _S(os_names[(int)target_os]), _S(arch_names[(int)target_arch]));
             }
             if (type_metrics[(int)TYPE_PTR].size == 4) {
                 type_uintptr = type_uint;
@@ -154,9 +154,6 @@
                 type_ssize = type_llong;
             }
             return;
-unsupported:
-            printf("Unsupported os/arch combination: %s/%s\n", _S(os_names[(int)target_os]), _S(arch_names[(int)target_arch]));
-            Exit(1);
         }
 
         bool is_excluded_target_filename(char* name) {

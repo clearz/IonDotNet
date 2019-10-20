@@ -583,6 +583,7 @@ func test_va_list(fmt: char const*, ...) {
     va_start(&init_args, &fmt);
     args: va_list;
     va_copy(&args, &init_args);
+    va_end(&init_args);
     c: char;
     va_arg(&args, {&c, typeof(c)});
     i: int;

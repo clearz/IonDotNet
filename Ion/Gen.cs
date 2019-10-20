@@ -60,7 +60,7 @@ namespace IonLang
                                             "void va_arg_ptr(va_list *args, struct Any any);\n";
 
 
-        string gen_postamble =              "\n// Postamble\n"                                             +
+        string gen_postamble =              "\n// Postamble\n"                                           +
                                             "void va_arg_ptr(va_list *args, Any any) {\n"                +
                                             "    switch (typeid_kind(any.type)) {\n"                     +
                                             "    case TYPE_BOOL:\n"                                      +
@@ -100,7 +100,7 @@ namespace IonLang
                                             "        *(ullong *)any.ptr = va_arg(*args, ullong);\n"      +
                                             "        break;\n"                                           +
                                             "    case TYPE_FLOAT:\n"                                     +
-                                            "        *(float *)any.ptr = va_arg(*args, double);\n"       +
+                                            "        *(float *)any.ptr = (float)va_arg(*args, double);\n"+
                                             "        break;\n"                                           +
                                             "    case TYPE_DOUBLE:\n"                                    +
                                             "        *(double *)any.ptr = va_arg(*args, double);\n"      +
@@ -224,10 +224,6 @@ namespace IonLang
         char* get_gen_name(void* ptr) {
             return get_gen_name_or_default(ptr, "ERROR".ToPtr());
         }
-
-
-
-
         private char* cdecl_name(Type* type) {
             char* type_name = type_names[(int)type->kind];
             if (type_name != null) {
@@ -1408,8 +1404,8 @@ namespace IonLang
                           ", .size = sizeof(".ToPtr(out int ti21),
                           "), .align = alignof(".ToPtr(out int ti22),
                           ", .size = 0, .align = 0".ToPtr(out int ti23),
-                          "#define TYPEID0(index, kind) ((ullong)(index) | ((kind) << 24ull))".ToPtr(out int ti24),
-                          "#define TYPEID(index, kind, ...) ((ullong)(index) | (sizeof(__VA_ARGS__) << 32ull) | ((kind) << 24ull))".ToPtr(out int ti25),
+                          "#define TYPEID0(index, kind) ((ullong)(index) | ((ullong)(kind) << 24))".ToPtr(out int ti24),
+                          "#define TYPEID(index, kind, ...) ((ullong)(index) | ((ullong)sizeof(__VA_ARGS__) << 32) | ((ullong)(kind) << 24))".ToPtr(out int ti25),
         };
             genlnf(tiInfo[24], ti24);
             genlnf(tiInfo[25], ti25);

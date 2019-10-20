@@ -110,8 +110,8 @@ namespace IonLang
 
             public static char* InternRange(char* start, char* end) {
                 var len = (int) (end - start);
-                var key = Map.hash_bytes(start, len) | 1;
-                var intern = (Intern*) interns.map_get(key);
+                var key = Map.hash_bytes(start, len * 2) | 1;
+                var intern = (Intern*) interns.map_get_from_uint64(key);
                 if (intern != null)
                     return intern->str;
 
@@ -123,7 +123,7 @@ namespace IonLang
                 new_intern->str = (char*)intern_arena.Alloc(len_bytes + 2);
                 Unsafe.CopyBlock(new_intern->str, start, (uint)len_bytes);
                 *(new_intern->str + len) = '\0';
-                interns.map_put(key, new_intern);
+                interns.map_put_from_uint64(key, new_intern);
                 return new_intern->str;
             }
         }
@@ -165,6 +165,43 @@ namespace IonLang
 
         public static void* ALIGN_UP_PTR(void* p, long a) {
             return (void*)ALIGN_UP((long)p, a);
+        }
+
+
+        public static ulong MAX(ulong a, ulong b) {
+            return a > b ? a : b;
+        }
+
+        public static ulong MIN(ulong a, ulong b) {
+            return a < b ? a : b;
+        }
+
+        public static ulong CLAMP_MIN(ulong x, ulong min) {
+            return MAX(x, min);
+        }
+
+        public static ulong CLAMP_MAX(ulong x, ulong max) {
+            return MIN(x, max);
+        }
+
+        public static bool IS_POW2(ulong x) {
+            return x != 0 && (x & (x - 1)) == 0;
+        }
+
+        public static ulong ALIGN_DOWN(ulong n, ulong a) {
+            return n & ~(a - 1);
+        }
+
+        public static ulong ALIGN_UP(ulong n, ulong a) {
+            return (n + a - 1) & ~(a - 1);
+        }
+
+        public static void* ALIGN_DOWN_PTR(void* p, ulong a) {
+            return (void*)ALIGN_DOWN((ulong)p, a);
+        }
+
+        public static void* ALIGN_UP_PTR(void* p, ulong a) {
+            return (void*)ALIGN_UP((ulong)p, a);
         }
 
         #endregion
@@ -550,20 +587,15 @@ namespace IonLang
             return n;
         }
 
-        internal unsafe struct Map
-        {
-            private ulong* keys;
-            private void** vals;
-            private long len;
-            private long cap;
-
+        internal unsafe struct Map {
+            ulong* keys, vals;
+            ulong len, cap;
 
             internal static ulong hash_uint64(ulong x) {
                 ulong a = x * 0xff51afd7ed558ccd;
                 ulong b = a ^ (x >> 32);
                 return b;
             }
-
 
             internal static ulong hash_ptr(void* ptr) {
                 return hash_uint64((ulong)ptr);
@@ -576,9 +608,9 @@ namespace IonLang
                 return x;
             }
 
-            public static ulong hash_bytes(void* ptr, long len) {
+            internal static ulong hash_bytes(void* ptr, long len) {
                 var x = 0xcbf29ce484222325;
-                char *buf = (char *)ptr;
+                byte *buf = (byte *)ptr;
                 for (long i = 0; i < len; i++) {
                     x ^= buf[i];
                     x *= 0x100000001b3;
@@ -588,90 +620,82 @@ namespace IonLang
                 return x;
             }
 
-            public static ulong hash_ptr(void* ptr, long len) {
-                var buf = (char*) ptr;
-                return hash_bytes(buf, len);
-            }
-
-
-            private void map_grow(long new_cap) {
+            void map_grow(ulong new_cap) {
                 new_cap = CLAMP_MIN(new_cap, 16);
                 var new_map = new Map
                 {
                     keys = (ulong*) xcalloc((int) new_cap, sizeof(ulong)),
-                    vals = (void**) xmalloc((int) new_cap * sizeof(void*)),
+                    vals = (ulong*)(void**) xmalloc((int) new_cap * sizeof(ulong)),
                     cap = new_cap
                 };
 
-                for (long i = 0; i < cap; i++)
+                for (ulong i = 0; i < cap; i++)
                     if (keys[i] != 0)
-                        new_map.map_put(keys[i], vals[i]);
+                        new_map.map_put_from_uint64(keys[i], (void*)vals[i]);
                 xfree(keys);
                 xfree(vals);
                 this = new_map;
             }
 
-            public T* map_get<T>(void* key) where T : unmanaged {
-                return (T*)map_get(hash_ptr(key));
-            }
 
-            public void* map_get(ulong key) {
+            ulong map_get_raw(ulong key) {
                 if (len == 0)
-                    return null;
+                    return 0;
+
                 assert(IS_POW2(cap));
-                var i = key;
                 assert(len < cap);
-                for (; ; )
+
+                for (var i = key; ; i++)
                 {
-                    i &= (ulong)cap - 1;
+                    i &= cap - 1;
                     if (keys[i] == key)
                         return vals[i];
                     if (keys[i] == 0)
-                        return null;
-                    i++;
+                        return 0;
                 }
             }
 
-            public void** map_put(void* key, void* val) {
-                return map_put(hash_ptr(key), val);
-            }
-
-            public void** map_put(ulong key, void* val) {
+            void map_put_raw(ulong key, ulong val) { 
                 assert(key != 0);
-                assert(val != null);
+                assert(val != 0);
+
                 if (2 * len >= cap)
                     map_grow(2 * cap);
+
                 assert(2 * len < cap);
                 assert(IS_POW2(cap));
-                var i = key;
+               
 
-                for (; ; )
+                for (var i = key; ; i++)
                 {
-                    i &= (ulong)cap - 1;
+                    i &= cap - 1;
                     if (keys[i] == 0) {
                         len++;
                         keys[i] = key;
                         vals[i] = val;
-                        return vals + i;
+                        return;
                     }
 
                     if (keys[i] == key) {
-                        vals[i] = val;
-                        return vals + i;
+                        vals[i] =val;
+                        return;
                     }
-
-                    i++;
                 }
             }
 
-            internal bool exists(char* key) => map_get(hash_ptr(key)) != null;
+
+            public void map_put(void* key, void* val) => map_put_from_uint64(hash_ptr(key), val);
+            public void map_put_from_uint64(ulong key, void* val) => map_put_raw(key, (ulong)val);
+
+            public T* map_get<T>(void* key) where T : unmanaged => (T*)map_get_from_uint64(hash_ptr(key));
+            public void* map_get_from_uint64(ulong key) => (void*)map_get_raw(key);
+
+            internal bool exists(void* key) => map_get_from_uint64(hash_ptr(key)) != null;
 
             internal void free() {
                 xfree(keys);
                 xfree(vals);
-                len = cap = 0;
-                keys = null;
-                vals = null;
+                this = default;
             }
         }
     }

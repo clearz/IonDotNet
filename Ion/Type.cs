@@ -170,7 +170,7 @@ namespace IonLang
 
         Type* aggregate_field_type_from_index(Type* type, int index) {
             assert(is_aggregate_type(type));
-            assert(0 <= index && index < type->aggregate.num_fields);
+            assert(0 <= index && index < (int)type->aggregate.num_fields);
             return type->aggregate.fields[index].type;
         }
 
@@ -337,8 +337,8 @@ namespace IonLang
 
         private Type* type_array(Type* @base, int num_elems) {
             var hash = Map.hash_mix(Map.hash_ptr(@base), Map.hash_uint64((ulong)num_elems));
-            void *key = (void *)(hash != 0 ? hash : 1);
-            CachedArrayType *cached = cached_array_types.map_get<CachedArrayType>(key);
+            var key = hash != 0 ? hash : 1;
+            CachedArrayType *cached = (CachedArrayType*)cached_array_types.map_get_from_uint64(key);
             for (CachedArrayType* it = cached; it != null; it = it->next) {
                 Type *t = it->type;
                 if (t->@base == @base && t->num_elems == num_elems) {
@@ -356,7 +356,7 @@ namespace IonLang
             CachedArrayType *new_cached = xmalloc<CachedArrayType>();
             new_cached->type = type;
             new_cached->next = cached;
-            cached_array_types.map_put(key, new_cached);
+            cached_array_types.map_put_from_uint64(key, new_cached);
             return type;
         }
 
@@ -366,8 +366,8 @@ namespace IonLang
         private Type* type_func(Type** @params, int num_params, Type* ret, bool has_varargs = false) {
             var params_size = num_params * PTR_SIZE;
             ulong hash = Map.hash_mix(Map.hash_bytes(@params, params_size), Map.hash_ptr(ret));
-            void *key = (void *)(hash != 0 ? hash : 1);
-            CachedFuncType *cached = cached_func_types.map_get<CachedFuncType>(key);
+            var key = hash != 0 ? hash : 1;
+            CachedFuncType *cached = (CachedFuncType*)cached_func_types.map_get_from_uint64(key);
             for (CachedFuncType* it = cached; it != null; it = it->next) {
                 Type *type1 = it->type;
                 if (type1->func.num_params == num_params && type1->func.ret == ret && type1->func.has_varargs == has_varargs) {
@@ -386,7 +386,7 @@ namespace IonLang
             CachedFuncType *new_cached = xmalloc<CachedFuncType>();
             new_cached->type = type;
             new_cached->next = cached;
-            cached_func_types.map_put(key, new_cached);
+            cached_func_types.map_put_from_uint64(key, new_cached);
             return type;
         }
 
