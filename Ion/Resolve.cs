@@ -166,16 +166,6 @@ namespace IonLang
         private void sym_leave(Sym* sym) {
             local_syms._top = sym;
         }
-        Sym* sym_global_typedef(char* name, Type* type) {
-            name = _I(name);
-            Sym *sym = sym_new(SYM_TYPE, name, new_decl_typedef(pos_builtin, name, new_typespec_name(pos_builtin, name)));
-            sym->state = SYM_RESOLVED;
-            sym->type = type;
-            sym->external_name = name;
-            sym_global_put(name, sym);
-            return sym;
-        }
-
 
         void sym_global_put(char* name, Sym* sym) {
             Sym *old_sym = current_package->syms_map.map_get<Sym>(name);
@@ -230,29 +220,6 @@ namespace IonLang
             return sym;
         }
 
-        Sym* sym_global_const(char* name, Type* type, Val val) {
-            name = _I(name);
-            Sym *sym = sym_new(SYM_CONST, name, null);
-            sym->state = SYM_RESOLVED;
-            sym->type = type;
-            sym->val = val;
-            sym->external_name = name;
-            sym_global_put(name, sym);
-            return sym;
-        }
-
-
-        Sym* sym_global_func(char* name, Type* type) {
-            assert(type->kind == TYPE_FUNC);
-            name = _I(name);
-            Sym *sym = sym_new(SYM_FUNC, name, null);
-            sym->state = SYM_RESOLVED;
-            sym->type = type;
-            sym->external_name = name;
-            sym_global_put(name, sym);
-            return sym;
-        }
-        
         Type* get_resolved_type(void* ptr) {
             return resolved_type_map.map_get<Type>(ptr);
         }
@@ -1225,7 +1192,10 @@ namespace IonLang
             if (type->kind != TYPE_INCOMPLETE)
                 return;
 
-            var decl = type->sym->decl;
+            Sym *sym = type->sym;
+            Package *old_package = enter_package(sym->package);
+            Decl *decl = sym->decl;
+
             if (decl->is_incomplete) {
                 fatal_error(decl->pos, "Trying to use incomplete type as complete type");
             }
@@ -1259,6 +1229,7 @@ namespace IonLang
             }
 
             sorted_syms->Add(type->sym);
+            leave_package(old_package);
         }
         
         Type* resolve_typed_init(SrcPos pos, Type* type, Expr* expr) {
@@ -1580,6 +1551,8 @@ namespace IonLang
             if (decl->is_incomplete) {
                 return;
             }
+
+            Package *old_package = enter_package(sym->package);
             var scope = sym_enter();
             for (var i = 0; i < decl->func.num_params; i++) {
                 var param = decl->func.@params[i];
@@ -1591,15 +1564,10 @@ namespace IonLang
             if (ret_type != type_void && !returns) {
                 fatal_error(decl->pos, "Not all control paths return values");
             }
-            sym_leave(scope);
+            leave_package(old_package);
         }
 
         private void resolve_sym(Sym* sym) {
-            if (sym->reachable == 0 && !is_local_sym(sym)) {
-                reachable_syms->Add(sym);
-                sym->reachable = reachable_phase;
-            }
-
             if (sym->state == SYM_RESOLVED)
                 return;
 
@@ -1609,8 +1577,14 @@ namespace IonLang
             }
 
             assert(sym->state == SYM_UNRESOLVED);
+            assert(sym->reachable == 0);
+            if (!is_local_sym(sym)) {
+                reachable_syms->Add(sym);
+                sym->reachable = reachable_phase;
+            }
             sym->state = SYM_RESOLVING;
             Decl *decl = sym->decl;
+            Package *old_package = enter_package(sym->package);
             switch (sym->kind) {
                 case SYM_TYPE:
                     if (decl != null && decl->kind == DECL_TYPEDEF) {
@@ -1637,6 +1611,7 @@ namespace IonLang
                     break;
             }
 
+            leave_package(old_package);
             sym->state = SYM_RESOLVED;
             if (decl->is_incomplete || (decl->kind != DECL_STRUCT && decl->kind != DECL_UNION)) {
                 sorted_syms->Add(sym);
@@ -1646,7 +1621,6 @@ namespace IonLang
 
         private void finalize_sym(Sym* sym) {
             assert(sym->state == SYM_RESOLVED);
-            Package* old_package = enter_package(sym->package);
             if (sym->decl != null && !is_decl_foreign(sym->decl) && !sym->decl->is_incomplete) {
                 if (sym->kind == SYM_TYPE) {
                     complete_type(sym->type);
@@ -1655,7 +1629,6 @@ namespace IonLang
                     resolve_func_body(sym);
                 }
             }
-            leave_package(old_package);
         }
 
         private Sym* resolve_name(char* name) {
@@ -2679,7 +2652,12 @@ namespace IonLang
             for (int i = 0; i < package->num_decls; i++) {
                 int n = 0;
                 Decl *decl = package->decls[i];
-                if (decl->kind == DECL_IMPORT) {
+                if (decl->kind == DECL_NOTE) {
+                    if (decl->note.name == always_name) {
+                        package->always_reachable = true;
+                    }
+                }
+                else if (decl->kind == DECL_IMPORT) {
                     char *path_buf = stackalloc char[MAX_PATH];
                     if (decl->import.is_relative) {
                         n = copy_to_pos(path_buf, package->path);
@@ -2894,6 +2872,7 @@ namespace IonLang
         public Ion.Map syms_map;
         public Ion.PtrBuffer* syms;
         public char *external_name;
+        public bool always_reachable;
     }
 
     internal unsafe struct Sym

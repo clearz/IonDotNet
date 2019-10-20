@@ -511,7 +511,7 @@ namespace IonLang
             for (Sym** it = (Sym**)sorted_syms->_begin; it < sorted_syms->_top; it++) {
                 Sym* sym = *it;
                 Decl* decl = sym->decl;
-                if (sym->state != SymState.SYM_RESOLVED || decl == null || is_decl_foreign(decl) || !gen_reachable(sym)) {
+                if (sym->state != SymState.SYM_RESOLVED || decl == null || is_decl_foreign(decl) || decl->is_incomplete || sym->reachable != REACHABLE_NATURAL) {
                     continue;
                 }
                 if (decl->kind == DECL_FUNC) {

@@ -121,6 +121,7 @@ namespace IonLang
         private char* var_keyword;
         private char* while_keyword;
 
+        char *always_name;
         char *foreign_name;
         char *complete_name;
         char *assert_name;
@@ -258,6 +259,7 @@ namespace IonLang
             default_keyword = _I("default");
             keywords->Add(default_keyword);
 
+            always_name = _I("always");
             foreign_name  = _I("foreign");
             complete_name = _I("complete");
             assert_name   = _I("assert");

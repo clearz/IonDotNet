@@ -11,7 +11,8 @@ namespace IonLang
         PtrBuffer* package_search_paths = PtrBuffer.Create();
         bool flag_verbose = false, flag_lazy = false;
         bool flag_skip_lines = false;
-        bool flag_notypeinfo = false, flag_fullgen = false;
+        bool flag_notypeinfo = false, flag_fullgen = false; 
+        bool flag_check = false;
         string output_name = null;
 
         void add_package_search_path(string path) {
@@ -56,7 +57,7 @@ namespace IonLang
             var dir = new DirectoryInfo(BACK_PATH);
 
             Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
-            var b = ion_main(new []{pkg, "-f", "-z", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
+            var b = ion_main(new []{pkg, "-c", "-z", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
             assert(b == 0);
         }
 
@@ -68,6 +69,7 @@ namespace IonLang
             printf("\t\t-g\tDon't generate any typeinfo tables\n");
             printf("\t\t-l\tDon't generate any line-info\n");
             printf("\t\t-f\tForce full code generation even for non-reachable symbols\n");
+            printf("\t\t-c\tSemantic checking with no code generation\n\n");
             printf("\t\t-v\tExtra diagnostic information\n\n");
             return 1;
         }
@@ -78,8 +80,9 @@ namespace IonLang
             flag_skip_lines = args.Contains("-l");
             flag_fullgen = args.Contains("-f");
             flag_notypeinfo = args.Contains("-g");
-            int pos;
+            flag_check = args.Contains("-c");
 
+            int pos;
             var sys = Environment.GetEnvironmentVariable("IONOS");
             if (sys != null) {
                 target_os = get_os(sys.ToPtr());
@@ -158,10 +161,14 @@ namespace IonLang
 
             main_sym->external_name = main_name;
             reachable_phase = REACHABLE_NATURAL;
-            resolve_package_syms(builtin_package);
-            resolve_package_syms(main_package);
+            resolve_sym(main_sym);
+            for (int i = 0; i < package_list->count; i++) {
+                var pkg = package_list->Get<Package>(i);
+                if (pkg->always_reachable) {
+                    resolve_package_syms(pkg);
+                }
+            }
             finalize_reachable_syms();
-
             if (flag_verbose) {
                 printf("Reached {0} symbols in {1} packages from {2}\n", reachable_syms->count, package_list->count, package_name);
             }
@@ -172,21 +179,21 @@ namespace IonLang
                 }
                 finalize_reachable_syms();
             }
-            printf("Compiled {0} symbols in {1} packages\n", reachable_syms->count, package_list->count);
+            printf("Processed {0} symbols in {1} packages\n", reachable_syms->count, package_list->count);
+            if (!flag_check) {
+                printf("Generating {0}\n", output_name);
+                gen_all();
 
-            printf("Generating {0}\n", output_name);
-            gen_all();
+                output_name = output_name ?? $"out_{package_name}.c";
 
-            output_name = output_name ?? $"out_{package_name}.c";
-
-            try {
-                File.WriteAllText(output_name, gen_buf.ToString());
+                try {
+                    File.WriteAllText(output_name, gen_buf.ToString());
+                }
+                catch {
+                    printf("error: Failed to write file: {0}\n", output_name);
+                    return 1;
+                }
             }
-            catch {
-                printf("error: Failed to write file: {0}\n", output_name);
-                return 1;
-            }
-
             return 0;
         }
     }
