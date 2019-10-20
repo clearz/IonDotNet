@@ -30,28 +30,9 @@ typedef unsigned long long ullong;
 
 #define va_start_ptr(args, arg) (va_start(*(args), *(arg)))
 #define va_copy_ptr(dest, src) (va_copy(*(dest), *(src)))
-#define va_arg_ptr(args, dest, dest_size) (va_arg_ptr_func(args, dest, dest_size))
 #define va_end_ptr(args) (va_end(*(args)))
 
-void va_arg_ptr_func(va_list *args, void *dest, size_t dest_size) {
-    switch (dest_size) {
-    case 1:
-        *(uint8_t *)dest = va_arg(*args, uint32_t);
-        break;
-    case 2:
-        *(uint16_t *)dest = va_arg(*args, uint32_t);
-        break;
-    case 4:
-        *(uint32_t *)dest = va_arg(*args, uint32_t);
-        break;
-    case 8:
-        *(uint64_t *)dest = va_arg(*args, uint64_t);
-        break;
-    default:
-        assert(0 && "this hack only works for primitive type sizes");
-        break;
-    }
-}
+void va_arg_ptr(va_list *args, void *dest, ullong type);
 
 // Foreign header files
 #include <ctype.h>
@@ -478,7 +459,7 @@ void test1_test_reachable(void);
 void test1_test_os_arch(void);
 
 #line 703
-int main(int argc, const char * (*argv));
+int main(int argc, char * (*argv));
 
 #line 28 "C:/Users/john/source/repos/IonDotNet/Ion/system_packages/builtin/typeinfo.ion"
 struct TypeFieldInfo {
@@ -669,7 +650,7 @@ const TypeInfo *typeinfo_table[114] = {
     [80] = &(TypeInfo){TYPE_CONST, .size = sizeof(const test1_Thing), .align = alignof(const test1_Thing), .base = TYPEID(77, TYPE_STRUCT, test1_Thing)},
     [81] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(80, TYPE_CONST, const test1_Thing)},
     [82] = NULL, // Func
-    [83] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(17, TYPE_PTR, const char *)},
+    [83] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(18, TYPE_PTR, char *)},
     [84] = NULL, // Func
     [85] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(58, TYPE_STRUCT, test1_Vector)},
     [86] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(int [16]), .align = alignof(int [16]), .base = TYPEID(8, TYPE_INT, int), .count = 16},
@@ -688,10 +669,10 @@ const TypeInfo *typeinfo_table[114] = {
     [99] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(31, TYPE_PTR, void *)},
     [100] = &(TypeInfo){TYPE_ARRAY, .size = sizeof(const int * [42]), .align = alignof(const int * [42]), .base = TYPEID(67, TYPE_PTR, const int *), .count = 42},
     [101] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(50, TYPE_UNION, test1_IntOrPtr)},
-    [102] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(18, TYPE_PTR, char *)},
-    [103] = &(TypeInfo){TYPE_CONST, .size = 0, .align = 0, .base = TYPEID0(1, TYPE_VOID)},
-    [104] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID0(103, TYPE_CONST)},
-    [105] = NULL, // Func
+    [102] = &(TypeInfo){TYPE_CONST, .size = 0, .align = 0, .base = TYPEID0(1, TYPE_VOID)},
+    [103] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID0(102, TYPE_CONST)},
+    [104] = NULL, // Func
+    [105] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(17, TYPE_PTR, const char *)},
     [106] = NULL, // Func
     [107] = &(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = TYPEID(12, TYPE_LLONG, llong)},
     [108] = NULL, // Func
@@ -1491,15 +1472,15 @@ void test1_test_va_list(const char (*fmt), ...) {
     #line 584
     char c = {0};
     #line 585
-    va_arg_ptr(&(args), &(c), sizeof(c));
+    va_arg_ptr(&(args), &(c), TYPEID(3, TYPE_CHAR, char));
     #line 586
     int i = {0};
     #line 587
-    va_arg_ptr(&(args), &(i), sizeof(i));
+    va_arg_ptr(&(args), &(i), TYPEID(8, TYPE_INT, int));
     #line 588
     llong ll = {0};
     #line 589
-    va_arg_ptr(&(args), &(ll), sizeof(ll));
+    va_arg_ptr(&(args), &(ll), TYPEID(12, TYPE_LLONG, llong));
     #line 590
     printf("c=%d i=%d ll=%lld\n", c, i, ll);
     #line 591
@@ -1642,7 +1623,7 @@ void test1_test_os_arch(void) {
 }
 
 #line 703
-int main(int argc, const char * (*argv)) {
+int main(int argc, char * (*argv)) {
     #line 704
     if ((argv) == (0)) {
         #line 705
@@ -1727,3 +1708,58 @@ void test1_subtest1_func4(void) {
 }
 
 // Foreign source files
+
+// Postamble
+void va_arg_ptr(va_list *args, void *arg, ullong type) {
+    switch (typeid_kind(type)) {
+    case TYPE_BOOL:
+        *(bool *)arg = va_arg(*args, int);
+        break;
+    case TYPE_CHAR:
+        *(char *)arg = va_arg(*args, int);
+        break;
+    case TYPE_UCHAR:
+        *(uchar *)arg = va_arg(*args, int);
+        break;
+    case TYPE_SCHAR:
+        *(schar *)arg = va_arg(*args, int);
+        break;
+    case TYPE_SHORT:
+        *(short *)arg = va_arg(*args, int);
+        break;
+    case TYPE_USHORT:
+        *(ushort *)arg = va_arg(*args, int);
+        break;
+    case TYPE_INT:
+        *(int *)arg = va_arg(*args, int);
+        break;
+    case TYPE_UINT:
+        *(uint *)arg = va_arg(*args, uint);
+        break;
+    case TYPE_LONG:
+        *(long *)arg = va_arg(*args, long);
+        break;
+    case TYPE_ULONG:
+        *(ulong *)arg = va_arg(*args, ulong);
+        break;
+    case TYPE_LLONG:
+        *(llong *)arg = va_arg(*args, llong);
+        break;
+    case TYPE_ULLONG:
+        *(ullong *)arg = va_arg(*args, ullong);
+        break;
+    case TYPE_FLOAT:
+        *(float *)arg = va_arg(*args, double);
+        break;
+    case TYPE_DOUBLE:
+        *(double *)arg = va_arg(*args, double);
+        break;
+    case TYPE_FUNC:
+    case TYPE_PTR:
+        *(void **)arg = va_arg(*args, void *);
+        break;
+    default:
+        assert(0 && "argument type not supported");
+        break;
+    }
+}

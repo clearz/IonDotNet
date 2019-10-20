@@ -51,31 +51,68 @@ namespace IonLang
                                            "#else\n" +
                                            "#define alignof(x) __alignof__(x)\n" +
                                            "#endif\n" +
-                                           "\n"                                                                                          +
-                                           "#define va_start_ptr(args, arg) (va_start(*(args), *(arg)))\n"                               +
-                                           "#define va_copy_ptr(dest, src) (va_copy(*(dest), *(src)))\n"                                 +
-                                           "#define va_arg_ptr(args, dest, dest_size) (va_arg_ptr_func(args, dest, dest_size))\n"        +
-                                           "#define va_end_ptr(args) (va_end(*(args)))\n"                                                +
-                                           "\n"                                                                                          +
-                                           "void va_arg_ptr_func(va_list *args, void *dest, size_t dest_size) {\n"                       +
-                                           "    switch (dest_size) {\n"                                                                  +
-                                           "    case 1:\n"                                                                               +
-                                           "        *(uint8_t *)dest = va_arg(*args, uint32_t);\n"                                       +
-                                           "        break;\n"                                                                            +
-                                           "    case 2:\n"                                                                               +
-                                           "        *(uint16_t *)dest = va_arg(*args, uint32_t);\n"                                      +
-                                           "        break;\n"                                                                            +
-                                           "    case 4:\n"                                                                               +
-                                           "        *(uint32_t *)dest = va_arg(*args, uint32_t);\n"                                      +
-                                           "        break;\n"                                                                            +
-                                           "    case 8:\n"                                                                               +
-                                           "        *(uint64_t *)dest = va_arg(*args, uint64_t);\n"                                      +
-                                           "        break;\n"                                                                            +
-                                           "    default:\n"                                                                              +
-                                           "        assert(0 && \"this hack only works for primitive type sizes\");\n"                   +
-                                           "        break;\n"                                                                            +
-                                           "    }\n"                                                                                     +
-                                           "}\n";                                                                                        
+                                           "\n"  +
+                                           "#define va_start_ptr(args, arg) (va_start(*(args), *(arg)))\n"  +
+                                           "#define va_copy_ptr(dest, src) (va_copy(*(dest), *(src)))\n"    +
+                                           "#define va_end_ptr(args) (va_end(*(args)))\n"                   +
+                                           "\n"                                                             +
+                                           "void va_arg_ptr(va_list *args, void *dest, ullong type);\n";                                                    
+        
+        string gen_postamble =              "\n// Postamble\n"                                             +
+                                            "void va_arg_ptr(va_list *args, void *arg, ullong type) {\n"   +
+                                            "    switch (typeid_kind(type)) {\n"                           +
+                                            "    case TYPE_BOOL:\n"                                        +
+                                            "        *(bool *)arg = va_arg(*args, int);\n"                 +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_CHAR:\n"                                        +
+                                            "        *(char *)arg = va_arg(*args, int);\n"                 +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_UCHAR:\n"                                       +
+                                            "        *(uchar *)arg = va_arg(*args, int);\n"                +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_SCHAR:\n"                                       +
+                                            "        *(schar *)arg = va_arg(*args, int);\n"                +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_SHORT:\n"                                       +
+                                            "        *(short *)arg = va_arg(*args, int);\n"                +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_USHORT:\n"                                      +
+                                            "        *(ushort *)arg = va_arg(*args, int);\n"               +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_INT:\n"                                         +
+                                            "        *(int *)arg = va_arg(*args, int);\n"                  +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_UINT:\n"                                        +
+                                            "        *(uint *)arg = va_arg(*args, uint);\n"                +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_LONG:\n"                                        +
+                                            "        *(long *)arg = va_arg(*args, long);\n"                +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_ULONG:\n"                                       +
+                                            "        *(ulong *)arg = va_arg(*args, ulong);\n"              +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_LLONG:\n"                                       +
+                                            "        *(llong *)arg = va_arg(*args, llong);\n"              +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_ULLONG:\n"                                      +
+                                            "        *(ullong *)arg = va_arg(*args, ullong);\n"            +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_FLOAT:\n"                                       +
+                                            "        *(float *)arg = va_arg(*args, double);\n"             +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_DOUBLE:\n"                                      +
+                                            "        *(double *)arg = va_arg(*args, double);\n"            +
+                                            "        break;\n"                                             +
+                                            "    case TYPE_FUNC:\n"                                        +
+                                            "    case TYPE_PTR:\n"                                         +
+                                            "        *(void **)arg = va_arg(*args, void *);\n"             +
+                                            "        break;\n"                                             +
+                                            "    default:\n"                                               +
+                                            "        assert(0 && \"argument type not supported\");\n"      +
+                                            "        break;\n"                                             +
+                                            "    }\n"                                                      +
+                                            "}\n"
+    ;
 
         readonly char* defineStr = "#define ".ToPtr();
         readonly char* includeStr = "#include ".ToPtr();
@@ -1639,6 +1676,7 @@ namespace IonLang
             genlnf("// Foreign source files".ToPtr());
             gen_foreign_sources();
             genln();
+            c_write(gen_postamble.ToPtr());
         }
 
         private void init_chars() {            
