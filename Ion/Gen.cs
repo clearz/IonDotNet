@@ -22,97 +22,99 @@ namespace IonLang
         private readonly char[] char_to_escape  = new char[256];
         readonly PtrBuffer* gen_headers_buf = PtrBuffer.Create();
 
-        private readonly string preamble = "// Preamble\n" +
-                                           "#ifndef _CRT_SECURE_NO_WARNINGS\n" +
-                                           "#define _CRT_SECURE_NO_WARNINGS\n" +
-                                           "#endif\n" +
-                                           "#if _MSC_VER >= 1900 || __STDC_VERSION__ >= 201112L\n" +
-                                           "// Visual Studio 2015 supports enough C99/C11 features for us.\n" +
-                                           "#else\n" +
-                                           "#error \"C11 support required or Visual Studio 2015 or later\"\n" +
-                                           "#endif\n" +
-                                           "\n" +
-                                           "#include <stdbool.h>\n" +
-                                           "#include <stdint.h>\n" +
-                                           "#include <stdarg.h>\n" +
-                                           "#include <assert.h>\n" +
-                                           "#include <stddef.h>\n\n" +
+        private readonly string preamble =  "// Preamble\n" +
+                                            "#ifndef _CRT_SECURE_NO_WARNINGS\n" +
+                                            "#define _CRT_SECURE_NO_WARNINGS\n" +
+                                            "#endif\n" +
+                                            "#if _MSC_VER >= 1900 || __STDC_VERSION__ >= 201112L\n" +
+                                            "// Visual Studio 2015 supports enough C99/C11 features for us.\n" +
+                                            "#else\n" +
+                                            "#error \"C11 support required or Visual Studio 2015 or later\"\n" +
+                                            "#endif\n" +
+                                            "\n" +
+                                            "#include <stdbool.h>\n" +
+                                            "#include <stdint.h>\n" +
+                                            "#include <stdarg.h>\n" +
+                                            "#include <assert.h>\n" +
+                                            "#include <stddef.h>\n\n" +
 
-                                           "typedef unsigned char uchar;\n" +
-                                           "typedef signed char schar;\n" +
-                                           "typedef unsigned short ushort;\n" +
-                                           "typedef unsigned int uint;\n" +
-                                           "typedef unsigned long ulong;\n" +
-                                           "typedef long long llong;\n" +
-                                           "typedef unsigned long long ullong;\n" +
-                                           "\n" +
-                                           "#ifdef _MSC_VER\n" +
-                                           "#define alignof(x) __alignof(x)\n" +
-                                           "#else\n" +
-                                           "#define alignof(x) __alignof__(x)\n" +
-                                           "#endif\n" +
-                                           "\n"  +
-                                           "#define va_start_ptr(args, arg) (va_start(*(args), *(arg)))\n"  +
-                                           "#define va_copy_ptr(dest, src) (va_copy(*(dest), *(src)))\n"    +
-                                           "#define va_end_ptr(args) (va_end(*(args)))\n"                   +
-                                           "\n"                                                             +
-                                           "void va_arg_ptr(va_list *args, void *dest, ullong type);\n";
+                                            "typedef unsigned char uchar;\n" +
+                                            "typedef signed char schar;\n" +
+                                            "typedef unsigned short ushort;\n" +
+                                            "typedef unsigned int uint;\n" +
+                                            "typedef unsigned long ulong;\n" +
+                                            "typedef long long llong;\n" +
+                                            "typedef unsigned long long ullong;\n" +
+                                            "\n" +
+                                            "#ifdef _MSC_VER\n" +
+                                            "#define alignof(x) __alignof(x)\n" +
+                                            "#else\n" +
+                                            "#define alignof(x) __alignof__(x)\n" +
+                                            "#endif\n" +
+                                            "\n"  +
+                                            "#define va_start_ptr(args, arg) (va_start(*(args), *(arg)))\n"  +
+                                            "#define va_copy_ptr(dest, src) (va_copy(*(dest), *(src)))\n"    +
+                                            "#define va_end_ptr(args) (va_end(*(args)))\n"                   +
+                                            "\n"      +
+                                            "struct Any;\n"+
+                                            "void va_arg_ptr(va_list *args, struct Any any);\n";
+
 
         string gen_postamble =              "\n// Postamble\n"                                             +
-                                            "void va_arg_ptr(va_list *args, void *arg, ullong type) {\n"   +
-                                            "    switch (typeid_kind(type)) {\n"                           +
-                                            "    case TYPE_BOOL:\n"                                        +
-                                            "        *(bool *)arg = va_arg(*args, int);\n"                 +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_CHAR:\n"                                        +
-                                            "        *(char *)arg = va_arg(*args, int);\n"                 +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_UCHAR:\n"                                       +
-                                            "        *(uchar *)arg = va_arg(*args, int);\n"                +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_SCHAR:\n"                                       +
-                                            "        *(schar *)arg = va_arg(*args, int);\n"                +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_SHORT:\n"                                       +
-                                            "        *(short *)arg = va_arg(*args, int);\n"                +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_USHORT:\n"                                      +
-                                            "        *(ushort *)arg = va_arg(*args, int);\n"               +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_INT:\n"                                         +
-                                            "        *(int *)arg = va_arg(*args, int);\n"                  +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_UINT:\n"                                        +
-                                            "        *(uint *)arg = va_arg(*args, uint);\n"                +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_LONG:\n"                                        +
-                                            "        *(long *)arg = va_arg(*args, long);\n"                +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_ULONG:\n"                                       +
-                                            "        *(ulong *)arg = va_arg(*args, ulong);\n"              +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_LLONG:\n"                                       +
-                                            "        *(llong *)arg = va_arg(*args, llong);\n"              +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_ULLONG:\n"                                      +
-                                            "        *(ullong *)arg = va_arg(*args, ullong);\n"            +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_FLOAT:\n"                                       +
-                                            "        *(float *)arg = va_arg(*args, double);\n"             +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_DOUBLE:\n"                                      +
-                                            "        *(double *)arg = va_arg(*args, double);\n"            +
-                                            "        break;\n"                                             +
-                                            "    case TYPE_FUNC:\n"                                        +
-                                            "    case TYPE_PTR:\n"                                         +
-                                            "        *(void **)arg = va_arg(*args, void *);\n"             +
-                                            "        break;\n"                                             +
-                                            "    default:\n"                                               +
-                                            "        assert(0 && \"argument type not supported\");\n"      +
-                                            "        break;\n"                                             +
-                                            "    }\n"                                                      +
-                                            "}\n"
-    ;
+                                            "void va_arg_ptr(va_list *args, Any any) {\n"                +
+                                            "    switch (typeid_kind(any.type)) {\n"                     +
+                                            "    case TYPE_BOOL:\n"                                      +
+                                            "        *(bool *)any.ptr = va_arg(*args, int);\n"           +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_CHAR:\n"                                      +
+                                            "        *(char *)any.ptr = va_arg(*args, int);\n"           +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_UCHAR:\n"                                     +
+                                            "        *(uchar *)any.ptr = va_arg(*args, int);\n"          +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_SCHAR:\n"                                     +
+                                            "        *(schar *)any.ptr = va_arg(*args, int);\n"          +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_SHORT:\n"                                     +
+                                            "        *(short *)any.ptr = va_arg(*args, int);\n"          +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_USHORT:\n"                                    +
+                                            "        *(ushort *)any.ptr = va_arg(*args, int);\n"         +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_INT:\n"                                       +
+                                            "        *(int *)any.ptr = va_arg(*args, int);\n"            +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_UINT:\n"                                      +
+                                            "        *(uint *)any.ptr = va_arg(*args, uint);\n"          +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_LONG:\n"                                      +
+                                            "        *(long *)any.ptr = va_arg(*args, long);\n"          +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_ULONG:\n"                                     +
+                                            "        *(ulong *)any.ptr = va_arg(*args, ulong);\n"        +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_LLONG:\n"                                     +
+                                            "        *(llong *)any.ptr = va_arg(*args, llong);\n"        +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_ULLONG:\n"                                    +
+                                            "        *(ullong *)any.ptr = va_arg(*args, ullong);\n"      +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_FLOAT:\n"                                     +
+                                            "        *(float *)any.ptr = va_arg(*args, double);\n"       +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_DOUBLE:\n"                                    +
+                                            "        *(double *)any.ptr = va_arg(*args, double);\n"      +
+                                            "        break;\n"                                           +
+                                            "    case TYPE_FUNC:\n"                                      +
+                                            "    case TYPE_PTR:\n"                                       +
+                                            "        *(void **)any.ptr = va_arg(*args, void *);\n"       +
+                                            "        break;\n"                                           +
+                                            "    default:\n"                                             +
+                                            "        assert(0 && \"argument type not supported\");\n"    +
+                                            "        break;\n"                                           +
+                                            "    }\n"                                                    +
+                                            "}\n";
+
 
         readonly char* defineStr = "#define ".ToPtr();
         readonly char* includeStr = "#include ".ToPtr();
