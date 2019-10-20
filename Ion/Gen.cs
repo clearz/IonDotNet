@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿//#define DEBUG_VERBOSE
+using System.Globalization;
 using System.Text;
 
 namespace IonLang
@@ -33,6 +34,7 @@ namespace IonLang
                                            "\n" +
                                            "#include <stdbool.h>\n" +
                                            "#include <stdint.h>\n" +
+                                           "#include <stdarg.h>\n" +
                                            "#include <assert.h>\n" +
                                            "#include <stddef.h>\n\n" +
 
@@ -48,7 +50,32 @@ namespace IonLang
                                            "#define alignof(x) __alignof(x)\n" +
                                            "#else\n" +
                                            "#define alignof(x) __alignof__(x)\n" +
-                                           "#endif\n";
+                                           "#endif\n" +
+                                           "\n"                                                                                          +
+                                           "#define va_start_ptr(args, arg) (va_start(*(args), *(arg)))\n"                               +
+                                           "#define va_copy_ptr(dest, src) (va_copy(*(dest), *(src)))\n"                                 +
+                                           "#define va_arg_ptr(args, dest, dest_size) (va_arg_ptr_func(args, dest, dest_size))\n"        +
+                                           "#define va_end_ptr(args) (va_end(*(args)))\n"                                                +
+                                           "\n"                                                                                          +
+                                           "void va_arg_ptr_func(va_list *args, void *dest, size_t dest_size) {\n"                       +
+                                           "    switch (dest_size) {\n"                                                                  +
+                                           "    case 1:\n"                                                                               +
+                                           "        *(uint8_t *)dest = va_arg(*args, uint32_t);\n"                                       +
+                                           "        break;\n"                                                                            +
+                                           "    case 2:\n"                                                                               +
+                                           "        *(uint16_t *)dest = va_arg(*args, uint32_t);\n"                                      +
+                                           "        break;\n"                                                                            +
+                                           "    case 4:\n"                                                                               +
+                                           "        *(uint32_t *)dest = va_arg(*args, uint32_t);\n"                                      +
+                                           "        break;\n"                                                                            +
+                                           "    case 8:\n"                                                                               +
+                                           "        *(uint64_t *)dest = va_arg(*args, uint64_t);\n"                                      +
+                                           "        break;\n"                                                                            +
+                                           "    default:\n"                                                                              +
+                                           "        assert(0 && \"this hack only works for primitive type sizes\");\n"                   +
+                                           "        break;\n"                                                                            +
+                                           "    }\n"                                                                                     +
+                                           "}\n";                                                                                        
 
         readonly char* defineStr = "#define ".ToPtr();
         readonly char* includeStr = "#include ".ToPtr();
@@ -74,29 +101,39 @@ namespace IonLang
         }
 
         private void writeln() {
-            //System.Console.WriteLine();
+#if DEBUG_VERBOSE
+            System.Console.WriteLine();
+#endif
             gen_buf.Append('\n');
         }
 
         private void c_write(char c) {
-            //System.Console.Write(c);
+#if DEBUG_VERBOSE
+            System.Console.Write(c);
+#endif
             gen_buf.Append(c);
         }
 
         private void c_write(char* c) {
-            //System.Console.Write(new string(c));
+#if DEBUG_VERBOSE
+            System.Console.Write(new string(c));
+#endif
             gen_buf.Append(c, strlen(c));
             //while ((*(gen_buf + gen_pos) = *(c++)) != 0) gen_pos++;
         }
 
         private void c_write(char* c, int len) {
-            //System.Console.Write(new string(c));
+#if DEBUG_VERBOSE
+            System.Console.Write(new string(c));
+#endif
             gen_buf.Append(c, len);
             //Unsafe.CopyBlock(gen_buf + gen_pos, c, (uint)len << 1);
             //gen_pos += len;
         }
         private void c_write(string s) {
-            //System.Console.Write(s);
+#if DEBUG_VERBOSE
+            System.Console.Write(s);
+#endif
             gen_buf.Append(s);
             //Unsafe.CopyBlock(gen_buf + gen_pos, c, (uint)len << 1);
             //gen_pos += len;
@@ -719,9 +756,14 @@ namespace IonLang
                     c_write(')');
                     break;
                 case EXPR_CALL:
-                    c_write('(');
-                    gen_expr(expr->call.expr);
-                    c_write(')');
+                    Sym *sym = get_resolved_sym(expr->call.expr);
+                    if (sym != null && sym->kind == SymKind.SYM_TYPE) {
+                        c_write('(');
+                        c_write(get_gen_name(sym));
+                        c_write(')');
+                    }
+                    else
+                        gen_expr(expr->call.expr);
                     c_write('(');
                     for (var i = 0; i < expr->call.num_args; i++) {
                         if (i != 0) {
