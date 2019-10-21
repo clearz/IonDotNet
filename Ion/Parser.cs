@@ -21,7 +21,7 @@
             }
         }
 
-        private Typespec* parse_type_func() {
+        Typespec* parse_type_func() {
             var buf = PtrBuffer.GetPooledBuffer();
             var pos = token.pos;
             bool has_varargs = false;
@@ -57,7 +57,7 @@
             }
         }
 
-        private Typespec* parse_type_base() {
+        Typespec* parse_type_base() {
             var pos = token.pos;
             if (is_token(TOKEN_NAME)) {
                 var name = token.name;
@@ -78,7 +78,7 @@
             return null;
         }
 
-        private Typespec* parse_type() {
+        Typespec* parse_type() {
             var pos = token.pos;
             var type = parse_type_base();
             while (is_token(TOKEN_LBRACKET) || is_token(TOKEN_MUL) || is_keyword(const_keyword))
@@ -114,7 +114,7 @@
             return type;
         }
 
-        private CompoundField parse_expr_compound_field() {
+        CompoundField parse_expr_compound_field() {
             var pos = token.pos;
             if (match_token(TOKEN_LBRACKET)) {
                 var index = parse_expr();
@@ -133,7 +133,7 @@
             return new CompoundField { pos = pos, kind = FIELD_DEFAULT, init = expr };
         }
 
-        private Expr* parse_expr_compound(Typespec* type) {
+        Expr* parse_expr_compound(Typespec* type) {
             var pos = token.pos;
             expect_token(TOKEN_LBRACE);
             var buf = Buffer<CompoundField>.Create();
@@ -149,7 +149,7 @@
             return new_expr_compound(pos, type, buf, buf.count);
         }
 
-        private Expr* parse_expr_operand() {
+        Expr* parse_expr_operand() {
             var pos = token.pos;
             if (is_token(TOKEN_INT)) {
                 var val = token.int_val;
@@ -249,7 +249,7 @@
             return null;
         }
 
-        private Expr* parse_expr_base() {
+        Expr* parse_expr_base() {
             var pos = token.pos;
             var expr = parse_expr_operand();
             while (is_token(TOKEN_LPAREN) || is_token(TOKEN_LBRACKET) || is_token(TOKEN_DOT)
@@ -290,12 +290,12 @@
             return expr;
         }
 
-        private bool is_unary_op() {
+        bool is_unary_op() {
             return is_token(TOKEN_ADD) || is_token(TOKEN_SUB) || is_token(TOKEN_MUL) || is_token(TOKEN_AND) ||
                    is_token(TOKEN_NEG) || is_token(TOKEN_NOT) || is_token(TOKEN_INC) || is_token(TOKEN_DEC);
         }
 
-        private Expr* parse_expr_unary() {
+        Expr* parse_expr_unary() {
             var pos = token.pos;
             if (is_unary_op()) {
                 var op = token.kind;
@@ -311,11 +311,11 @@
             return parse_expr_base();
         }
 
-        private bool is_mul_op() {
+        bool is_mul_op() {
             return TOKEN_FIRST_MUL <= token.kind && token.kind <= TOKEN_LAST_MUL;
         }
 
-        private Expr* parse_expr_mul() {
+        Expr* parse_expr_mul() {
             var pos = token.pos;
             var expr = parse_expr_unary();
             while (is_mul_op()) {
@@ -327,11 +327,11 @@
             return expr;
         }
 
-        private bool is_add_op() {
+        bool is_add_op() {
             return TOKEN_FIRST_ADD <= token.kind && token.kind <= TOKEN_LAST_ADD;
         }
 
-        private Expr* parse_expr_add() {
+        Expr* parse_expr_add() {
             var pos = token.pos;
             var expr = parse_expr_mul();
             while (is_add_op()) {
@@ -343,11 +343,11 @@
             return expr;
         }
 
-        private bool is_cmp_op() {
+        bool is_cmp_op() {
             return TOKEN_FIRST_CMP <= token.kind && token.kind <= TOKEN_LAST_CMP;
         }
 
-        private Expr* parse_expr_cmp() {
+        Expr* parse_expr_cmp() {
             var pos = token.pos;
             var expr = parse_expr_add();
             while (is_cmp_op()) {
@@ -359,7 +359,7 @@
             return expr;
         }
 
-        private Expr* parse_expr_and() {
+        Expr* parse_expr_and() {
             var pos = token.pos;
             var expr = parse_expr_cmp();
             while (match_token(TOKEN_AND_AND))
@@ -368,7 +368,7 @@
             return expr;
         }
 
-        private Expr* parse_expr_or() {
+        Expr* parse_expr_or() {
             var pos = token.pos;
             var expr = parse_expr_and();
             while (match_token(TOKEN_OR_OR))
@@ -377,7 +377,7 @@
             return expr;
         }
 
-        private Expr* parse_expr_ternary() {
+        Expr* parse_expr_ternary() {
             var pos = token.pos;
             var expr = parse_expr_or();
             if (match_token(TOKEN_QUESTION)) {
@@ -390,18 +390,18 @@
             return expr;
         }
 
-        private Expr* parse_expr() {
+        Expr* parse_expr() {
             return parse_expr_ternary();
         }
 
-        private Expr* parse_paren_expr() {
+        Expr* parse_paren_expr() {
             expect_token(TOKEN_LPAREN);
             var expr = parse_expr();
             expect_token(TOKEN_RPAREN);
             return expr;
         }
 
-        private StmtList parse_stmt_block() {
+        StmtList parse_stmt_block() {
             expect_token(TOKEN_LBRACE);
             var pos = token.pos;
 
@@ -418,7 +418,7 @@
             }
         }
 
-        private Stmt* parse_stmt_if(SrcPos pos) {
+        Stmt* parse_stmt_if(SrcPos pos) {
             expect_token(TOKEN_LPAREN);
             Expr *cond = parse_expr();
             Stmt *init = parse_init_stmt(cond);
@@ -458,12 +458,12 @@
             }
         }
 
-        private Stmt* parse_stmt_while(SrcPos pos) {
+        Stmt* parse_stmt_while(SrcPos pos) {
             var cond = parse_paren_expr();
             return new_stmt_while(pos, cond, parse_stmt_block());
         }
 
-        private Stmt* parse_stmt_do_while(SrcPos pos) {
+        Stmt* parse_stmt_do_while(SrcPos pos) {
             var block = parse_stmt_block();
             if (!match_keyword(while_keyword)) {
                 fatal_error_here("Expected 'while' after 'do' block");
@@ -475,11 +475,11 @@
             return stmt;
         }
 
-        private bool is_assign_op() {
+        bool is_assign_op() {
             return TOKEN_FIRST_ASSIGN <= token.kind && token.kind <= TOKEN_LAST_ASSIGN;
         }
 
-        private Stmt* parse_init_stmt(Expr* left) {
+        Stmt* parse_init_stmt(Expr* left) {
             var pos = token.pos;
             Stmt* stmt = null;
             if (match_token(TOKEN_COLON_ASSIGN)) {
@@ -525,7 +525,7 @@
             return stmt;
         }
 
-        private Stmt* parse_stmt_for(SrcPos pos) {
+        Stmt* parse_stmt_for(SrcPos pos) {
             expect_token(TOKEN_LPAREN);
             Stmt* init = null;
             if (!is_token(TOKEN_SEMICOLON))
@@ -548,7 +548,7 @@
             return new_stmt_for(pos, init, cond, next, parse_stmt_block());
         }
 
-        private SwitchCase parse_stmt_switch_case() {
+        SwitchCase parse_stmt_switch_case() {
             var buf = PtrBuffer.GetPooledBuffer();
             try {
                 var is_default = false;
@@ -597,7 +597,7 @@
             }
         }
 
-        private Stmt* parse_stmt_switch(SrcPos pos) {
+        Stmt* parse_stmt_switch(SrcPos pos) {
             var expr = parse_paren_expr();
 
             var buf = Buffer<SwitchCase>.Create();
@@ -609,7 +609,7 @@
             return new_stmt_switch(pos, expr, buf, buf.count);
         }
 
-        private Stmt* parse_stmt() {
+        Stmt* parse_stmt() {
             Notes notes = parse_notes();
             var pos = token.pos;
             Stmt *stmt = null;
@@ -662,13 +662,13 @@
             return stmt;
         }
 
-        private char* parse_name() {
+        char* parse_name() {
             var name = token.name;
             expect_token(TOKEN_NAME);
             return name;
         }
 
-        private EnumItem parse_decl_enum_item() {
+        EnumItem parse_decl_enum_item() {
             var pos = token.pos;
             var name = parse_name();
             Expr* init = null;
@@ -678,7 +678,7 @@
             return new EnumItem { pos = pos, name = name, init = init };
         }
 
-        private Decl* parse_decl_enum(SrcPos pos) {
+        Decl* parse_decl_enum(SrcPos pos) {
             var name = parse_name();
             expect_token(TOKEN_LBRACE);
             EnumItem* items = null;
@@ -693,7 +693,7 @@
             return new_decl_enum(pos, name, buf._begin, buf.count);
         }
 
-        private AggregateItem parse_decl_aggregate_item() {
+        AggregateItem parse_decl_aggregate_item() {
             var buf = PtrBuffer.GetPooledBuffer();
             var pos = token.pos;
             try {
@@ -716,7 +716,7 @@
             }
         }
 
-        private Decl* parse_decl_aggregate(SrcPos pos, DeclKind kind) {
+        Decl* parse_decl_aggregate(SrcPos pos, DeclKind kind) {
             assert(kind == DECL_STRUCT || kind == DECL_UNION);
             var name = parse_name();
             if (match_token(TOKEN_SEMICOLON)) {
@@ -735,7 +735,7 @@
             }
         }
 
-        private Decl* parse_decl_var(SrcPos pos) {
+        Decl* parse_decl_var(SrcPos pos) {
             var name = parse_name();
             if (match_token(TOKEN_ASSIGN)) {
                 Expr *expr = parse_expr();
@@ -757,7 +757,7 @@
             }
         }
 
-        private Decl* parse_decl_const(SrcPos pos) {
+        Decl* parse_decl_const(SrcPos pos) {
             Typespec *type = null;
             var name = parse_name();
             if (match_token(TOKEN_COLON)) {
@@ -769,7 +769,7 @@
             return new_decl_const(pos, name, type, expr);
         }
 
-        private Decl* parse_decl_typedef(SrcPos pos) {
+        Decl* parse_decl_typedef(SrcPos pos) {
             var name = parse_name();
             expect_token(TOKEN_ASSIGN);
             Typespec *type = parse_type();
@@ -777,7 +777,7 @@
             return new_decl_typedef(pos, name, type);
         }
 
-        private FuncParam parse_decl_func_param() {
+        FuncParam parse_decl_func_param() {
             var pos = token.pos;
             var name = parse_name();
             expect_token(TOKEN_COLON);
@@ -785,7 +785,7 @@
             return new FuncParam { pos = pos, name = name, type = type };
         }
 
-        private Decl* parse_decl_func(SrcPos pos) {
+        Decl* parse_decl_func(SrcPos pos) {
             var name = parse_name();
             bool has_varargs = false;
             expect_token(TOKEN_LPAREN);
@@ -901,7 +901,7 @@
             return new_decl_import(pos, is_relative, (char**)names->_begin, names->count, import_all, items, items.count);
         }
 
-        private Decl* parse_decl_opt() {
+        Decl* parse_decl_opt() {
             var pos = token.pos;
             if (match_keyword(enum_keyword))
                 return parse_decl_enum(pos);
@@ -924,7 +924,7 @@
             return null;
         }
 
-        private Decl* parse_decl() {
+        Decl* parse_decl() {
             Notes notes = parse_notes();
             var decl = parse_decl_opt();
             if (decl == null)

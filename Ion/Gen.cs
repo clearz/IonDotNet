@@ -15,14 +15,14 @@ namespace IonLang
 
     unsafe partial class Ion
     {
-        private const int _1MB = 1024 * 1024;
+        const int _1MB = 1024 * 1024;
 
-        private readonly char* cdecl_buffer = xmalloc<char>(_1MB);
+        readonly char* cdecl_buffer = xmalloc<char>(_1MB);
         readonly StringBuilder gen_buf = new StringBuilder();
-        private readonly char[] char_to_escape  = new char[256];
+        readonly char[] char_to_escape  = new char[256];
         readonly PtrBuffer* gen_headers_buf = PtrBuffer.Create();
 
-        private readonly string preamble =  "// Preamble\n" +
+        readonly string preamble =  "// Preamble\n" +
                                             "#ifndef _CRT_SECURE_NO_WARNINGS\n" +
                                             "#define _CRT_SECURE_NO_WARNINGS\n" +
                                             "#endif\n" +
@@ -125,28 +125,28 @@ namespace IonLang
         SrcPos gen_pos;
         int gen_indent;
 
-        private void indent() {
+        void indent() {
             var size = gen_indent * 4;
 
             gen_buf.Append(string.Empty.PadRight(size).ToPtr(out int s), s);
             gen_pos.line++;
         }
 
-        private void writeln() {
+        void writeln() {
 #if DEBUG_VERBOSE
             System.Console.WriteLine();
 #endif
             gen_buf.Append('\n');
         }
 
-        private void c_write(char c) {
+        void c_write(char c) {
 #if DEBUG_VERBOSE
             System.Console.Write(c);
 #endif
             gen_buf.Append(c);
         }
 
-        private void c_write(char* c) {
+        void c_write(char* c) {
 #if DEBUG_VERBOSE
             System.Console.Write(new string(c));
 #endif
@@ -154,7 +154,7 @@ namespace IonLang
             //while ((*(gen_buf + gen_pos) = *(c++)) != 0) gen_pos++;
         }
 
-        private void c_write(char* c, int len) {
+        void c_write(char* c, int len) {
 #if DEBUG_VERBOSE
             System.Console.Write(new string(c));
 #endif
@@ -162,7 +162,7 @@ namespace IonLang
             //Unsafe.CopyBlock(gen_buf + gen_pos, c, (uint)len << 1);
             //gen_pos += len;
         }
-        private void c_write(string s) {
+        void c_write(string s) {
 #if DEBUG_VERBOSE
             System.Console.Write(s);
 #endif
@@ -170,20 +170,20 @@ namespace IonLang
             //Unsafe.CopyBlock(gen_buf + gen_pos, c, (uint)len << 1);
             //gen_pos += len;
         }
-        private void genlnf(char c) {
+        void genlnf(char c) {
             genln();
             c_write(c);
         }
-        private void genlnf(char* fmt) {
+        void genlnf(char* fmt) {
             genln();
             c_write(fmt);
         }
-        private void genlnf(char* fmt, int len) {
+        void genlnf(char* fmt, int len) {
             genln();
             c_write(fmt, len);
         }
 
-        private void genln() {
+        void genln() {
             writeln();
             indent();
             gen_pos.line++;
@@ -225,7 +225,7 @@ namespace IonLang
         char* get_gen_name(void* ptr) {
             return get_gen_name_or_default(ptr, "ERROR".ToPtr());
         }
-        private char* cdecl_name(Type* type) {
+        char* cdecl_name(Type* type) {
             char* type_name = type_names[(int)type->kind];
             if (type_name != null) {
                 return type_name;
@@ -236,7 +236,7 @@ namespace IonLang
             }
         }
 
-        private void type_to_cdecl(Type* type, char* str) {
+        void type_to_cdecl(Type* type, char* str) {
             switch (type->kind) {
                 case TYPE_PTR:
                     if (str != null) {
@@ -335,7 +335,7 @@ namespace IonLang
             }
         }
 
-        private void gen_str(char* str, bool multiline) {
+        void gen_str(char* str, bool multiline) {
             if (multiline) {
                 gen_indent++;
                 genln();
@@ -372,7 +372,7 @@ namespace IonLang
             }
         }
 
-        private void gen_sync_pos(SrcPos pos) {
+        void gen_sync_pos(SrcPos pos) {
             if (flag_skip_lines)
                 return;
             assert(pos.name != null && pos.line != 0);
@@ -388,7 +388,7 @@ namespace IonLang
             }
         }
 
-        private void typespec_to_cdecl(Typespec* typespec, char* str) {
+        void typespec_to_cdecl(Typespec* typespec, char* str) {
             if (typespec == null) {
                 c_write(void_str);
                 if (*str != 0)
@@ -507,7 +507,7 @@ namespace IonLang
             }
         }
 
-        private void gen_defs() {
+        void gen_defs() {
             for (Sym** it = (Sym**)sorted_syms->_begin; it < sorted_syms->_top; it++) {
                 Sym* sym = *it;
                 Decl* decl = sym->decl;
@@ -580,7 +580,7 @@ namespace IonLang
             }
             c_write(')');
         }
-        private void gen_forward_decls() {
+        void gen_forward_decls() {
             for (var it = (Sym**)sorted_syms->_begin; it != sorted_syms->_top; it++) {
                 var sym = *it;
 
@@ -618,7 +618,7 @@ namespace IonLang
             }
         }
 
-        private void gen_aggregate(Decl* decl) {
+        void gen_aggregate(Decl* decl) {
             assert(decl->kind == DECL_STRUCT || decl->kind == DECL_UNION);
             if (decl->is_incomplete) {
                 return;
@@ -747,7 +747,7 @@ namespace IonLang
             c_write('\'');
         }
 
-        private void gen_expr(Expr* expr) {
+        void gen_expr(Expr* expr) {
             switch (expr->kind) {
                 case EXPR_PAREN:
                     c_write('(');
@@ -934,7 +934,7 @@ namespace IonLang
             return typespec->kind == TYPESPEC_ARRAY && typespec->num_elems == null;
         }
 
-        private void gen_stmt_block(StmtList block) {
+        void gen_stmt_block(StmtList block) {
             c_write('{');
             gen_indent++;
             for (var i = 0; i < block.num_stmts; i++)
@@ -950,7 +950,7 @@ namespace IonLang
             c_write(')');
         }
 
-        private void gen_simple_stmt(Stmt* stmt) {
+        void gen_simple_stmt(Stmt* stmt) {
             switch (stmt->kind) {
                 case STMT_EXPR:
                     gen_expr(stmt->expr);
@@ -996,7 +996,7 @@ namespace IonLang
             }
         }
 
-        private void gen_stmt(Stmt* stmt) {
+        void gen_stmt(Stmt* stmt) {
             gen_sync_pos(stmt->pos);
             switch (stmt->kind) {
                 case STMT_RETURN:
@@ -1217,7 +1217,7 @@ namespace IonLang
             c_write(';');
         }
 
-        private void gen_decl(Sym* sym) {
+        void gen_decl(Sym* sym) {
             var decl = sym->decl;
             if (decl == null || is_decl_foreign(decl))
                 return;
@@ -1286,7 +1286,7 @@ namespace IonLang
                 genln();
         }
 
-        private void gen_sorted_decls() {
+        void gen_sorted_decls() {
             var sym_cnt = sorted_syms->count;
 
             for (var i = 0; i < sym_cnt; i++) {
@@ -1379,7 +1379,7 @@ namespace IonLang
             }
         }
 
-        private char*[] tiInfo;
+        char*[] tiInfo;
         void gen_typeinfos() {
             tiInfo = new[] {"const TypeInfo *typeinfo_table[".ToPtr(out int ti0),
                           "] = {".ToPtr(out int ti1),
@@ -1673,7 +1673,7 @@ namespace IonLang
             }
         }
 
-        private void gen_all() {
+        void gen_all() {
             c_write(preamble.ToPtr());
             gen_package_external_names();
             genlnf("// Foreign header files".ToPtr());
@@ -1694,7 +1694,7 @@ namespace IonLang
             c_write(gen_postamble.ToPtr());
         }
 
-        private void init_chars() {
+        void init_chars() {
             // TODO: Need to expand this and also deal with non-printable chars via \x
             char_to_escape['\0'] = '0';
             char_to_escape['\n'] = 'n';

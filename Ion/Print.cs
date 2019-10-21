@@ -12,13 +12,13 @@ namespace IonLang
 
     unsafe partial class Ion
     {
-        private int _indent;
+        int _indent;
 
         //char* print_buf;
-        private readonly StringBuilder sb = new StringBuilder(256);
-        private bool use_print_buf;
+        readonly StringBuilder sb = new StringBuilder(256);
+        bool use_print_buf;
 
-        private void printf(string format, params object[] @params)
+        void printf(string format, params object[] @params)
         {
             if (use_print_buf)
                 sb.AppendFormat(format, @params);
@@ -26,12 +26,12 @@ namespace IonLang
                 Console.Write(format, @params);
         }
 
-        private void printf(string format, char* str)
+        void printf(string format, char* str)
         {
             printf(format, _S(str));
         }
 
-        private void flush_print_buf(StreamWriter file)
+        void flush_print_buf(StreamWriter file)
         {
             if (sb.Length > 0)
             {
@@ -40,12 +40,12 @@ namespace IonLang
             }
         }
 
-        private void print_newline()
+        void print_newline()
         {
             printf("\n{0}", "".PadLeft(2 * _indent));
         }
 
-        private void print_typespec(Typespec* type)
+        void print_typespec(Typespec* type)
         {
             var t = type;
             switch (t->kind)
@@ -89,7 +89,7 @@ namespace IonLang
             }
         }
 
-        private void print_expr(Expr* expr)
+        void print_expr(Expr* expr)
         {
             var e = expr;
             switch (e->kind)
@@ -205,7 +205,7 @@ namespace IonLang
             }
         }
 
-        private void print_stmt_block(StmtList block)
+        void print_stmt_block(StmtList block)
         {
             printf("(block");
             _indent++;
@@ -219,7 +219,7 @@ namespace IonLang
             printf(")");
         }
 
-        private void print_stmt(Stmt* stmt)
+        void print_stmt(Stmt* stmt)
         {
             var s = stmt;
             switch (s->kind)
@@ -352,7 +352,7 @@ namespace IonLang
             }
         }
 
-        private void print_aggregate_decl(Decl* decl)
+        void print_aggregate_decl(Decl* decl)
         {
             var d = decl;
             for (var it = d->aggregate.items; it != d->aggregate.items + d->aggregate.num_items; it++)
@@ -365,7 +365,7 @@ namespace IonLang
             }
         }
 
-        private void print_decl(Decl* decl)
+        void print_decl(Decl* decl)
         {
             var d = decl;
             switch (d->kind)

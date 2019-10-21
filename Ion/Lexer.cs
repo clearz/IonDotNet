@@ -8,16 +8,16 @@ namespace IonLang
 
     public unsafe partial class Ion
     {
-        private static PtrBuffer* keywords;
+        static PtrBuffer* keywords;
 
 
-        private static bool inited;
+        static bool inited;
 
-        private readonly byte[] char_to_digit = new byte[256];
-        private readonly char[] escape_to_char = new char[256];
+        readonly byte[] char_to_digit = new byte[256];
+        readonly char[] escape_to_char = new char[256];
         static SrcPos pos_builtin = new SrcPos{name = "<builtin>".ToPtr()};
 
-        private char** token_kind_names;
+        char** token_kind_names;
         char*[] token_suffix_names;
         void init_tokens() {
             token_kind_names = (char**)xmalloc((int)NUM_TOKEN_KINDS * sizeof(char**));
@@ -87,39 +87,39 @@ namespace IonLang
             token_kind_names[(int)TOKEN_COLON_ASSIGN] = ":=".ToPtr();
         }
 
-        private char* break_keyword;
-        private char* case_keyword;
-        private char* const_keyword;
-        private char* continue_keyword;
-        private char* default_keyword;
-        private char* do_keyword;
-        private char* else_keyword;
-        private char* enum_keyword;
+        char* break_keyword;
+        char* case_keyword;
+        char* const_keyword;
+        char* continue_keyword;
+        char* default_keyword;
+        char* do_keyword;
+        char* else_keyword;
+        char* enum_keyword;
 
-        private char* first_keyword;
-        private char* for_keyword;
-        private char* func_keyword;
-        private char* if_keyword;
-        private char* last_keyword;
-        private char* line_start;
-        private char* return_keyword;
-        private char* sizeof_keyword;
-        private char *typeof_keyword;
-        private char *alignof_keyword;
-        private char *offsetof_keyword;
+        char* first_keyword;
+        char* for_keyword;
+        char* func_keyword;
+        char* if_keyword;
+        char* last_keyword;
+        char* line_start;
+        char* return_keyword;
+        char* sizeof_keyword;
+        char *typeof_keyword;
+        char *alignof_keyword;
+        char *offsetof_keyword;
         char *import_keyword;
 
-        private Buffer<char> str_buf;
-        private char* stream;
-        private char* struct_keyword;
-        private char* switch_keyword;
+        Buffer<char> str_buf;
+        char* stream;
+        char* struct_keyword;
+        char* switch_keyword;
 
-        private Token token;
+        Token token;
 
-        private char* typedef_keyword;
-        private char* union_keyword;
-        private char* var_keyword;
-        private char* while_keyword;
+        char* typedef_keyword;
+        char* union_keyword;
+        char* var_keyword;
+        char* while_keyword;
 
         char *always_name;
         char *foreign_name;
@@ -187,7 +187,7 @@ namespace IonLang
 
         }
 
-        private void init_keywords() {
+        void init_keywords() {
             typedef_keyword = _I("typedef");
             keywords->Add(typedef_keyword);
 
@@ -272,30 +272,30 @@ namespace IonLang
             last_keyword = default_keyword;
         }
 
-        private bool is_keyword_name(char* name) {
+        bool is_keyword_name(char* name) {
             return first_keyword <= name && name <= last_keyword;
         }
 
-        private string token_kind_name(TokenKind kind) {
+        string token_kind_name(TokenKind kind) {
             if (kind < NUM_TOKEN_KINDS)
                 return _S(token_kind_names[(int)kind]);
             return "<unknown>";
         }
 
-        private char* _token_kind_name(TokenKind kind) {
+        char* _token_kind_name(TokenKind kind) {
             if (kind < NUM_TOKEN_KINDS)
                 return *(token_kind_names + (long)kind);
             return _I("<unknown>");
         }
 
-        private string token_info() {
+        string token_info() {
             if (token.kind == TOKEN_NAME || token.kind == TOKEN_KEYWORD)
                 return _S(token.name);
 
             return token_kind_name(token.kind);
         }
 
-        private void scan_int() {
+        void scan_int() {
             ulong @base = 10;
             char *start_digits = stream;
             if (*stream == '0') {
@@ -352,7 +352,7 @@ namespace IonLang
             scan_sufffix();
         }
 
-        private void scan_float() {
+        void scan_float() {
             var start = stream;
             while (char.IsDigit(*stream))
                 stream++;
@@ -472,7 +472,7 @@ namespace IonLang
             token.mod = MOD_CHAR;
         }
 
-        private void scan_str() {
+        void scan_str() {
             assert(*stream == '"');
             stream++;
             var start = stream;
@@ -539,7 +539,7 @@ namespace IonLang
             token.str_val = str_buf._begin;
         }
 
-        private void next_token() {
+        void next_token() {
 repeat:
             token.start = stream;
             token.suffix = 0;
@@ -926,11 +926,11 @@ repeat:
             token.pos.col = token.start - line_start + 1;
         }
 
-        private void init_stream(string buf, string name = "<anonymous>") {
+        void init_stream(string buf, string name = "<anonymous>") {
             init_stream(buf.ToPtr(), $"\"{name}\"".ToPtr());
         }
 
-        private void init_stream(char* str, char* name = null) {
+        void init_stream(char* str, char* name = null) {
             token.pos.name = name != null ? name : "<string>".ToPtr();
             path_normalize(token.pos.name);
             token.pos.line = token.pos.col = 1;
@@ -938,24 +938,24 @@ repeat:
             next_token();
         }
 
-        private bool is_token(TokenKind kind) {
+        bool is_token(TokenKind kind) {
             return token.kind == kind;
         }
 
 
-        private bool is_token_eof() {
+        bool is_token_eof() {
             return token.kind == TOKEN_EOF;
         }
 
-        private bool is_token_name(char* name) {
+        bool is_token_name(char* name) {
             return token.kind == TOKEN_NAME && token.name == name;
         }
 
-        private bool is_keyword(char* name) {
+        bool is_keyword(char* name) {
             return is_token(TOKEN_KEYWORD) && token.name == name;
         }
 
-        private bool match_keyword(char* name) {
+        bool match_keyword(char* name) {
             if (is_keyword(name)) {
                 next_token();
                 return true;
@@ -964,7 +964,7 @@ repeat:
             return false;
         }
 
-        private bool match_token(TokenKind kind) {
+        bool match_token(TokenKind kind) {
             if (is_token(kind)) {
                 next_token();
                 return true;
@@ -973,7 +973,7 @@ repeat:
             return false;
         }
 
-        private bool expect_token(TokenKind kind) {
+        bool expect_token(TokenKind kind) {
             if (is_token(kind)) {
                 next_token();
                 return true;
@@ -984,7 +984,7 @@ repeat:
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        private struct Token
+        struct Token
         {
             [FieldOffset(0)] public ulong int_val;
             [FieldOffset(0)] public double float_val;

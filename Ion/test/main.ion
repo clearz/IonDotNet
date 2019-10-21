@@ -1,15 +1,10 @@
-﻿
-@foreign
-struct va_list;
+﻿const UART_CTRL_REG = (:uint32*)0x12345678;
 
-func test_va_list(fmt: char const*, ...) {
-    args: va_list;
+func test_uart() {
+   j := UART_CTRL_REG;
 }
 
 
-@foreign
-func va_start_ptr(args: va_list*, arg: void const*);
-
-func main(argc: int, argv: char const**){
-
+func main(argc: int, argv: char**): int {
+    return 0;
 }

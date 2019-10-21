@@ -15,13 +15,13 @@ namespace IonLang
 
 
         [DebuggerHidden]
-        private static void fatal(string format, params object[] pmz) {
+        static void fatal(string format, params object[] pmz) {
             Console.Error.WriteLine("FATAL: " + format, pmz);
             Exit();
         }
 
         [DebuggerHidden]
-        private static void error(SrcPos pos, string format, params object[] pmz) {
+        static void error(SrcPos pos, string format, params object[] pmz) {
             if (pos.name == null) {
                 pos = pos_builtin;
             }
@@ -29,25 +29,25 @@ namespace IonLang
         }
 
         [DebuggerHidden]
-        private static void fatal_error(SrcPos pos, string format, params object[] pmz) {
+        static void fatal_error(SrcPos pos, string format, params object[] pmz) {
             error(pos, format, pmz);
             Exit();
         }
 
         [DebuggerHidden]
-        private void error_here(string format, params object[] pmz) {
+        void error_here(string format, params object[] pmz) {
             error(token.pos, format, pmz);
             Exit();
         }
 
         [DebuggerHidden]
-        private void warning_here(string format, params object[] pmz) {
+        void warning_here(string format, params object[] pmz) {
             warning(token.pos, format, pmz);
         }
 
 
         [DebuggerHidden]
-        private void fatal_error_here(string format, params object[] pmz)
+        void fatal_error_here(string format, params object[] pmz)
         {
             error_here(format, pmz);
             Exit();
@@ -56,18 +56,18 @@ namespace IonLang
 
         [Conditional("DEBUG")]
         [DebuggerHidden]
-        private static void assert(long l = 0) => assert(l != 0);
+        static void assert(long l = 0) => assert(l != 0);
 
         [Conditional("DEBUG")]
         [DebuggerHidden]
-        private static void assert(void* v) => assert(v != null);
+        static void assert(void* v) => assert(v != null);
 
         [Conditional("DEBUG")]
         [DebuggerHidden]
-        private static void assert(bool b) => Debug.Assert(b);
+        static void assert(bool b) => Debug.Assert(b);
 
         [DebuggerHidden]
-        private static void Exit(int wait_ms = 2000, int rtn_code = 1) {
+        static void Exit(int wait_ms = 2000, int rtn_code = 1) {
             assert(false);
             Console.Error.WriteLine("Exiting...");
             Thread.Sleep(wait_ms);

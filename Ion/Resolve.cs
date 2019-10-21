@@ -41,7 +41,7 @@ namespace IonLang
 #else
         internal const int PTR_SIZE = 4;
 #endif
-        private const long PTR_ALIGN = 8;
+        const long PTR_ALIGN = 8;
 
         byte reachable_phase = REACHABLE_NATURAL;
 
@@ -72,7 +72,7 @@ namespace IonLang
             return local_syms._begin <= sym && sym <= local_syms._top;
         }
 
-        private Sym* sym_new(SymKind kind, char* name, Decl* decl) {
+        Sym* sym_new(SymKind kind, char* name, Decl* decl) {
             var sym = xcalloc<Sym>();
 
             sym->kind = kind;
@@ -83,7 +83,7 @@ namespace IonLang
             return sym;
         }
 
-        private Sym* sym_decl(Decl* decl) {
+        Sym* sym_decl(Decl* decl) {
             var kind = SYM_NONE;
             switch (decl->kind) {
                 case DECL_STRUCT:
@@ -129,7 +129,7 @@ namespace IonLang
             return sym;
         }
 
-        private Sym* sym_get_local(char* name) {
+        Sym* sym_get_local(char* name) {
             for (var sym = local_syms._top - 1; sym >= local_syms._begin; sym--)
                 if (sym->name == name)
                     return sym;
@@ -141,7 +141,7 @@ namespace IonLang
             return sym != null ? sym : get_package_sym(current_package, name);
         }
 
-        private bool sym_push_var(char* name, Type* type) {
+        bool sym_push_var(char* name, Type* type) {
             if (sym_get_local(name) != null) {
                 return false;
             }
@@ -159,11 +159,11 @@ namespace IonLang
             return true;
         }
 
-        private Sym* sym_enter() {
+        Sym* sym_enter() {
             return local_syms._top;
         }
 
-        private void sym_leave(Sym* sym) {
+        void sym_leave(Sym* sym) {
             local_syms._top = sym;
         }
 
@@ -183,7 +183,7 @@ namespace IonLang
             current_package->syms->Add(sym);
         }
 
-        private Sym* sym_global_decl(Decl* decl) {
+        Sym* sym_global_decl(Decl* decl) {
             var sym = sym_decl(decl);
             sym_global_put(sym->name, sym);
             if (decl->kind == DECL_ENUM) {
@@ -246,15 +246,15 @@ namespace IonLang
                 resolved_expected_type_map.map_put(expr, type);
         }
 
-        private Operand operand_rvalue(Type* type) {
+        Operand operand_rvalue(Type* type) {
             return new Operand { type = unqualify_type(type) };
         }
 
-        private Operand operand_lvalue(Type* type) {
+        Operand operand_lvalue(Type* type) {
             return new Operand { type = type, is_lvalue = true };
         }
 
-        private Operand operand_const(Type* type, Val val) {
+        Operand operand_const(Type* type, Val val) {
             return new Operand { type = unqualify_type(type), is_const = true, val = val };
         }
 
@@ -1117,7 +1117,7 @@ namespace IonLang
             return operand.type;
         }
 
-        private Type* resolve_typespec(Typespec* typespec) {
+        Type* resolve_typespec(Typespec* typespec) {
             if (typespec == null)
                 return type_void;
 
@@ -1183,7 +1183,7 @@ namespace IonLang
             return result;
         }
 
-        private void complete_type(Type* type) {
+        void complete_type(Type* type) {
             if (type->kind == TYPE_COMPLETING) {
                 fatal_error(type->sym->decl->pos, "Type completion cycle");
                 return;
@@ -1283,7 +1283,7 @@ namespace IonLang
             return resolve_init(decl->pos, decl->var.type, decl->var.expr);
         }
 
-        private Type* resolve_decl_const(Decl* decl, Val* val) {
+        Type* resolve_decl_const(Decl* decl, Val* val) {
             assert(decl->kind == DECL_CONST);
             Operand result = resolve_const_expr(decl->const_decl.expr);
             if (!is_scalar_type(result.type))
@@ -1298,7 +1298,7 @@ namespace IonLang
             return result.type;
         }
 
-        private Type* resolve_decl_func(Decl* decl) {
+        Type* resolve_decl_func(Decl* decl) {
             assert(decl->kind == DECL_FUNC);
             var @params = PtrBuffer.GetPooledBuffer();
             try {
@@ -1338,7 +1338,7 @@ namespace IonLang
             }
         }
 
-        private bool resolve_stmt_block(StmtList block, Type* ret_type, StmtCtx ctx) {
+        bool resolve_stmt_block(StmtList block, Type* ret_type, StmtCtx ctx) {
             var scope = sym_enter();
             bool returns = false;
             for (var i = 0; i < block.num_stmts; i++) {
@@ -1544,7 +1544,7 @@ namespace IonLang
             }
         }
 
-        private void resolve_func_body(Sym* sym) {
+        void resolve_func_body(Sym* sym) {
             var decl = sym->decl;
             assert(decl->kind == DECL_FUNC);
             assert(sym->state == SYM_RESOLVED);
@@ -1567,7 +1567,7 @@ namespace IonLang
             leave_package(old_package);
         }
 
-        private void resolve_sym(Sym* sym) {
+        void resolve_sym(Sym* sym) {
             if (sym->state == SYM_RESOLVED)
                 return;
 
@@ -1619,7 +1619,7 @@ namespace IonLang
            
         }
 
-        private void finalize_sym(Sym* sym) {
+        void finalize_sym(Sym* sym) {
             assert(sym->state == SYM_RESOLVED);
             if (sym->decl != null && !is_decl_foreign(sym->decl) && !sym->decl->is_incomplete) {
                 if (sym->kind == SYM_TYPE) {
@@ -1631,7 +1631,7 @@ namespace IonLang
             }
         }
 
-        private Sym* resolve_name(char* name) {
+        Sym* resolve_name(char* name) {
             var sym = sym_get(name);
             if (sym == null) {
                 return null;
@@ -1642,7 +1642,7 @@ namespace IonLang
         }
 
 
-        private Operand resolve_expr_field(Expr* expr) {
+        Operand resolve_expr_field(Expr* expr) {
             assert(expr->kind == EXPR_FIELD);
             Operand operand = resolve_expr(expr->field.expr);
             bool was_const_type = is_const_type(operand.type);
@@ -1866,7 +1866,7 @@ namespace IonLang
                 return operand;
             }
         }
-        private Operand resolve_expr_unary(Expr* expr) {
+        Operand resolve_expr_unary(Expr* expr) {
             Operand operand = resolve_expr_rvalue(expr->unary.expr);
             Type *type = operand.type;
             switch (expr->unary.op) {
@@ -1909,7 +1909,7 @@ namespace IonLang
             return resolve_binary_op(op, left, right);
         }
 
-        private Operand resolve_expr_binary_op(TokenKind op, char* op_name, SrcPos pos, Operand left, Operand right) {
+        Operand resolve_expr_binary_op(TokenKind op, char* op_name, SrcPos pos, Operand left, Operand right) {
 
             switch (op) {
                 case TOKEN_MUL:
@@ -2058,7 +2058,7 @@ namespace IonLang
             return resolve_expr_binary_op(op, op_name, expr->pos, left, right);
         }
 
-        private Operand resolve_expr_compound(Expr* expr, Type* expected_type) {
+        Operand resolve_expr_compound(Expr* expr, Type* expected_type) {
             assert(expr->kind == EXPR_COMPOUND);
             if (expected_type == null && expr->compound.type == null)
                 fatal_error(expr->pos, "Implicitly typed compound literals used in context without expected type");
@@ -2142,7 +2142,7 @@ namespace IonLang
             return operand_lvalue(is_const ? type_const(type) : type);
         }
 
-        private Operand resolve_expr_call(Expr* expr) {
+        Operand resolve_expr_call(Expr* expr) {
             assert(expr->kind == EXPR_CALL);
             if (expr->call.expr->kind == EXPR_NAME) {
                 Sym *sym = resolve_name(expr->call.expr->name);
@@ -2188,7 +2188,7 @@ namespace IonLang
             return operand_rvalue(func.type->func.ret);
         }
 
-        private Operand resolve_expr_ternary(Expr* expr, Type* expected_type) {
+        Operand resolve_expr_ternary(Expr* expr, Type* expected_type) {
             assert(expr->kind == EXPR_TERNARY);
             var cond = resolve_expr_rvalue(expr->ternary.cond);
             if (!is_scalar_type(cond.type)) {
@@ -2212,7 +2212,7 @@ namespace IonLang
             return default;
         }
 
-        private Operand resolve_expr_index(Expr* expr) {
+        Operand resolve_expr_index(Expr* expr) {
             assert(expr->kind == EXPR_INDEX);
             var operand = resolve_expr_rvalue(expr->index.expr);
             if (operand.type->kind != TYPE_PTR)
@@ -2223,7 +2223,7 @@ namespace IonLang
             return operand_lvalue(operand.type->@base);
         }
 
-        private Operand resolve_expr_cast(Expr* expr) {
+        Operand resolve_expr_cast(Expr* expr) {
             assert(expr->kind == EXPR_CAST);
             var type = resolve_typespec(expr->cast.type);
             var operand = resolve_expr_rvalue(expr->cast.expr);
@@ -2376,7 +2376,7 @@ namespace IonLang
 
 
 
-        private Operand resolve_expected_expr(Expr* expr, Type* expected_type) {
+        Operand resolve_expected_expr(Expr* expr, Type* expected_type) {
             Operand result;
             switch (expr->kind) {
                 case EXPR_PAREN:
@@ -2742,14 +2742,13 @@ namespace IonLang
             for (int i = 0; i < num_reachable; i++) {
                 var sym = reachable_syms->Get<Sym>(i);
                 finalize_sym(sym);
-                num_reachable = reachable_syms->count;
                 if (i == num_reachable - 1) {
                     if (flag_verbose) {
-                        printf("New reachable symbols:\n");
+                        printf("New reachable symbols:");
                         for (int k = prev_num_reachable; k < num_reachable; k++) {
                             var s = reachable_syms->Get<Sym>(k);
-                       //     if (flag_verbose)
-                       //         printf("\t{0}/{1}\n", _S(s->package->path), _S(s->name));
+                            if (flag_verbose)
+                                printf(" {0}/{1}", _S(s->package->path), _S(s->name));
                         }
                         printf("\n");
                     }
@@ -2759,7 +2758,7 @@ namespace IonLang
             }
         }
 
-        private void init_builtin_syms() {
+        void init_builtin_syms() {
 
             //assert(current_package);
             

@@ -7,10 +7,10 @@ namespace IonLang
 {
     unsafe partial class Ion
     {
-        private static Map interns;
-        private static MemArena intern_arena;
+        static Map interns;
+        static MemArena intern_arena;
 
-        private void initialise() {
+        void initialise() {
             local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
             reachable_syms = PtrBuffer.Create();
             package_list = PtrBuffer.Create();
@@ -55,11 +55,11 @@ namespace IonLang
 
             internal PtrBuffer* arenas;
 
-            private const int ARENA_ALIGNMENT = 8;
-            private const int ARENA_BLOCK_SIZE = 1024 * 1024;
+            const int ARENA_ALIGNMENT = 8;
+            const int ARENA_BLOCK_SIZE = 1024 * 1024;
 
 
-            private void arena_grow(long min_size) {
+            void arena_grow(long min_size) {
                 //Console.WriteLine("Growing: " + arenas->count);
                 var size = (int) ALIGN_UP(CLAMP_MIN(min_size, ARENA_BLOCK_SIZE), ARENA_ALIGNMENT);
                 ptr = (byte*)xmalloc(size);
@@ -103,9 +103,9 @@ namespace IonLang
 
         internal struct Intern
         {
-            private long len;
-            private char* str;
-            private Intern* next;
+            long len;
+            char* str;
+            Intern* next;
 
 
             public static char* InternRange(char* start, char* end) {
@@ -259,13 +259,13 @@ namespace IonLang
             return dest;
         }
 
-        private static char* read_file(string path) {
+        static char* read_file(string path) {
             var text = File.ReadAllText(path);
             var buf = text.ToPtr();
             return buf;
         }
 
-        private static bool write_file(string path, char* buf) {
+        static bool write_file(string path, char* buf) {
             File.WriteAllText(path, _S(buf));
             return true;
         }
@@ -324,11 +324,11 @@ namespace IonLang
         {
             internal T* _begin, _top;
 
-            private const int START_CAPACITY = 4,
+            const int START_CAPACITY = 4,
                 MULTIPLIER = 2;
             public int count { get; set; }
             public int  buffer_size, item_size;
-            private int _capacity, _multiplier;
+            int _capacity, _multiplier;
 
             public static implicit operator T*(Buffer<T> b) {
                 return b._begin;
@@ -407,14 +407,14 @@ namespace IonLang
 
         internal struct PtrBuffer
         {
-            private const int START_CAPACITY = 8,
+            const int START_CAPACITY = 8,
                 MULTIPLIER = 2;
 
             public int count;
             internal void** _begin, _top, _end;
             public int Count => (int)(_top-_begin) / PTR_SIZE;
             public int buf_byte_size;
-            private int _capacity, _multiplier;
+            int _capacity, _multiplier;
 
             internal static PtrBuffer* buffers = Create();
 

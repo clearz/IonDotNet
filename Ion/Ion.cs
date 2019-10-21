@@ -46,34 +46,6 @@ namespace IonLang
             decl_note_names.map_put(declare_note_name, (void*)1);
         }
 
-        private void ion_test(string pkg) {
-#if X64
-            string BACK_PATH = "../../../.."; // bin/x64/debug
-            string ARCH = "x64";
-#else
-            string BACK_PATH = @"../../../.."; // bin/debug
-            string ARCH = "x86";
-#endif
-            var dir = new DirectoryInfo(BACK_PATH);
-
-            Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
-            var b = ion_main(new []{pkg, "-c", "-z", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
-            assert(b == 0);
-        }
-
-        int usage() {
-            printf("Usage: {0} <package> [flags]\n", Assembly.GetEntryAssembly()?.FullName);
-            printf("\t\t-s\t<Target operating system>\n");
-            printf("\t\t-a\t<Target machine architecture>\n");
-            printf("\t\t-z\tOnly compile what's reachable from the main package\n");
-            printf("\t\t-g\tDon't generate any typeinfo tables\n");
-            printf("\t\t-l\tDon't generate any line-info\n");
-            printf("\t\t-f\tForce full code generation even for non-reachable symbols\n");
-            printf("\t\t-c\tSemantic checking with no code generation\n\n");
-            printf("\t\t-v\tExtra diagnostic information\n\n");
-            return 1;
-        }
-
         bool parse_env_vars(string[] args) {
             flag_verbose = args.Contains("-v");
             flag_lazy = args.Contains("-z");
@@ -129,7 +101,35 @@ namespace IonLang
             return true;
         }
 
-        private int ion_main(string[] args) {
+        int usage() {
+            printf("Usage: {0} <package> [flags]\n", Assembly.GetEntryAssembly()?.FullName);
+            printf("\t\t-s\t<Target operating system>\n");
+            printf("\t\t-a\t<Target machine architecture>\n");
+            printf("\t\t-z\tOnly compile what's reachable from the main package\n");
+            printf("\t\t-g\tDon't generate any typeinfo tables\n");
+            printf("\t\t-l\tDon't generate any line-info\n");
+            printf("\t\t-f\tForce full code generation even for non-reachable symbols\n");
+            printf("\t\t-c\tSemantic checking with no code generation\n\n");
+            printf("\t\t-v\tExtra diagnostic information\n\n");
+            return 1;
+        }
+
+        void ion_test(string pkg) {
+#if X64
+            string BACK_PATH = "../../../.."; // bin/x64/debug
+            string ARCH = "x64";
+#else
+            string BACK_PATH = @"../../../.."; // bin/debug
+            string ARCH = "x86";
+#endif
+            var dir = new DirectoryInfo(BACK_PATH);
+
+            Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
+            var b = ion_main(new []{pkg, "-z", "-v", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
+            assert(b == 0);
+        }
+
+        int ion_main(string[] args) {
             if (args.Length == 0) {
                 return usage();
             }
@@ -170,7 +170,7 @@ namespace IonLang
             }
             finalize_reachable_syms();
             if (flag_verbose) {
-                printf("Reached {0} symbols in {1} packages from {2}\n", reachable_syms->count, package_list->count, package_name);
+                printf("Reached {0} symbols in {1} packages from {2}/main\n", reachable_syms->count, package_list->count, package_name);
             }
             if (!flag_lazy) {
                 reachable_phase = REACHABLE_FORCED;

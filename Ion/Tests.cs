@@ -70,7 +70,7 @@ namespace IonLang
         #endregion
 
         #region Lexer Tests
-        private void keyword_test() {
+        void keyword_test() {
             lex_init();
             assert(is_keyword_name(first_keyword));
             assert(is_keyword_name(last_keyword));
@@ -80,27 +80,27 @@ namespace IonLang
             assert(!is_keyword_name(_I("foo")));
         }
 
-        private void assert_token(TokenKind x) {
+        void assert_token(TokenKind x) {
             assert(match_token(x));
         }
 
-        private void assert_token_name(string x) {
+        void assert_token_name(string x) {
             assert(token.name == _I(x) && match_token(TOKEN_NAME));
         }
 
-        private void assert_token_int(ulong x) {
+        void assert_token_int(ulong x) {
             assert((ulong)token.int_val == x && match_token(TOKEN_INT));
         }
 
-        private void assert_token_float(double x) {
+        void assert_token_float(double x) {
             assert(token.float_val == x && match_token(TOKEN_FLOAT));
         }
 
-        private void assert_token_str(char* x) {
+        void assert_token_str(char* x) {
             assert(strcmp(token.str_val, x) == 0 && match_token(TOKEN_STR));
         }
 
-        private void assert_token_eof() {
+        void assert_token_eof() {
             assert(is_token(0));
         }
 
@@ -171,7 +171,7 @@ namespace IonLang
 
         #region Parser Tests
 
-        private static readonly string[] decls =
+        static readonly string[] decls =
         {
        "var x: char[256] = {1, 2, 3, ['a'] = 4}",
         "struct Vector { x, y: float; }",
@@ -211,7 +211,7 @@ namespace IonLang
 
         #region Resolve Test
 
-        private readonly string[] code =
+        readonly string[] code =
         {
             "var u2 = (:int*)42;",
             "union IntOrPtr { i: int; p: int*; }",
@@ -230,7 +230,7 @@ namespace IonLang
 
 
 
-        private void cdecl_test() {
+        void cdecl_test() {
             var c = 'a';
             init_builtin_syms();
             type_to_cdecl(type_int, &c);
@@ -260,7 +260,7 @@ namespace IonLang
             type_to_cdecl(type_func((Type**)null, 0, type_array(type_func((Type**)null, 0, type_int), 10)), &c);
         }
 
-        private void resolve_test() {
+        void resolve_test() {
             init_builtin_syms();
             assert(promote_type(type_char) == type_int);
             assert(promote_type(type_schar) == type_int);

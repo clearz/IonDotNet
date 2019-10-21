@@ -126,23 +126,23 @@ namespace IonLang
 
     internal class Timer
     {
-        private const long _multiplier = 1000000000;
-        private readonly long _frequency;
+        const long _multiplier = 1000000000;
+        readonly long _frequency;
 
-        private long _start;
-        private long _stop;
+        long _start;
+        long _stop;
 
-        private Timer() {
+        Timer() {
             if (QueryPerformanceFrequency(out _frequency) == false)
                 throw new Win32Exception();
         }
 
         [DllImport("Kernel32")]
-        private static extern bool QueryPerformanceCounter(
+        static extern bool QueryPerformanceCounter(
             out long lpPerformanceCount);
 
         [DllImport("Kernel32")]
-        private static extern bool QueryPerformanceFrequency(out long lpFrequency);
+        static extern bool QueryPerformanceFrequency(out long lpFrequency);
 
 
         public static void Time(Action parse_test, long iterations = 1) {

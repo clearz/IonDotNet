@@ -84,29 +84,29 @@ namespace IonLang
 
     unsafe partial class Ion
     {
-        private Map cached_ptr_types;
-        private Map cached_array_types;
-        private Map cached_func_types;
-        private Map cached_const_types;
-        private static Map typeid_map;
+        Map cached_ptr_types;
+        Map cached_array_types;
+        Map cached_func_types;
+        Map cached_const_types;
+        static Map typeid_map;
 
-        private static readonly Type* type_void    = basic_type_alloc(TYPE_VOID);
-        private static readonly Type* type_bool    = basic_type_alloc(TYPE_BOOL);
-        private static readonly Type* type_char    = basic_type_alloc(TYPE_CHAR);
-        private static readonly Type* type_uchar   = basic_type_alloc(TYPE_UCHAR);
-        private static readonly Type* type_schar   = basic_type_alloc(TYPE_SCHAR);
-        private static readonly Type* type_short   = basic_type_alloc(TYPE_SHORT);
-        private static readonly Type* type_ushort  = basic_type_alloc(TYPE_USHORT);
-        private static readonly Type* type_int     = basic_type_alloc(TYPE_INT);
-        private static readonly Type* type_uint    = basic_type_alloc(TYPE_UINT);
-        private static readonly Type* type_long    = basic_type_alloc(TYPE_LONG); // 4 on 64-bit windows, 8 on 64-bit linux, probably factor this out to the backend
-        private static readonly Type* type_ulong   = basic_type_alloc(TYPE_ULONG);
-        private static readonly Type* type_llong   = basic_type_alloc(TYPE_LLONG);
-        private static readonly Type* type_ullong  = basic_type_alloc(TYPE_ULLONG);
-        private static readonly Type* type_float   = basic_type_alloc(TYPE_FLOAT);
-        private static readonly Type* type_double  = basic_type_alloc(TYPE_DOUBLE);
+        static readonly Type* type_void    = basic_type_alloc(TYPE_VOID);
+        static readonly Type* type_bool    = basic_type_alloc(TYPE_BOOL);
+        static readonly Type* type_char    = basic_type_alloc(TYPE_CHAR);
+        static readonly Type* type_uchar   = basic_type_alloc(TYPE_UCHAR);
+        static readonly Type* type_schar   = basic_type_alloc(TYPE_SCHAR);
+        static readonly Type* type_short   = basic_type_alloc(TYPE_SHORT);
+        static readonly Type* type_ushort  = basic_type_alloc(TYPE_USHORT);
+        static readonly Type* type_int     = basic_type_alloc(TYPE_INT);
+        static readonly Type* type_uint    = basic_type_alloc(TYPE_UINT);
+        static readonly Type* type_long    = basic_type_alloc(TYPE_LONG); // 4 on 64-bit windows, 8 on 64-bit linux, probably factor this out to the backend
+        static readonly Type* type_ulong   = basic_type_alloc(TYPE_ULONG);
+        static readonly Type* type_llong   = basic_type_alloc(TYPE_LLONG);
+        static readonly Type* type_ullong  = basic_type_alloc(TYPE_ULLONG);
+        static readonly Type* type_float   = basic_type_alloc(TYPE_FLOAT);
+        static readonly Type* type_double  = basic_type_alloc(TYPE_DOUBLE);
 
-        private static Type* type_usize, type_ssize, type_uintptr;
+        static Type* type_usize, type_ssize, type_uintptr;
 
         static readonly int[] type_ranks = new int[(int)NUM_TYPE_KINDS];
         static readonly char*[] type_names = new char*[(int)NUM_TYPE_KINDS];
@@ -239,7 +239,7 @@ namespace IonLang
             init_builtin_type(type_double);
         }
 
-        private static Type* basic_type_alloc(TypeKind kind, long size = 0, long align = 0, uint typeid = 0) {
+        static Type* basic_type_alloc(TypeKind kind, long size = 0, long align = 0, uint typeid = 0) {
             var type = (Type*) xmalloc(sizeof(Type));
             Unsafe.InitBlock(type, 0, (uint)sizeof(Type));
             type->kind = kind;
@@ -250,12 +250,12 @@ namespace IonLang
             return type;
         }
 
-        private long type_sizeof(Type* type) {
+        long type_sizeof(Type* type) {
             assert(type->kind > TYPE_COMPLETING);
             return type->size;
         }
 
-        private long type_alignof(Type* type) {
+        long type_alignof(Type* type) {
             assert(type->kind > TYPE_COMPLETING);
             assert(IS_POW2(type->align));
             return type->align;
@@ -269,7 +269,7 @@ namespace IonLang
             return type;
         }
 
-        private Type* type_ptr(Type* @base) {
+        Type* type_ptr(Type* @base) {
             var type = cached_ptr_types.map_get<Type>(@base);
             if (type == null) {
                 type = type_alloc(TYPE_PTR);
@@ -295,7 +295,7 @@ namespace IonLang
             typeid_map.map_put((void*)type->typeid, type);
         }
 
-        private Type* type_alloc(TypeKind kind) {
+        Type* type_alloc(TypeKind kind) {
             var type = (Type*) xmalloc(sizeof(Type));
             Unsafe.InitBlock(type, 0, (uint)sizeof(Type));
             type->kind = kind;
@@ -335,7 +335,7 @@ namespace IonLang
             return is_array_type(type) && type->num_elems == 0;
         }
 
-        private Type* type_array(Type* @base, int num_elems) {
+        Type* type_array(Type* @base, int num_elems) {
             var hash = Map.hash_mix(Map.hash_ptr(@base), Map.hash_uint64((ulong)num_elems));
             var key = hash != 0 ? hash : 1;
             CachedArrayType *cached = (CachedArrayType*)cached_array_types.map_get_from_uint64(key);
@@ -360,7 +360,7 @@ namespace IonLang
             return type;
         }
 
-        private static bool memcmp(void* b1, void* b2, int count) {
+        static bool memcmp(void* b1, void* b2, int count) {
             for(int i=count;i>=0;i--) {
 #if X64
                 if((ulong)((ulong*)b1 + i) != (ulong)((ulong*)b1 + i)) return false;
@@ -371,7 +371,7 @@ namespace IonLang
             return true;
         }
 
-        private Type* type_func(Type** @params, int num_params, Type* ret, bool has_varargs = false) {
+        Type* type_func(Type** @params, int num_params, Type* ret, bool has_varargs = false) {
             var params_size = num_params * PTR_SIZE;
             ulong hash = Map.hash_mix(Map.hash_bytes(@params, params_size), Map.hash_ptr(ret));
             var key = hash != 0 ? hash : 1;
@@ -399,14 +399,14 @@ namespace IonLang
             return type;
         }
 
-        private Type* type_func(Type*[] params_a, int num_params, Type* ret, bool has_varargs = false) {
+        Type* type_func(Type*[] params_a, int num_params, Type* ret, bool has_varargs = false) {
             fixed (Type** @params = params_a) {
                 return type_func(@params, num_params, ret, has_varargs);
             }
         }
 
         // TODO: This probably shouldn't use an O(n^2) algorithm
-        private bool has_duplicate_fields(TypeField* fields, long num_fields) {
+        bool has_duplicate_fields(TypeField* fields, long num_fields) {
             for (var i = 0; i < num_fields; i++)
                 for (var j = i + 1; j < num_fields; j++)
                     if (fields[i].name == fields[j].name)
@@ -414,7 +414,7 @@ namespace IonLang
             return false;
         }
 
-        private Type* type_complete_struct(Type* type, TypeField* fields, int num_fields) {
+        Type* type_complete_struct(Type* type, TypeField* fields, int num_fields) {
             assert(type->kind == TYPE_COMPLETING);
             type->kind = TYPE_STRUCT;
             type->size = 0;
@@ -439,7 +439,7 @@ namespace IonLang
             return type;
         }
 
-        private Type* type_complete_union(Type* type, TypeField* fields, int num_fields) {
+        Type* type_complete_union(Type* type, TypeField* fields, int num_fields) {
             assert(type->kind == TYPE_COMPLETING);
             type->kind = TYPE_UNION;
             type->size = 0;
@@ -462,7 +462,7 @@ namespace IonLang
             return type;
         }
 
-        private Type* type_incomplete(Sym* sym) {
+        Type* type_incomplete(Sym* sym) {
             var type = type_alloc(TYPE_INCOMPLETE);
             type->sym = sym;
             return type;
