@@ -984,7 +984,7 @@ namespace IonLang
                     }
                     break;
                 case STMT_ASSIGN:
-                    gen_paren_expr(stmt->assign.left);
+                    gen_expr(stmt->assign.left);
                     c_write(' ');
                     c_write(_token_kind_name(stmt->assign.op));
                     c_write(' ');
