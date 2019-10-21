@@ -11,7 +11,7 @@ namespace IonLang
     using static TypeKind;
     using static TypespecKind;
     using static TokenMod;
-
+    using static SymKind;
 
     unsafe partial class Ion
     {
@@ -206,8 +206,21 @@ namespace IonLang
                     if (sym->external_name != null) {
                         name = sym->external_name;
                     }
-                    else if (sym->package->external_name != null) {
-                        name = strcat2(sym->package->external_name, sym->name);
+                    else if (sym->package->external_name != null && *sym->package->external_name != '\0') {
+                        char *external_name = sym->package->external_name;
+                        const int SIZE = 256;
+                        char* buf = stackalloc char[SIZE];
+                        if (sym->kind == SYM_CONST) {
+                            char *cptr = buf;
+                            for (char *str = external_name; *str != '\0' && cptr < buf + SIZE - 1; str++, cptr++) {
+                                *cptr = char.ToUpper(*str);
+                            }
+                            *cptr = '\0';
+                            if (cptr < buf + SIZE) {
+                                external_name = buf;
+                            }
+                        }
+                        name = strcat2(external_name, sym->name);
                     }
                     else {
                         name = sym->name;
