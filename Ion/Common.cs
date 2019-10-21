@@ -538,7 +538,14 @@ namespace IonLang
         }
 
         public static void strcpy(char* c1, char* c2) {
-            while ((*c1++ = *c2++) != 0);
+            while ((*c1++ = *c2++) != 0)
+                ;
+        }
+        public static char* strstr(char* c1) {
+            uint i = (uint)strlen(c1);
+            char* c = xmalloc<char>();
+            Unsafe.CopyBlock(c, c1, i);
+            return c;
         }
 
         public static int strcmp(char* c1, char* c2) {

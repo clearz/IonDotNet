@@ -308,6 +308,61 @@ namespace IonLang
                 return false;
             }
         }
+        void put_type_name(char** buf, Type* type) {
+            char* type_name = type_names[(int)type->kind];
+            if (type_name != null) {
+                strcpy(*buf, type_name);
+            }
+            else {
+                switch (type->kind) {
+                    case TYPE_STRUCT:
+                    case TYPE_UNION:
+                    case TYPE_ENUM:
+                    case TYPE_INCOMPLETE:
+                        assert(type->sym);
+                        strcpy(*buf, type->sym->name);
+                        break;
+                    case TYPE_CONST:
+                        put_type_name(buf, type->@base);
+                        strcpy(*buf, " const".ToPtr());
+                        break;
+                    case TYPE_PTR:
+                        put_type_name(buf, type->@base);
+                        strcpy(*buf, "*".ToPtr());
+                        break;
+                    case TYPE_ARRAY:
+                        put_type_name(buf, type->@base);
+                        strcpy(*buf, type->num_elems.itoa());
+                        break;
+                    case TYPE_FUNC:
+                        strcpy(*buf, "func(".ToPtr());
+                        for (var i = 0; i < type->func.num_params; i++) {
+                            if (i != 0) {
+                                strcpy(*buf, ", ".ToPtr());
+                            }
+                            put_type_name(buf, type->func.@params[i]);
+                        }
+                        if (type->func.has_varargs) {
+                            strcpy(*buf, "...".ToPtr());
+                        }
+                        strcpy(*buf, ")".ToPtr());
+                        if (type->func.ret != type_void) {
+                            strcpy(*buf, ": ".ToPtr());
+                            put_type_name(buf, type->func.ret);
+                        }
+                        break;
+                    default:
+                        assert(0);
+                        break;
+                }
+            }
+        }
+
+        string get_type_name(Type* type) {
+            char *buf = stackalloc char[256];
+            put_type_name(&buf, type);
+            return new string(buf);
+        }
 
         bool is_castable(Operand* operand, Type* dest) {
             Type *src = operand->type;
@@ -315,12 +370,12 @@ namespace IonLang
                 return true;
             }
             else if (is_integer_type(dest)) {
-                return is_ptr_type(src);
+                return is_ptr_like_type(src);
             }
             else if (is_integer_type(src)) {
-                return is_ptr_type(dest);
+                return is_ptr_like_type(dest);
             }
-            else if (is_ptr_type(dest) && is_ptr_type(src)) {
+            else if (is_ptr_like_type(dest) && is_ptr_like_type(src)) {
                 return true;
             }
             else {
@@ -1212,7 +1267,7 @@ namespace IonLang
                 if (expr != null) {
                     type = resolve_typed_init(pos, type, expr);
                     if (type == null) {
-                        fatal_error(pos, "Invalid type in initialization");
+                        fatal_error(pos, "Invalid type in initialization. Expected {0}", get_type_name(type));
                     }
                 }
             }
@@ -1246,7 +1301,7 @@ namespace IonLang
             if (decl->const_decl.type != null) {
                 Type *type = resolve_typespec(decl->const_decl.type);
                 if (!convert_operand(&result, type)) {
-                    fatal_error(decl->pos, "Invalid type in constant declaration");
+                    fatal_error(decl->pos, "Invalid type in constant declaration. Expected {0}, got {1}", get_type_name(type), get_type_name(result.type));
                 }
             }
             *val = result.val;
@@ -1337,7 +1392,7 @@ namespace IonLang
                 result = resolve_expr_binary_op(binary_op, assign_op_name, stmt->pos, left, right);
             }
             if (!convert_operand(&result, left.type)) {
-                fatal_error(stmt->pos, "Invalid type in assignment");
+                fatal_error(stmt->pos, "Invalid type in assignment. Expected {0}, got {1}", get_type_name(left.type), get_type_name(result.type));
             }
         }
 
@@ -1364,7 +1419,7 @@ namespace IonLang
                     if (stmt->expr != null) {
                         Operand operand = resolve_expected_expr(stmt->expr, ret_type);
                         if (!convert_operand(&operand, ret_type)) {
-                            fatal_error(stmt->pos, "Invalid type in return expression");
+                            fatal_error(stmt->pos, "Invalid type in return expression. Expected {0}, got {1}", get_type_name(ret_type), get_type_name(operand.type));
                         }
                     }
                     else {
@@ -1463,7 +1518,7 @@ namespace IonLang
                             Expr *case_expr = switch_case.exprs[j];
                             Operand case_operand = resolve_expr(case_expr);
                             if (!convert_operand(&case_operand, operand.type)) {
-                                fatal_error(case_expr->pos, "Invalid type in switch case expression");
+                                fatal_error(case_expr->pos, "Invalid type in switch case expression. Expected {0}, got {1}", get_type_name(operand.type), get_type_name(case_operand.type));
                             }
                         }
                         if (switch_case.is_default) {
@@ -2046,7 +2101,7 @@ namespace IonLang
                         fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
                     Type *field_type = type->aggregate.fields[index].type;
                     if (resolve_typed_init(field.pos, field_type, field.init) == null) {
-                        fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type");
+                        fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type. Expected {0}", get_type_name(field_type));
                     }
                     index++;
                 }
@@ -2064,7 +2119,7 @@ namespace IonLang
                             fatal_error(field.pos, "Field initializer index expression must have type int");
                         }
                         if (!cast_operand(&operand, type_int)) {
-                            fatal_error(field.pos, "Invalid type in field initializer index");
+                            fatal_error(field.pos, "Invalid type in field initializer index. Expected integer type");
                         }
                         if (operand.val.i < 0) {
                             fatal_error(field.pos, "Field initializer index cannot be negative");
@@ -2075,7 +2130,7 @@ namespace IonLang
                     if (type->num_elems != 0 && index >= type->num_elems)
                         fatal_error(field.pos, "Field initializer in array compound literal out of range");
                     if (resolve_typed_init(field.pos, type->@base, field.init) == null) {
-                        fatal_error(field.pos, "Invalid type in compound literal initializer for array type");
+                        fatal_error(field.pos, "Invalid type in compound literal initializer for array type. Expected {0}", get_type_name(type->@base));
                     }
                     max_index = (int)MAX(max_index, index);
                     index++;
@@ -2093,7 +2148,7 @@ namespace IonLang
                     CompoundField field = expr->compound.fields[0];
                     Operand init = resolve_expected_expr_rvalue(field.init, type);
                     if (!convert_operand(&init, type)) {
-                        fatal_error(field.pos, "Invalid type in compound literal initializer");
+                        fatal_error(field.pos, "Invalid type in compound literal initializer. Expected {0}", get_type_name(type->@base));
                     }
                 }
             }
@@ -2112,7 +2167,7 @@ namespace IonLang
                     }
                     Operand operand = resolve_expr_rvalue(expr->call.args[0]);
                     if (!cast_operand(&operand, sym->type)) {
-                        fatal_error(expr->pos, "Invalid type cast");
+                        fatal_error(expr->pos, "Invalid type cast from {0} to {1}", get_type_name(operand.type), get_type_name(sym->type));
                     }
                     set_resolved_sym(expr->call.expr, sym);
                     return operand;
@@ -2137,7 +2192,7 @@ namespace IonLang
                     param_type = type_ptr(param_type->@base);
                 }
                 if (!convert_operand(&arg, param_type)) {
-                    fatal_error(expr->call.args[i]->pos, "Invalid type in function call argument");
+                    fatal_error(expr->call.args[i]->pos, "Invalid type in function call argument. Expected {0}, got {1}", get_type_name(param_type), get_type_name(arg.type));
                 }
             }
             for (var i = num_params; i < expr->call.num_args; i++) {
@@ -2187,10 +2242,11 @@ namespace IonLang
             var type = resolve_typespec(expr->cast.type);
             var operand = resolve_expr_rvalue(expr->cast.expr);
             if (!cast_operand(&operand, type)) {
-                fatal_error(expr->pos, "Invalid type cast");
+                fatal_error(expr->pos, "Invalid type cast from {0} to {0}", get_type_name(operand.type), get_type_name(type));
             }
             return operand;
         }
+
         Operand resolve_expr_int(Expr* expr) {
             assert(expr->kind == EXPR_INT);
             ulong int_max = type_metrics[(int)TYPE_INT].max;

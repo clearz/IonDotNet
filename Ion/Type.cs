@@ -138,6 +138,9 @@ namespace IonLang
         bool is_ptr_type(Type* type) {
             return type->kind == TYPE_PTR;
         }
+        bool is_ptr_like_type(Type* type) {
+            return type->kind == TYPE_PTR || type->kind == TYPE_FUNC;
+        }
 
         bool is_array_type(Type* type) {
             return type->kind == TYPE_ARRAY;
