@@ -261,9 +261,10 @@ namespace IonLang
             return type->align;
         }
 
-        Type* type_enum(Sym* sym) {
+        Type* type_enum(Sym* sym, Type* @base) {
             Type *type = type_alloc(TYPE_ENUM);
             type->sym = sym;
+            type->@base = @base;
             type->size = type_int->size;
             type->align = type_int->align;
             return type;

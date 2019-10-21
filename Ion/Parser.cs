@@ -683,6 +683,10 @@
             if (is_token(TOKEN_NAME)) {
                 name = parse_name();
             }
+            Typespec *type = null;
+            if (match_token(TOKEN_ASSIGN)) {
+                type = parse_type();
+            }
             expect_token(TOKEN_LBRACE);
             EnumItem* items = null;
             var buf = Buffer<EnumItem>.Create();
@@ -693,7 +697,7 @@
             }
 
             expect_token(TOKEN_RBRACE);
-            return new_decl_enum(pos, name, buf._begin, buf.count);
+            return new_decl_enum(pos, name, type, buf._begin, buf.count);
         }
 
         AggregateItem parse_decl_aggregate_item() {

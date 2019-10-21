@@ -190,7 +190,7 @@ namespace IonLang
                 sym_global_put(sym->name, sym);
             }
             if (decl->kind == DECL_ENUM) {
-                Typespec *enum_typespec = new_typespec_name(decl->pos, _I("int"));
+                Typespec *enum_typespec = enum_typespec = new_typespec_name(decl->pos, sym != null ? sym->name : _I("int"));
                 char *prev_item_name = null;
                 for (int i = 0; i < decl->enum_decl.num_items; i++) {
                     EnumItem item = decl->enum_decl.items[i];
@@ -353,7 +353,14 @@ namespace IonLang
                         operand->is_const = !is_integer_type(type);
                     }
                     else {
-                        switch (operand->type->kind) {
+                        if (type->kind == TYPE_ENUM) {
+                            type = type->@base;
+                        }
+                        Type *operand_type = operand->type;
+                        if (operand_type->kind == TYPE_ENUM) {
+                            operand_type = operand_type->@base;
+                        }
+                        switch (operand_type->kind) {
                             case TYPE_BOOL: {
                                 var p = operand->val.b ? 1 : 0;
                                 switch (type->kind) {
@@ -906,61 +913,6 @@ namespace IonLang
                             }
                             case TYPE_ULLONG: {
                                 var p = operand->val.ull;
-                                switch (type->kind) {
-                                    case TYPE_BOOL:
-                                        operand->val.b = p != 0;
-                                        break;
-                                    case TYPE_CHAR:
-                                        operand->val.c = (char)p;
-                                        break;
-                                    case TYPE_UCHAR:
-                                        operand->val.uc = (byte)p;
-                                        break;
-                                    case TYPE_SCHAR:
-                                        operand->val.sc = (sbyte)p;
-                                        break;
-                                    case TYPE_SHORT:
-                                        operand->val.s = (short)p;
-                                        break;
-                                    case TYPE_USHORT:
-                                        operand->val.us = (ushort)p;
-                                        break;
-                                    case TYPE_INT:
-                                        operand->val.i = (int)p;
-                                        break;
-                                    case TYPE_UINT:
-                                        operand->val.u = (uint)p;
-                                        break;
-                                    case TYPE_LONG:
-                                        operand->val.l = (int)p;
-                                        break;
-                                    case TYPE_ULONG:
-                                        operand->val.ul = (uint)p;
-                                        break;
-                                    case TYPE_LLONG:
-                                        operand->val.ll = (long)p;
-                                        break;
-                                    case TYPE_ULLONG:
-                                        operand->val.ull = (ulong)p;
-                                        break;
-                                    case TYPE_ENUM:
-                                        operand->val.i = (int)p;
-                                        break;
-                                    case TYPE_FLOAT:
-                                    case TYPE_DOUBLE:
-                                        break;
-                                    case TYPE_PTR:
-                                        operand->val.p = (void*)p;
-                                        break;
-                                    default:
-                                        operand->is_const = false;
-                                        break;
-                                }
-
-                                break;
-                            }
-                            case TYPE_ENUM: {
-                                var p = operand->val.i;
                                 switch (type->kind) {
                                     case TYPE_BOOL:
                                         operand->val.b = p != 0;
@@ -1594,7 +1546,11 @@ namespace IonLang
                         sym->type = resolve_typespec(decl->typedef_decl.type);
                     }
                     else if (decl->kind == DECL_ENUM) {
-                        sym->type = type_enum(sym);
+                        Type * @base = decl->enum_decl.type != null ? resolve_typespec(decl->enum_decl.type) : type_int;
+                        if (!is_integer_type(@base)) {
+                            fatal_error(decl->pos, "Base type of enum must be integer type");
+                        }
+                        sym->type = type_enum(sym, @base);
                     }
                     else {
                         sym->type = type_incomplete(sym);

@@ -110,6 +110,7 @@ namespace IonLang
 
         internal struct EnumDecl
         {
+            public Typespec* type;
             public EnumItem* items;
             public int num_items;
         }

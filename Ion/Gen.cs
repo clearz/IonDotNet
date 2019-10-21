@@ -1262,13 +1262,17 @@ namespace IonLang
                     gen_aggregate(decl);
                     break;
                 case DECL_ENUM:
-                    //gen_enum(decl);
                     genln();
                     c_write(typedef_keyword, 7);
                     c_write(' ');
-                    c_write(type_names[(int)TYPE_INT], 3);
-                    c_write(' ');
-                    c_write(get_gen_name(sym));
+                    if (decl->enum_decl.type != null) {
+                        typespec_to_cdecl(decl->enum_decl.type, get_gen_name(decl));
+                    }
+                    else {
+                        c_write(type_names[(int)TYPE_INT], 3);
+                        c_write(' ');
+                        c_write(get_gen_name(sym));
+                    }
                     c_write(';');
                     break;
                 case DECL_TYPEDEF:

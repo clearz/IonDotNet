@@ -113,11 +113,11 @@ namespace IonLang
             return d;
         }
 
-        Decl* new_decl_enum(SrcPos pos, char* name, EnumItem* items, int num_items)
+        Decl* new_decl_enum(SrcPos pos, char* name, Typespec* type, EnumItem* items, int num_items)
         {
             var d = new_decl(DECL_ENUM, pos, name);
             d->enum_decl.items = (EnumItem*) ast_dup(items, num_items * sizeof(EnumItem));
-            ;
+            d->enum_decl.type = type;
             d->enum_decl.num_items = num_items;
             return d;
         }
