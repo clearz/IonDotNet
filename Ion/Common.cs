@@ -441,22 +441,6 @@ namespace IonLang
                 return b;
             }
 
-            public static PtrBuffer Create2(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
-                assert(multiplier >= MULTIPLIER);
-                assert(capacity > 0);
-
-                var b = new PtrBuffer{
-                    _capacity = capacity,
-                    _multiplier = multiplier,
-                    count = 0,
-                    buf_byte_size = capacity * PTR_SIZE,
-                };
-                b._begin = (void**)xmalloc(b.buf_byte_size);
-                b._top = b._begin;
-                b._end = b._begin + b.buf_byte_size;
-                return b;
-            }
-
             public void* Remove() {
                 assert(_top != _begin);
                 _top--;

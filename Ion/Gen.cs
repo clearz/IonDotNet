@@ -22,7 +22,7 @@ namespace IonLang
         readonly char[] char_to_escape  = new char[256];
         readonly PtrBuffer* gen_headers_buf = PtrBuffer.Create();
 
-        readonly string preamble =  "// Preamble\n" +
+        readonly string gen_preamble_str =  "// Preamble\n" +
                                             "#ifndef _CRT_SECURE_NO_WARNINGS\n" +
                                             "#define _CRT_SECURE_NO_WARNINGS\n" +
                                             "#endif\n" +
@@ -60,7 +60,7 @@ namespace IonLang
                                             "void va_arg_ptr(va_list *args, struct Any any);\n";
 
 
-        string gen_postamble =              "\n// Postamble\n"                                           +
+        string gen_postamble_str =          "\n// Postamble\n"                                           +
                                             "void va_arg_ptr(va_list *args, Any any) {\n"                +
                                             "    switch (typeid_kind(any.type)) {\n"                     +
                                             "    case TYPE_BOOL:\n"                                      +
@@ -1313,9 +1313,63 @@ namespace IonLang
                 }
             }
         }
+        static Map gen_foreign_headers_map;
+        static PtrBuffer* gen_foreign_headers_buf = PtrBuffer.Create();
+        static PtrBuffer* gen_foreign_sources_buf = PtrBuffer.Create();
+        static PtrBuffer* gen_sources_buf = PtrBuffer.Create();
+        static Buffer<char> gen_preamble_buf = Buffer<char>.Create();
+        static Buffer<char> gen_postamble_buf = Buffer<char>.Create();
 
-        void gen_package_headers(Package* package) {
-            char *header_arg_name = _I("header");
+
+        static void add_foreign_header(char* name) {
+            name = _I(name);
+            if (!gen_foreign_headers_map.exists(name)) {
+                gen_foreign_headers_map.map_put(name, (void*)1);
+                gen_foreign_headers_buf->Add(name);
+            }
+        }
+
+
+        static void add_foreign_source(char* name) {
+            gen_foreign_sources_buf->Add(_I(name));
+        }
+
+        void gen_include(char* path) {
+            genlnf(includeStr);
+            if (*path == '<') {
+                    c_write(path);
+            }
+            else {
+                gen_str(path, false);
+            }
+        }
+
+        void gen_foreign_headers() {
+            if (gen_foreign_headers_buf->count > 0) {
+                genlnf("// Foreign header files".ToPtr());
+                for (var i = 0; i < gen_foreign_headers_buf->count; i++) {
+                    gen_include(gen_foreign_headers_buf->Get<char>(i));
+                }
+            }
+        }
+
+        void preprocess_package(Package* package) {
+            if (package->external_name == null) {
+                char *external_name = stackalloc char[256];
+                int i = 0;
+                for (char *ptr = package->path; *ptr != '\0'; ptr++, i++) {
+                    if (*ptr == '/')
+                        external_name[i] = '_';
+                    else
+                        external_name[i] = *ptr;
+                }
+                external_name[i] = '_';
+                package->external_name = _I(external_name);
+            }
+            char *header_name = _I("header");
+            char *source_name = _I("source");
+            char *preamble_name = _I("preamble");
+            char *postamble_name = _I("postamble");
             for (var i = 0; i < package->num_decls; i++) {
                 Decl *decl = package->decls[i];
                 if (decl->kind != DECL_NOTE) {
@@ -1324,77 +1378,82 @@ namespace IonLang
                 Note note = decl->note;
                 if (note.name == foreign_name) {
                     for (var j = 0; j < note.num_args; j++) {
-                        if (note.args[j].name != header_arg_name) {
-                            continue;
-                        }
+                        NoteArg arg = note.args[j];
                         Expr *expr = note.args[j].expr;
                         if (expr->kind != EXPR_STR) {
-                            fatal_error(decl->pos, "#foreign's header argument must be a quoted string");
+                            fatal_error(decl->pos, "#foreign argument must be a string");
                         }
-                        char *header = expr->str_lit.val;
-                        bool found = false;
-                        for (void** it = gen_headers_buf->_begin; it != gen_headers_buf->_top; it++) {
-                            if (*it == header) {
-                                found = true;
-                            }
+                        char *str = expr->str_lit.val;
+                        if (arg.name == header_name) {
+                            char* path = stackalloc char[256];
+                            put_include_path(path, package, str);
+                            add_foreign_header(path);
                         }
-                        if (!found) {
-                            gen_headers_buf->Add(header);
-                            genlnf(includeStr);
-                            if (*header == '<')
-                                c_write(header);
-                            else
-                                gen_str(header, false);
+                        else if (arg.name == source_name) {
+                            char* path = stackalloc char[256];
+                            put_include_path(path, package, str);
+                            add_foreign_source(path);
                         }
-                    }
-                }
-            }
-        }
-        void gen_package_sources(Package* package) {
-            char *source_arg_name = _I("source");
-            for (var i = 0; i < package->num_decls; i++) {
-                Decl *decl = package->decls[i];
-                if (decl->kind != DECL_NOTE) {
-                    continue;
-                }
-                Note note = decl->note;
-                if (note.name == foreign_name) {
-                    for (var j = 0; j < note.num_args; j++) {
-                        if (note.args[j].name != source_arg_name) {
-                            continue;
+                        else if (arg.name == preamble_name) {
+                            gen_preamble_buf.Append(str, strlen(str));
+                            gen_preamble_buf.Add('\n');
                         }
-                        Expr *expr = note.args[j].expr;
-                        if (expr->kind != EXPR_STR) {
-                            fatal_error(decl->pos, "#foreign's source argument must be a quoted string");
+                        else if (arg.name == postamble_name) {
+                            gen_postamble_buf.Append(str, strlen(str));
+                            gen_postamble_buf.Add('\n');
                         }
-                        char* source_path = stackalloc char[MAX_PATH];
-                        strcpy(source_path, package->full_path);
-                        path_join(source_path, expr->str_lit.val);
-                        path_absolute(source_path);
-                        genlnf("#include ".ToPtr());
-                        gen_str(source_path, false);
+                        else {
+                            fatal_error(decl->pos, "Unknown #foreign named argument '%s'", _S(arg.name));
+                        }
                     }
                 }
             }
         }
 
+        void preprocess_packages() {
+            for (var i = 0; i < package_list->count; i++) {
+                preprocess_package(package_list->Get<Package>(i));
+            }
+        }
+        void gen_foreign_sources() {
+            for (var i = 0; i < gen_foreign_sources_buf->count; i++) {
+                gen_include(gen_foreign_sources_buf->Get<char>(i));
+            }
+        }
+
+        void gen_preamble() {
+            c_write(gen_preamble_str);
+            if (gen_preamble_buf.count > 0) {
+                genln();
+                genlnf("// Foreign preamble".ToPtr());
+                genlnf(gen_preamble_buf);
+            }
+        }
+
+        void gen_postamble() {
+            c_write(gen_postamble_str);
+            if (gen_postamble_buf.count > 0) {
+                genln();
+                genlnf("// Foreign preamble".ToPtr());
+                genlnf(gen_postamble_buf);
+            }
+        }
+
+        void put_include_path(char* path, Package* package, char* filename) {
+            if (*filename == '<') {
+                strcpy(path, filename);
+            } else {
+                strcpy(path, package->full_path);
+                path_join(path, filename);
+                path_absolute(path);
+            }
+        }
         void path_absolute(char* path) {
             char* rel_path = null;
             //path_copy(rel_path, path);
             //_fullpath(path, rel_path, MAX_PATH);
         }
 
-        void gen_foreign_headers() {
-            for (int i = 0; i < package_list->count; i++) {
-                gen_package_headers(package_list->Get<Package>(i));
-            }
-        }
-
-        void gen_foreign_sources() {
-            for (int i = 0; i < package_list->count; i++) {
-                gen_package_sources(package_list->Get<Package>(i));
-            }
-        }
 
         char*[] tiInfo;
         void gen_typeinfos() {
@@ -1671,29 +1730,10 @@ namespace IonLang
             }
 
         }
-        void gen_package_external_names() {
-            for (int i = 0; i < package_list->count; i++) {
-                Package *package = package_list->Get<Package>(i);
-                if (package->external_name == null) {
-                    char *external_name = xmalloc<char>(strlen(package->path)+2);
-                    char* p2 = external_name;
-                    for (char* ptr = package->path; *ptr != 0; ptr++) {
-                        if (*ptr == '/')
-                            *p2++ = '_';
-                        else
-                            *p2++ = *ptr;
-                    }
-                    *p2++ = '_';
-                    *p2++ = '\0';
-                    package->external_name = _I(external_name);
-                }
-            }
-        }
 
         void gen_all() {
-            c_write(preamble.ToPtr());
-            gen_package_external_names();
-            genlnf("// Foreign header files".ToPtr());
+            preprocess_packages();
+            gen_preamble();
             gen_foreign_headers();
             genln();
             genlnf("// Forward declarations".ToPtr());
@@ -1708,7 +1748,7 @@ namespace IonLang
             genlnf("// Foreign source files".ToPtr());
             gen_foreign_sources();
             genln();
-            c_write(gen_postamble.ToPtr());
+            gen_postamble();
         }
 
         void init_chars() {
