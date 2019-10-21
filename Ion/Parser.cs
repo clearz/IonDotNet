@@ -536,12 +536,14 @@
             if (!is_token(TOKEN_SEMICOLON))
                 cond = parse_expr();
 
-            expect_token(TOKEN_SEMICOLON);
             Stmt* next = null;
-            if (!is_token(TOKEN_RPAREN)) {
-                next = parse_simple_stmt();
-                if (next->kind == STMT_INIT)
-                    error_here("Init statements not allowed in for-statement's next clause");
+            if (match_token(TOKEN_SEMICOLON)) {
+                if (!is_token(TOKEN_RPAREN)) {
+                    next = parse_simple_stmt();
+                    if (next->kind == STMT_INIT) {
+                        error_here("Init statements not allowed in for-statement's next clause");
+                    }
+                }
             }
 
             expect_token(TOKEN_RPAREN);

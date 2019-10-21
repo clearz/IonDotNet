@@ -1081,7 +1081,7 @@ namespace IonLang
                 case TYPESPEC_NAME: {
                     var sym = resolve_name(typespec->name);
                     if (sym == null) {
-                        fatal_error(typespec->pos, "Unresolved type name");
+                        fatal_error(typespec->pos, "Unresolved type name '{0}'", _S(typespec->name));
                     }
                     if (sym->kind != SYM_TYPE) {
                         fatal_error(typespec->pos, "{0} must denote a type", _S(typespec->name));
