@@ -679,7 +679,10 @@
         }
 
         Decl* parse_decl_enum(SrcPos pos) {
-            var name = parse_name();
+            char* name = null;
+            if (is_token(TOKEN_NAME)) {
+                name = parse_name();
+            }
             expect_token(TOKEN_LBRACE);
             EnumItem* items = null;
             var buf = Buffer<EnumItem>.Create();
