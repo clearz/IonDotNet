@@ -5,9 +5,10 @@ using System.Reflection;
 
 namespace IonLang
 {
+    using static Reachable;
+
     public unsafe partial class Ion
     {
-        const int MAX_SEARCH_PATHS = 256;
         PtrBuffer* package_search_paths = PtrBuffer.Create();
         bool flag_verbose = false, flag_lazy = false;
         bool flag_skip_lines = false;
@@ -160,7 +161,7 @@ namespace IonLang
             }
 
             main_sym->external_name = main_name;
-            reachable_phase = REACHABLE_NATURAL;
+            reachable_phase = (byte)REACHABLE_NATURAL;
             resolve_sym(main_sym);
             for (int i = 0; i < package_list->count; i++) {
                 var pkg = package_list->Get<Package>(i);
@@ -169,17 +170,20 @@ namespace IonLang
                 }
             }
             finalize_reachable_syms();
+
             if (flag_verbose) {
                 printf("Reached {0} symbols in {1} packages from {2}/main\n", reachable_syms->count, package_list->count, package_name);
             }
             if (!flag_lazy) {
-                reachable_phase = REACHABLE_FORCED;
+                reachable_phase = (byte)REACHABLE_FORCED;
                 for (int i = 0; i < package_list->count; i++) {
                     resolve_package_syms(package_list->Get<Package>(i));
                 }
                 finalize_reachable_syms();
             }
+
             printf("Processed {0} symbols in {1} packages\n", reachable_syms->count, package_list->count);
+
             if (!flag_check) {
                 printf("Generating {0}\n", output_name);
                 gen_all();

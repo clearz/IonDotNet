@@ -13,14 +13,11 @@ namespace IonLang
     using static StmtKind;
     using static CompoundFieldKind;
     using static TokenSuffix;
+    using static Reachable;
 
     unsafe partial class Ion
     {
         const int MAX_LOCAL_SYMS = 1024;
-
-        const byte REACHABLE_NONE = 0;
-        const byte REACHABLE_NATURAL = 1;
-        const byte REACHABLE_FORCED = 2;
 
         Package *current_package;
         Package *builtin_package;
@@ -43,7 +40,7 @@ namespace IonLang
 #endif
         const long PTR_ALIGN = 8;
 
-        byte reachable_phase = REACHABLE_NATURAL;
+        byte reachable_phase = (byte)REACHABLE_NATURAL;
 
         Sym* get_package_sym(Package* package, char* name) {
             return package->syms_map.map_get<Sym>(name);
@@ -1655,7 +1652,6 @@ namespace IonLang
             return sym;
         }
 
-
         Operand resolve_expr_field(Expr* expr) {
             assert(expr->kind == EXPR_FIELD);
             Operand operand = resolve_expr(expr->field.expr);
@@ -1880,6 +1876,7 @@ namespace IonLang
                 return operand;
             }
         }
+
         Operand resolve_expr_unary(Expr* expr) {
             Operand operand = resolve_expr_rvalue(expr->unary.expr);
             Type *type = operand.type;
@@ -2564,7 +2561,7 @@ namespace IonLang
             for (int i = 0; i < package->num_decls; i++) {
                 Decl *decl = package->decls[i];
                 if (decl->kind == DECL_NOTE) {
-                    if (null == decl_note_names.map_get<byte>(decl->note.name)) {
+                    if (!decl_note_names.exists(decl->note.name)) {
                         warning(decl->pos, "Unknown declaration #directive '{0}'", _S(decl->note.name));
                     }
                     if (decl->note.name == declare_note_name) {
@@ -2698,6 +2695,7 @@ namespace IonLang
                 }
             }
         }
+
         bool parse_package(Package* package) {
             PtrBuffer* decls = PtrBuffer.Create();
 
@@ -2721,6 +2719,7 @@ namespace IonLang
             return package != null;
 
         }
+
         bool compile_package(Package* package) {
             if (!parse_package(package)) {
                 return false;
@@ -2775,7 +2774,7 @@ namespace IonLang
 
         void init_builtin_syms() {
 
-            //assert(current_package);
+            assert(current_package);
             
             type_ranks[(int)TYPE_BOOL] = 1;
             type_ranks[(int)TYPE_CHAR] = 2;
@@ -2789,7 +2788,6 @@ namespace IonLang
             type_ranks[(int)TYPE_ULONG] = 5;
             type_ranks[(int)TYPE_LLONG] = 6;
             type_ranks[(int)TYPE_ULLONG] = 6;
-
 
             type_names[(int)TYPE_VOID] = "void".ToPtr();
             type_names[(int)TYPE_BOOL] = "bool".ToPtr();
@@ -2860,6 +2858,12 @@ namespace IonLang
         public Val val;
     }
 
+    internal enum Reachable : byte
+    {
+        REACHABLE_NONE,
+        REACHABLE_NATURAL,
+        REACHABLE_FORCED
+    }
 
     internal enum SymKind
     {

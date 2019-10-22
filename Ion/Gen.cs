@@ -12,15 +12,12 @@ namespace IonLang
     using static TypespecKind;
     using static TokenMod;
     using static SymKind;
+    using static Reachable;
 
     unsafe partial class Ion
     {
-        const int _1MB = 1024 * 1024;
-
-        readonly char* cdecl_buffer = xmalloc<char>(_1MB);
         readonly StringBuilder gen_buf = new StringBuilder();
         readonly char[] char_to_escape  = new char[256];
-        readonly PtrBuffer* gen_headers_buf = PtrBuffer.Create();
 
         readonly string gen_preamble_str =  "// Preamble\n" +
                                             "#ifndef _CRT_SECURE_NO_WARNINGS\n" +
@@ -190,7 +187,7 @@ namespace IonLang
         }
 
         bool gen_reachable(Sym* sym) {
-            return flag_fullgen || sym->reachable == REACHABLE_NATURAL;
+            return flag_fullgen || sym->reachable == (byte)REACHABLE_NATURAL;
         }
 
         bool is_excluded_typeinfo(Type* type) {
@@ -524,7 +521,7 @@ namespace IonLang
             for (Sym** it = (Sym**)sorted_syms->_begin; it < sorted_syms->_top; it++) {
                 Sym* sym = *it;
                 Decl* decl = sym->decl;
-                if (sym->state != SymState.SYM_RESOLVED || decl == null || is_decl_foreign(decl) || decl->is_incomplete || sym->reachable != REACHABLE_NATURAL) {
+                if (sym->state != SymState.SYM_RESOLVED || decl == null || is_decl_foreign(decl) || decl->is_incomplete || sym->reachable != (byte)REACHABLE_NATURAL) {
                     continue;
                 }
                 if (decl->kind == DECL_FUNC) {
@@ -1308,7 +1305,7 @@ namespace IonLang
 
             for (var i = 0; i < sym_cnt; i++) {
                 var sym = *(Sym**) (sorted_syms->_begin + i);
-                if (sym->reachable == REACHABLE_NATURAL) {
+                if (sym->reachable == (byte)REACHABLE_NATURAL) {
                     gen_decl(sym);
                 }
             }
@@ -1337,7 +1334,7 @@ namespace IonLang
         void gen_include(char* path) {
             genlnf(includeStr);
             if (*path == '<') {
-                    c_write(path);
+                c_write(path);
             }
             else {
                 gen_str(path, false);

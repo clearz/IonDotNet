@@ -234,30 +234,23 @@ namespace IonLang
             var c = 'a';
             init_builtin_syms();
             type_to_cdecl(type_int, &c);
-            Console.WriteLine(_S(cdecl_buffer) + ";");
             type_to_cdecl(type_ptr(type_int), &c);
             c++;
-            Console.WriteLine(_S(cdecl_buffer) + ";");
             type_to_cdecl(type_array(type_int, 10), &c);
             c++;
-            Console.WriteLine(_S(cdecl_buffer) + ";");
             type_to_cdecl(type_func(new[] { type_int }, 1, type_int), &c);
             c++;
-            Console.WriteLine(_S(cdecl_buffer) + ";");
             type_to_cdecl(type_array(type_func(new[] { type_int }, 1, type_int), 10), &c);
             c++;
-            Console.WriteLine(_S(cdecl_buffer) + ";");
             type_to_cdecl(type_func(new[] { type_ptr(type_int) }, 1, type_int), &c);
             c++;
-            Console.WriteLine(_S(cdecl_buffer) + ";");
             var type1 = type_func(new[] {type_array(type_int, 10)}, 1, type_int);
             type_to_cdecl(type1, &c);
-            Console.WriteLine(_S(cdecl_buffer) + ";");
             c++;
             type_to_cdecl(type_func((Type**)null, 0, type1), &c);
             c++;
-            Console.WriteLine(_S(cdecl_buffer) + ";");
             type_to_cdecl(type_func((Type**)null, 0, type_array(type_func((Type**)null, 0, type_int), 10)), &c);
+            Console.WriteLine(gen_buf);
         }
 
         void resolve_test() {

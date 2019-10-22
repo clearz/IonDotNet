@@ -681,7 +681,7 @@ namespace IonLang
             public T* map_get<T>(void* key) where T : unmanaged => (T*)map_get_from_uint64((ulong)key);
             public void* map_get_from_uint64(ulong key) => (void*)map_get_uint64_from_uint64(key);
 
-            internal bool exists(void* key) => map_get_from_uint64((ulong)key) != null;
+            internal bool exists(void* key) => map_get_uint64_from_uint64((ulong)key) != 0;
 
             internal void free() {
                 xfree(keys);
