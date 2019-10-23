@@ -56,7 +56,7 @@ namespace IonLang
             internal PtrBuffer* arenas;
 
             const int ARENA_ALIGNMENT = 8;
-            const int ARENA_BLOCK_SIZE = 1024 * 1024;
+            const int ARENA_BLOCK_SIZE = 1024 * 512;
 
 
             void arena_grow(long min_size) {
@@ -104,9 +104,8 @@ namespace IonLang
         internal struct Intern
         {
             long len;
-            char* str;
             Intern* next;
-
+            char* str;
 
             public static char* InternRange(char* start, char* end) {
                 var len = (int) (end - start);
@@ -382,13 +381,14 @@ namespace IonLang
 
             public void Append(T* val, int len) {
                 if (count + len >= _capacity) {
-                    _capacity *= _multiplier;
+                    while (_capacity < len)
+                        _capacity *= _multiplier;
                     buffer_size = _capacity * item_size;
                     _begin = xrealloc(_begin, buffer_size);
                     _top = _begin + count;
                 }
 
-                Unsafe.CopyBlock(_top, val, (uint)len << 1);
+                Unsafe.CopyBlock(_top, val, (uint)(len * item_size));
                 count += len;
                 _top += len;
             }
@@ -412,7 +412,7 @@ namespace IonLang
 
             public int count;
             internal void** _begin, _top, _end;
-            public int Count => (int)(_top-_begin) / PTR_SIZE;
+            public int Count => (int)(_top - _begin) / PTR_SIZE;
             public int buf_byte_size;
             int _capacity, _multiplier;
 
@@ -578,7 +578,8 @@ namespace IonLang
             return n;
         }
 
-        internal unsafe struct Map {
+        internal unsafe struct Map
+        {
             ulong* keys, vals;
             ulong len, cap;
 
@@ -636,8 +637,7 @@ namespace IonLang
                 assert(IS_POW2(cap));
                 assert(len < cap);
 
-                for (var i = key; ; i++)
-                {
+                for (var i = key; ; i++) {
                     i &= cap - 1;
                     if (keys[i] == key)
                         return vals[i];
@@ -646,7 +646,7 @@ namespace IonLang
                 }
             }
 
-            void map_put_uint64_from_uint64(ulong key, ulong val) { 
+            void map_put_uint64_from_uint64(ulong key, ulong val) {
                 assert(key != 0);
                 assert(val != 0);
 
@@ -655,10 +655,9 @@ namespace IonLang
 
                 assert(2 * len < cap);
                 assert(IS_POW2(cap));
-               
 
-                for (var i = key; ; i++)
-                {
+
+                for (var i = key; ; i++) {
                     i &= cap - 1;
                     if (keys[i] == 0) {
                         len++;
@@ -668,7 +667,7 @@ namespace IonLang
                     }
 
                     if (keys[i] == key) {
-                        vals[i] =val;
+                        vals[i] = val;
                         return;
                     }
                 }

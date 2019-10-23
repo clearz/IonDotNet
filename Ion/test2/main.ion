@@ -1,7 +1,8 @@
-﻿import libc {...}
+import libc {...}
 
 func main(argc: int, argv: char**): int {
     printf("Hello, world!\n");
+    a := 0;
     v := vec2{1, 0};
     w := vec2{0, 1};
     v = rot2(3.14/4, v);

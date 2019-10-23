@@ -1,4 +1,4 @@
-﻿struct vec2 {
+struct vec2 {
     x, y: float;
 }
 
