@@ -333,7 +333,7 @@ namespace IonLang
                 return b._begin;
             }
 
-            public T* this[int i] => _begin;
+            public T* this[int i] => _begin + i;
 
             public static Buffer<T> Create(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
                 assert(capacity >= START_CAPACITY);

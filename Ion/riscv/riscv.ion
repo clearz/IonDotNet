@@ -435,11 +435,7 @@ func bus_load_word(bus: Bus*, addr: uint32): uint32 {
     if (bus.ram_start <= addr && addr + 4 <= bus.ram_end) {
         return *(:uint32*)(bus.ram + addr - bus.ram_start);
     } else if (addr == GETCHAR_ADDR) {
-        c := 0;
-        do {
-            c = getchar();
-        } while (c == '\n');
-        return c;
+        return getchar();
     } else {
         return 0;
     }
@@ -529,7 +525,7 @@ func read_csr(hart: Hart*, csr: Csr): uint32 {
     return 0;
 }
 
-func write_csr(hart: Hart*, csr: Csr, val: uint32) {
+func write_csr(hart: Hart*, csr: Csr, data: uint32) {
 }
 
 func step(hart: Hart*) {
@@ -637,12 +633,10 @@ func step(hart: Hart*) {
         write_reg(hart, rd, rs1_val | rs2_val);
     case AND:
         write_reg(hart, rd, rs1_val & rs2_val);
-    case FENCE:
-    case FENCEI:
+    case FENCE, FENCEI:
         // We don't need to do anything for fences for now.
         break;
-    case ECALL:
-    case EBREAK:
+    case ECALL, EBREAK:
         // Not yet implemented
         break;
     case CSRRW:
@@ -1007,8 +1001,12 @@ func asm_mv(asm: Asm*, dest: Reg, src: Reg) {
 }
 
 func asm_li(asm: Asm*, dest: Reg, imm: uint32) {
-    #assert(I_IMMEDIATE_MIN <= int32(imm) && int32(imm) <= I_IMMEDIATE_MAX);
-    asm_imm_op(asm, ADDI, dest, X0, imm);
+    if (I_IMMEDIATE_MIN <= int32(imm) && I_IMMEDIATE_MAX <= int32(imm)) {
+        asm_imm_op(asm, ADDI, dest, X0, imm);
+    } else {
+        asm_lui(asm, dest, imm_hi(imm));
+        asm_imm_op(asm, ADDI, dest, dest, imm_lo(imm));
+    }
 }
 
 func asm_auipc(asm: Asm*, rd: Reg, imm: uint32) {
@@ -1107,37 +1105,63 @@ func gen_bin_op(asm: Asm*, op: Op) {
     gen_push_reg(asm, X2);
 }
 
-func gen_rpn(asm: Asm*, str: char const*, stack_size: uint32): Sym* {
+func gen_getdigit(asm: Asm*) {
+    repeat := new_sym_here(asm);
+    asm_getchar(asm, X2);
+    asm_branch(asm, BLT, X9, X2, repeat);
+    asm_imm_op(asm, ADDI, X2, X2, -'0');
+    asm_branch(asm, BLT, X2, X0, repeat);
+    gen_push_reg(asm, X2);
+}
+
+func gen_putdigit(asm: Asm*) {
+    gen_pop_reg(asm, X2);
+    asm_imm_op(asm, ADDI, X2, X2, '0');
+    asm_putchar(asm, X2, X3);
+    asm_putchar(asm, X10, X3);
+}
+
+func gen_dup(asm: Asm*) {
+    gen_pop_reg(asm, X2);
+    gen_push_reg(asm, X2);
+    gen_push_reg(asm, X2);
+}
+
+func gen_swap(asm: Asm*) {
+    gen_pop_reg(asm, X2);
+    gen_pop_reg(asm, X3);
+    gen_push_reg(asm, X2);
+    gen_push_reg(asm, X3);
+}
+
+// x1 is the stack pointer, x2 and x3 are temp registers, x9 and x10 contain ASCII constants '9' and '\n'
+func gen_rpn(asm: Asm*, rpn: char const*, stack_size: uint32): Sym* {
     asm_align(asm, 4);
     stack := new_sym_here(asm);
     asm.addr += stack_size;
     asm_align(asm, 4);
     start := new_sym_here(asm);
     asm_la(asm, X1, stack);
-    while (*str) {
-        switch (*str) {
+    asm_li(asm, X9, '9');
+    asm_li(asm, X10, '\n');
+    while (*rpn) {
+        switch (*rpn) {
         case 'd':
-            gen_pop_reg(asm, X2);
-            gen_push_reg(asm, X2);
-            gen_push_reg(asm, X2);
+            gen_dup(asm);
+        case 's':
+            gen_swap(asm);
         case '+':
             gen_bin_op(asm, ADD);
         case '-':
             gen_bin_op(asm, SUB);
         case '?':
-            asm_getchar(asm, X2);
-            asm_imm_op(asm, ADDI, X2, X2, -'0');
-            gen_push_reg(asm, X2);
+            gen_getdigit(asm);
         case '!':
-            gen_pop_reg(asm, X2);
-            asm_imm_op(asm, ADDI, X2, X2, '0');
-            asm_putchar(asm, X2, X3);
-            asm_li(asm, X2, '\n');
-            asm_putchar(asm, X2, X3);
+            gen_putdigit(asm);
         case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-            gen_push_imm(asm, *str - '0');
+            gen_push_imm(asm, *rpn - '0');
         }
-        str++;
+        rpn++;
     }
     asm_j(asm, start);
     return start;
@@ -1147,7 +1171,7 @@ func main(argc: int, argv: char**): int {
     ram: uint8[256 * 1024];
     asm := &Asm{buf = ram, buf_size = sizeof(ram)};
 
-    start := gen_rpn(asm, "??+!", 1024);
+    start := gen_rpn(asm, "??+?s-d+!", 1024);
 
  /*
     count := new_sym_here(asm);

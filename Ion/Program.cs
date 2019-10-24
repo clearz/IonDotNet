@@ -6,7 +6,7 @@
             if (args.Length > 0)
                 ion.ion_main(args);
             else {
-                Timer.Time(() => ion.ion_test("riscv"));
+                Timer.Time(() => ion.ion_test("test1"));
             }
             return 0;
         }

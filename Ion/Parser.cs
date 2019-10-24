@@ -554,8 +554,13 @@
             var buf = PtrBuffer.GetPooledBuffer();
             try {
                 var is_default = false;
+                var is_first_case = true;
                 while (is_keyword(case_keyword) || is_keyword(default_keyword)) {
                     if (match_keyword(case_keyword)) {
+                        if (!is_first_case) {
+                            warning_here("Use comma-separated expressions to match multiple values with one case label");
+                        }
+                        is_first_case = false;
                         buf->Add(parse_expr());
                         while (match_token(TOKEN_COMMA)) {
                             buf->Add(parse_expr());
@@ -576,7 +581,7 @@
                 var pos = token.pos;
 
                 var buf2 = PtrBuffer.GetPooledBuffer();
-                ;
+
                 while (!is_token_eof() && !is_token(TOKEN_RBRACE) && !is_keyword(case_keyword) &&
                        !is_keyword(default_keyword))
                     buf2->Add(parse_stmt());
@@ -607,7 +612,12 @@
             while (!is_token_eof() && !is_token(TOKEN_RBRACE))
                 buf.Add(parse_stmt_switch_case());
 
+            //if ((buf._top - 1)->block.num_stmts == 0)
+            //    error_here("Final switch block cannot be empty.");
+
             expect_token(TOKEN_RBRACE);
+
+
             return new_stmt_switch(pos, expr, buf, buf.count);
         }
 
