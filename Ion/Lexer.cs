@@ -489,7 +489,6 @@ namespace IonLang
                         break;
                     }
                     if (*stream != '\r') {
-                        // TODO: Should probably just read files in text mode instead.
                         str_buf.Add(*stream);
                     }
                     if (*stream == '\n') {
@@ -518,7 +517,7 @@ namespace IonLang
                         else {
                             val = escape_to_char[*stream];
                             if (val == 0 && *stream != '0') {
-                                error_here("Invalid string literal escape '\\%c'", *stream);
+                                error_here("Invalid string literal escape '\\{0}'", *stream);
                             }
                             stream++;
                         }
@@ -529,7 +528,7 @@ namespace IonLang
                     str_buf.Add(val);
                 }
                 if (*stream != 0) {
-                    assert(*stream == '"');
+                    //assert(*stream == '"');
                     stream++;
                 }
                 else {

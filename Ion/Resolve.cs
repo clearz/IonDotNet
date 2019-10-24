@@ -1950,9 +1950,17 @@ namespace IonLang
                         return resolve_binary_arithmetic_op(op, left, right);
                     }
                     else if (is_ptr_type(left.type) && is_integer_type(right.type)) {
+                        complete_type(left.type->@base);
+                        if (type_sizeof(left.type->@base) == 0) {
+                            fatal_error(pos, "Cannot do pointer arithmetic with size 0 base type");
+                        }
                         return operand_rvalue(left.type);
                     }
                     else if (is_ptr_type(right.type) && is_integer_type(left.type)) {
+                        complete_type(right.type->@base);
+                        if (type_sizeof(right.type->@base) == 0) {
+                            fatal_error(pos, "Cannot do pointer arithmetic with size 0 base type");
+                        }
                         return operand_rvalue(right.type);
                     }
                     else {
@@ -1964,6 +1972,10 @@ namespace IonLang
                         return resolve_binary_arithmetic_op(op, left, right);
                     }
                     else if (is_ptr_type(left.type) && is_integer_type(right.type)) {
+                        complete_type(left.type->@base);
+                        if (type_sizeof(left.type->@base) == 0) {
+                            fatal_error(pos, "Cannot do pointer arithmetic with size 0 base type");
+                        }
                         return operand_rvalue(left.type);
                     }
                     else if (is_ptr_type(left.type) && is_ptr_type(right.type)) {
@@ -2212,7 +2224,10 @@ namespace IonLang
             }
             Operand left = resolve_expected_expr_rvalue(expr->ternary.then_expr, expected_type);
             Operand right = resolve_expected_expr_rvalue(expr->ternary.else_expr, expected_type);
-            if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
+            if (left.type == right.type) {
+                return operand_rvalue(left.type);
+            }
+            else if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
                 unify_arithmetic_operands(&left, &right);
                 if (cond.is_const && left.is_const && right.is_const) {
                     return operand_const(left.type, cond.val.i != 0 ? left.val : right.val);
@@ -2221,9 +2236,13 @@ namespace IonLang
                     return operand_rvalue(left.type);
                 }
             }
-            else if (left.type == right.type)
+            else if (is_ptr_type(left.type) && is_null_ptr(right)) {
                 return operand_rvalue(left.type);
-
+            }
+            else if (is_ptr_type(right.type) && is_null_ptr(left)) {
+                return operand_rvalue(right.type);
+            }
+            
             fatal_error(expr->pos, "Left and right operands of ternary expression must have arithmetic types or identical types");
             return default;
         }
@@ -2385,8 +2404,11 @@ namespace IonLang
             if (type->nonmodifiable) {
                 fatal_error(expr->pos, "Cannot modify non-modifiable type");
             }
-            if (!(is_integer_type(type) || type->kind == TYPE_PTR)) {
+            if (!(is_integer_type(type) || is_ptr_type(type))) {
                 fatal_error(expr->pos, "{0} only valid for integer and pointer types", token_kind_name(expr->modify.op));
+            }
+            if (is_ptr_type(type) && type_sizeof(type->@base) == 0) {
+                fatal_error(expr->pos, "Cannot do pointer arithmetic with size 0 base type");
             }
             return operand_rvalue(type);
         }
