@@ -191,6 +191,9 @@ namespace IonLang
         }
 
         bool is_excluded_typeinfo(Type* type) {
+            if (type->kind == TYPE_ARRAY || type->kind == TYPE_CONST) {
+                type = type->@base;
+            }
             return type->sym != null && !gen_reachable(type->sym);
         }
 
