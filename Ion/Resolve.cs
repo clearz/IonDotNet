@@ -13,7 +13,7 @@ namespace IonLang
     using static StmtKind;
     using static CompoundFieldKind;
     using static TokenSuffix;
-    using static Reachable;
+    using static SymReachable;
 
     unsafe partial class Ion
     {
@@ -285,7 +285,7 @@ namespace IonLang
             else if (is_arithmetic_type(dest) && is_arithmetic_type(src)) {
                 return true;
             }
-            else if (is_ptr_type(dest) && is_null_ptr(*operand)) {
+            else if (is_ptr_like_type(dest) && is_null_ptr(*operand)) {
                 return true;
             }
             else if (is_ptr_type(dest) && is_ptr_type(src)) {
@@ -1529,7 +1529,7 @@ namespace IonLang
                             }
                             has_default = true;
                         }
-                        if (switch_case.block.num_stmts > 0) {
+                        if (switch_case.block.num_stmts > 1) {
                             Stmt *last_stmt = switch_case.block.stmts[switch_case.block.num_stmts - 1];
                             if (last_stmt->kind == STMT_BREAK) {
                                 warning(last_stmt->pos, "Case blocks already end with an implicit break");
@@ -2863,7 +2863,7 @@ namespace IonLang
         public Val val;
     }
 
-    internal enum Reachable : byte
+    internal enum SymReachable : byte
     {
         REACHABLE_NONE,
         REACHABLE_NATURAL,

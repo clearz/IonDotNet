@@ -12,7 +12,7 @@ namespace IonLang
     using static TypespecKind;
     using static TokenMod;
     using static SymKind;
-    using static Reachable;
+    using static SymReachable;
 
     unsafe partial class Ion
     {
@@ -392,7 +392,7 @@ namespace IonLang
                 c_write(pos.line.itoa());
                 if (gen_pos.name != pos.name) {
                     c_write(' ');
-                    gen_str(pos.name, false);
+                    gen_str(_I(pos.name), false);
                 }
                 gen_pos = pos;
             }
@@ -1161,6 +1161,7 @@ namespace IonLang
                         }
 
                         if (switch_case.is_default) {
+                            genln();
                             has_default = true;
                             c_write(default_keyword);
                             c_write(':');
@@ -1169,12 +1170,17 @@ namespace IonLang
                         c_write(' ');
                         c_write('{');
                         gen_indent++;
-                        StmtList block = switch_case.block;
-                        for (int j = 0; j < block.num_stmts; j++) {
-                            gen_stmt(block.stmts[j]);
+                        {
+                            StmtList block = switch_case.block;
+                            int j;
+                            for (j = 0; j < block.num_stmts; j++) {
+                                gen_stmt(block.stmts[j]);
+                            }
+                            if (block.num_stmts == 0 || block.stmts[j-1]->kind != STMT_BREAK) {
+                                genlnf(break_keyword, 5);
+                                c_write(';');
+                            }
                         }
-                        genlnf(break_keyword, 5);
-                        c_write(';');
                         gen_indent--;
                         genlnf('}');
                     }
@@ -1202,29 +1208,6 @@ namespace IonLang
                     c_write(';');
                     break;
             }
-        }
-
-        void gen_enum(Decl* decl) {
-            assert(decl->kind == DECL_ENUM);
-            genln();
-            c_write(typedef_keyword, 7);
-            c_write(' ');
-            c_write(enum_keyword, 4);
-            c_write(' ');
-            c_write(decl->name);
-            c_write(' ');
-            c_write('{');
-            gen_indent++;
-            for (var i = 0; i < decl->enum_decl.num_items; i++) {
-                genln();
-                c_write(decl->enum_decl.items[i].name);
-                c_write(',');
-            }
-            gen_indent--;
-            genln();
-            c_write('}');
-            c_write(decl->name);
-            c_write(';');
         }
 
         void gen_decl(Sym* sym) {
@@ -1394,6 +1377,7 @@ namespace IonLang
                         else if (arg.name == preamble_name) {
                             gen_preamble_buf.Append(str, strlen(str));
                             gen_preamble_buf.Add('\n');
+                            gen_preamble_buf.Add('\0');
                         }
                         else if (arg.name == postamble_name) {
                             gen_postamble_buf.Append(str, strlen(str));

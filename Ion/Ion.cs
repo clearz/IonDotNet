@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace IonLang
 {
-    using static Reachable;
+    using static SymReachable;
 
     public unsafe partial class Ion
     {

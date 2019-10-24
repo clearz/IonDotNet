@@ -19,73 +19,6 @@ namespace IonLang
 
         char** token_kind_names;
         char*[] token_suffix_names;
-        void init_tokens() {
-            token_kind_names = (char**)xmalloc((int)NUM_TOKEN_KINDS * sizeof(char**));
-            token_suffix_names = new char*[7];
-
-            token_suffix_names[(int)SUFFIX_NONE] = "".ToPtr();
-            token_suffix_names[(int)SUFFIX_D] = "d".ToPtr();
-            token_suffix_names[(int)SUFFIX_U] = "u".ToPtr();
-            token_suffix_names[(int)SUFFIX_L] = "l".ToPtr();
-            token_suffix_names[(int)SUFFIX_UL] = "ul".ToPtr();
-            token_suffix_names[(int)SUFFIX_LL] = "ll".ToPtr();
-            token_suffix_names[(int)SUFFIX_ULL] = "ull".ToPtr();
-
-            token_kind_names[(int)TOKEN_EOF] = "EOF".ToPtr();
-            token_kind_names[(int)TOKEN_COLON] = ":".ToPtr();
-            token_kind_names[(int)TOKEN_LPAREN] = "(".ToPtr();
-            token_kind_names[(int)TOKEN_RPAREN] = ")".ToPtr();
-            token_kind_names[(int)TOKEN_LBRACE] = "{".ToPtr();
-            token_kind_names[(int)TOKEN_RBRACE] = "}".ToPtr();
-            token_kind_names[(int)TOKEN_LBRACKET] = "[".ToPtr();
-            token_kind_names[(int)TOKEN_RBRACKET] = "]".ToPtr();
-            token_kind_names[(int)TOKEN_COMMA] = ";".ToPtr();
-            token_kind_names[(int)TOKEN_DOT] = ".".ToPtr();
-            token_kind_names[(int)TOKEN_AT] = "@".ToPtr();
-            token_kind_names[(int)TOKEN_POUND] = "#".ToPtr();
-            token_kind_names[(int)TOKEN_QUESTION] = "?".ToPtr();
-            token_kind_names[(int)TOKEN_ELLIPSIS] = "...".ToPtr();
-            token_kind_names[(int)TOKEN_SEMICOLON] = ";".ToPtr();
-            token_kind_names[(int)TOKEN_NEG] = "~".ToPtr();
-            token_kind_names[(int)TOKEN_NOT] = "!".ToPtr();
-            token_kind_names[(int)TOKEN_KEYWORD] = "keyword".ToPtr();
-            token_kind_names[(int)TOKEN_INT] = "int".ToPtr();
-            token_kind_names[(int)TOKEN_FLOAT] = "float".ToPtr();
-            token_kind_names[(int)TOKEN_STR] = "string".ToPtr();
-            token_kind_names[(int)TOKEN_NAME] = "name".ToPtr();
-            token_kind_names[(int)TOKEN_MUL] = "*".ToPtr();
-            token_kind_names[(int)TOKEN_DIV] = "/".ToPtr();
-            token_kind_names[(int)TOKEN_MOD] = "%".ToPtr();
-            token_kind_names[(int)TOKEN_AND] = "&".ToPtr();
-            token_kind_names[(int)TOKEN_LSHIFT] = "<<".ToPtr();
-            token_kind_names[(int)TOKEN_RSHIFT] = ">>".ToPtr();
-            token_kind_names[(int)TOKEN_ADD] = "+".ToPtr();
-            token_kind_names[(int)TOKEN_SUB] = "-".ToPtr();
-            token_kind_names[(int)TOKEN_OR] = "|".ToPtr();
-            token_kind_names[(int)TOKEN_XOR] = "^".ToPtr();
-            token_kind_names[(int)TOKEN_EQ] = "==".ToPtr();
-            token_kind_names[(int)TOKEN_NOTEQ] = "!=".ToPtr();
-            token_kind_names[(int)TOKEN_LT] = "<".ToPtr();
-            token_kind_names[(int)TOKEN_GT] = ">".ToPtr();
-            token_kind_names[(int)TOKEN_LTEQ] = "<=".ToPtr();
-            token_kind_names[(int)TOKEN_GTEQ] = ">=".ToPtr();
-            token_kind_names[(int)TOKEN_AND_AND] = "&&".ToPtr();
-            token_kind_names[(int)TOKEN_OR_OR] = "||".ToPtr();
-            token_kind_names[(int)TOKEN_ASSIGN] = "=".ToPtr();
-            token_kind_names[(int)TOKEN_ADD_ASSIGN] = "+=".ToPtr();
-            token_kind_names[(int)TOKEN_SUB_ASSIGN] = "-=".ToPtr();
-            token_kind_names[(int)TOKEN_OR_ASSIGN] = "|=".ToPtr();
-            token_kind_names[(int)TOKEN_AND_ASSIGN] = "&=".ToPtr();
-            token_kind_names[(int)TOKEN_XOR_ASSIGN] = "^=".ToPtr();
-            token_kind_names[(int)TOKEN_MUL_ASSIGN] = "*=".ToPtr();
-            token_kind_names[(int)TOKEN_DIV_ASSIGN] = "/=".ToPtr();
-            token_kind_names[(int)TOKEN_MOD_ASSIGN] = "%=".ToPtr();
-            token_kind_names[(int)TOKEN_LSHIFT_ASSIGN] = "<<=".ToPtr();
-            token_kind_names[(int)TOKEN_RSHIFT_ASSIGN] = ">>=".ToPtr();
-            token_kind_names[(int)TOKEN_INC] = "++".ToPtr();
-            token_kind_names[(int)TOKEN_DEC] = "--".ToPtr();
-            token_kind_names[(int)TOKEN_COLON_ASSIGN] = ":=".ToPtr();
-        }
 
         char* break_keyword;
         char* case_keyword;
@@ -185,6 +118,73 @@ namespace IonLang
             escape_to_char['\''] = '\'';
             escape_to_char['\"'] = '\"';
 
+        }
+        void init_tokens() {
+            token_kind_names = (char**)xmalloc((int)NUM_TOKEN_KINDS * sizeof(char**));
+            token_suffix_names = new char*[7];
+
+            token_suffix_names[(int)SUFFIX_NONE] = "".ToPtr();
+            token_suffix_names[(int)SUFFIX_D] = "d".ToPtr();
+            token_suffix_names[(int)SUFFIX_U] = "u".ToPtr();
+            token_suffix_names[(int)SUFFIX_L] = "l".ToPtr();
+            token_suffix_names[(int)SUFFIX_UL] = "ul".ToPtr();
+            token_suffix_names[(int)SUFFIX_LL] = "ll".ToPtr();
+            token_suffix_names[(int)SUFFIX_ULL] = "ull".ToPtr();
+
+            token_kind_names[(int)TOKEN_EOF] = "EOF".ToPtr();
+            token_kind_names[(int)TOKEN_COLON] = ":".ToPtr();
+            token_kind_names[(int)TOKEN_LPAREN] = "(".ToPtr();
+            token_kind_names[(int)TOKEN_RPAREN] = ")".ToPtr();
+            token_kind_names[(int)TOKEN_LBRACE] = "{".ToPtr();
+            token_kind_names[(int)TOKEN_RBRACE] = "}".ToPtr();
+            token_kind_names[(int)TOKEN_LBRACKET] = "[".ToPtr();
+            token_kind_names[(int)TOKEN_RBRACKET] = "]".ToPtr();
+            token_kind_names[(int)TOKEN_COMMA] = ";".ToPtr();
+            token_kind_names[(int)TOKEN_DOT] = ".".ToPtr();
+            token_kind_names[(int)TOKEN_AT] = "@".ToPtr();
+            token_kind_names[(int)TOKEN_POUND] = "#".ToPtr();
+            token_kind_names[(int)TOKEN_QUESTION] = "?".ToPtr();
+            token_kind_names[(int)TOKEN_ELLIPSIS] = "...".ToPtr();
+            token_kind_names[(int)TOKEN_SEMICOLON] = ";".ToPtr();
+            token_kind_names[(int)TOKEN_NEG] = "~".ToPtr();
+            token_kind_names[(int)TOKEN_NOT] = "!".ToPtr();
+            token_kind_names[(int)TOKEN_KEYWORD] = "keyword".ToPtr();
+            token_kind_names[(int)TOKEN_INT] = "int".ToPtr();
+            token_kind_names[(int)TOKEN_FLOAT] = "float".ToPtr();
+            token_kind_names[(int)TOKEN_STR] = "string".ToPtr();
+            token_kind_names[(int)TOKEN_NAME] = "name".ToPtr();
+            token_kind_names[(int)TOKEN_MUL] = "*".ToPtr();
+            token_kind_names[(int)TOKEN_DIV] = "/".ToPtr();
+            token_kind_names[(int)TOKEN_MOD] = "%".ToPtr();
+            token_kind_names[(int)TOKEN_AND] = "&".ToPtr();
+            token_kind_names[(int)TOKEN_LSHIFT] = "<<".ToPtr();
+            token_kind_names[(int)TOKEN_RSHIFT] = ">>".ToPtr();
+            token_kind_names[(int)TOKEN_ADD] = "+".ToPtr();
+            token_kind_names[(int)TOKEN_SUB] = "-".ToPtr();
+            token_kind_names[(int)TOKEN_OR] = "|".ToPtr();
+            token_kind_names[(int)TOKEN_XOR] = "^".ToPtr();
+            token_kind_names[(int)TOKEN_EQ] = "==".ToPtr();
+            token_kind_names[(int)TOKEN_NOTEQ] = "!=".ToPtr();
+            token_kind_names[(int)TOKEN_LT] = "<".ToPtr();
+            token_kind_names[(int)TOKEN_GT] = ">".ToPtr();
+            token_kind_names[(int)TOKEN_LTEQ] = "<=".ToPtr();
+            token_kind_names[(int)TOKEN_GTEQ] = ">=".ToPtr();
+            token_kind_names[(int)TOKEN_AND_AND] = "&&".ToPtr();
+            token_kind_names[(int)TOKEN_OR_OR] = "||".ToPtr();
+            token_kind_names[(int)TOKEN_ASSIGN] = "=".ToPtr();
+            token_kind_names[(int)TOKEN_ADD_ASSIGN] = "+=".ToPtr();
+            token_kind_names[(int)TOKEN_SUB_ASSIGN] = "-=".ToPtr();
+            token_kind_names[(int)TOKEN_OR_ASSIGN] = "|=".ToPtr();
+            token_kind_names[(int)TOKEN_AND_ASSIGN] = "&=".ToPtr();
+            token_kind_names[(int)TOKEN_XOR_ASSIGN] = "^=".ToPtr();
+            token_kind_names[(int)TOKEN_MUL_ASSIGN] = "*=".ToPtr();
+            token_kind_names[(int)TOKEN_DIV_ASSIGN] = "/=".ToPtr();
+            token_kind_names[(int)TOKEN_MOD_ASSIGN] = "%=".ToPtr();
+            token_kind_names[(int)TOKEN_LSHIFT_ASSIGN] = "<<=".ToPtr();
+            token_kind_names[(int)TOKEN_RSHIFT_ASSIGN] = ">>=".ToPtr();
+            token_kind_names[(int)TOKEN_INC] = "++".ToPtr();
+            token_kind_names[(int)TOKEN_DEC] = "--".ToPtr();
+            token_kind_names[(int)TOKEN_COLON_ASSIGN] = ":=".ToPtr();
         }
 
         void init_keywords() {
@@ -296,7 +296,7 @@ namespace IonLang
         }
 
         void scan_int() {
-            ulong @base = 10;
+            byte @base = 10;
             char *start_digits = stream;
             if (*stream == '0') {
                 stream++;
@@ -320,9 +320,13 @@ namespace IonLang
             }
 
             ulong val = 0;
-            for (; ; )
+            for (;;)
             {
-                ulong digit = (ulong)char_to_digit[*stream];
+                if (*stream == '_') {
+                    stream++;
+                    continue;
+                }
+                byte digit = char_to_digit[*stream];
                 if (digit == 0 && *stream != '0')
                     break;
 
@@ -331,7 +335,7 @@ namespace IonLang
                     digit = 0;
                 }
 
-                if (val > (ulong.MaxValue - (digit) / @base)) {
+                if (val > (ulong.MaxValue - (digit) / (ulong)@base)) {
                     error_here("Integer literal overflow");
                     while (char.IsDigit(*stream))
                         stream++;
