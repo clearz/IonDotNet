@@ -29,6 +29,11 @@ namespace IonLang
                                             "#error \"C11 support required or Visual Studio 2015 or later\"\n" +
                                             "#endif\n" +
                                             "\n" +
+                                            "#ifdef __GNUC__\n"                              +
+                                            "#pragma GCC diagnostic push\n"                  +
+                                            "#pragma GCC diagnostic ignored \"-Wvarargs\"\n" +
+                                            "#endif\n" +
+                                            "\n" +
                                             "#include <stdbool.h>\n" +
                                             "#include <stdint.h>\n" +
                                             "#include <stdarg.h>\n" +
@@ -112,7 +117,12 @@ namespace IonLang
                                             "        assert(0 && \"argument type not supported\");\n"    +
                                             "        break;\n"                                           +
                                             "    }\n"                                                    +
-                                            "}\n";
+                                            "}\n" +
+                                            "\n" +
+                                            "#ifdef __GNUC__\n"+
+                                            "#pragma GCC diagnostic pop\n"+
+                                            "#endif\n"
+                                            ;
 
 
         readonly char* defineStr = "#define ".ToPtr();
