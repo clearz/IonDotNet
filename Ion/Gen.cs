@@ -43,7 +43,9 @@ namespace IonLang
                                             "typedef long long llong;\n" +
                                             "typedef unsigned long long ullong;\n" +
                                             "\n" +
-                                            "#ifdef _MSC_VER\n" +
+                                            "#ifdef _WIN32\n" +
+                                            "#include <errno.h>\n" +
+                                            "#define strdup _strdup\n" +
                                             "#define alignof(x) __alignof(x)\n" +
                                             "#else\n" +
                                             "#define alignof(x) __alignof__(x)\n" +

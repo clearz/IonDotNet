@@ -419,12 +419,12 @@ namespace IonLang
             assert(*stream == 'x');
             stream++;
             int val = char_to_digit[*stream];
-            if (val == 0) {
+            if (val == 0 && *stream != '0') {
                 error_here("\\x needs at least 1 hex digit");
             }
             stream++;
             int digit = char_to_digit[*stream];
-            if (digit > 0 || *stream == 48) {
+            if (digit > 0 || *stream == '0') {
                 val *= 16;
                 val += digit;
                 if (val > 0xFF) {
