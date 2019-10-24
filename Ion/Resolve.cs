@@ -2682,6 +2682,9 @@ namespace IonLang
                     }
 
                     for (int k = 0; k < decl->import.num_names; k++) {
+                        if (!str_islower(decl->import.names[k])) {
+                            fatal_error(decl->pos, "Import name must be lower case: '{0}'", _S(decl->import.names[k]));
+                        }
                         if (k > 0)
                             *(path_buf + n++) = '/';
                         n = copy_to_pos(path_buf, decl->import.names[k], n);

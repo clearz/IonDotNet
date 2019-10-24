@@ -495,7 +495,9 @@ namespace IonLang
         public static bool isalnum(char c) {
             return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9';
         }
-
+        public static bool isalpha(char c) {
+            return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
+        }
 
         public static bool isspace(char c) {
             return c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\v';
@@ -571,6 +573,16 @@ namespace IonLang
         }
 
         #endregion
+
+        bool str_islower(char* str) {
+            while (*str != '\0') {
+                if (isalpha(*str) && !islower(*str)) {
+                    return false;
+                }
+                str++;
+            }
+            return true;
+        }
 
         public static int copy_to_pos(char* c1, char* c2, int n = 0) {
             while ((c1[n] = *c2++) != 0)
