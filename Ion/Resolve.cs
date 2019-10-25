@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace IonLang
 {
@@ -1153,6 +1154,23 @@ namespace IonLang
             assert(left->type == right->type);
         }
 
+        Map resolved_val_map;
+
+        Val get_resolved_val(void* ptr) {
+            ulong u64 = resolved_val_map.map_get_uint64(ptr);
+            Val val = default;
+            assert(Marshal.SizeOf(val) == Marshal.SizeOf(u64));
+            memcpy(&val, &u64, sizeof(ulong));
+            return val;
+        }
+
+        void set_resolved_val(void* ptr, Val val) {
+            ulong u64 = 0;
+            assert(Marshal.SizeOf(val) == Marshal.SizeOf(u64));
+            memcpy(&u64, &val, Marshal.SizeOf(val));
+            resolved_val_map.map_put_uint64(ptr, u64);
+        }
+
         Type* unify_arithmetic_types(Type* left_type, Type* right_type) {
             Operand left = operand_rvalue(left_type);
             Operand right = operand_rvalue(right_type);
@@ -1555,11 +1573,29 @@ namespace IonLang
                     bool has_default = false;
                     for (var i = 0; i < stmt->switch_stmt.num_cases; i++) {
                         var switch_case = stmt->switch_stmt.cases[i];
-                        for (var j = 0; j < switch_case.num_exprs; j++) {
-                            Expr *case_expr = switch_case.exprs[j];
-                            Operand case_operand = resolve_expr(case_expr);
-                            if (!convert_operand(&case_operand, operand.type)) {
-                                fatal_error(case_expr->pos, "Invalid type in switch case expression. Expected {0}, got {1}", get_type_name(operand.type), get_type_name(case_operand.type));
+                        for (var j = 0; j < switch_case.num_patterns; j++) {
+                            SwitchCasePattern pattern = switch_case.patterns[j];
+                            Expr *start_expr = pattern.start;
+                            Operand start_operand = resolve_const_expr(start_expr);
+                            if (!convert_operand(&start_operand, operand.type)) {
+                                fatal_error(start_expr->pos, "Invalid type in switch case expression. Expected {0}, got {0}", get_type_name(operand.type), get_type_name(start_operand.type));
+                            }
+                            Expr *end_expr = pattern.end;
+                            if (end_expr != null) {
+                                Operand end_operand = resolve_const_expr(end_expr);
+                                if (!convert_operand(&end_operand, operand.type)) {
+                                    fatal_error(end_expr->pos, "Invalid type in switch case expression. Expected {0}, got {0}", get_type_name(operand.type), get_type_name(end_operand.type));
+                                }
+                                convert_operand(&start_operand, type_llong);
+                                set_resolved_val(start_expr, start_operand.val);
+                                convert_operand(&end_operand, type_llong);
+                                set_resolved_val(end_expr, end_operand.val);
+                                if (end_operand.val.ll < start_operand.val.ll) {
+                                    fatal_error(start_expr->pos, "Case range end value cannot be less thn start value");
+                                }
+                                if (end_operand.val.ll - start_operand.val.ll >= 256) {
+                                    fatal_error(start_expr->pos, "Case range cannot span more than 256 values");
+                                }
                             }
                         }
                         if (switch_case.is_default) {

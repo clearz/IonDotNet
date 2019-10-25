@@ -146,6 +146,10 @@ namespace IonLang
             return type->kind == TYPE_ARRAY;
         }
 
+        bool is_func_type(Type* type) {
+            return type->kind == TYPE_FUNC;
+        }
+
 
         bool is_signed_type(Type* type) {
             switch (type->kind) {
@@ -161,6 +165,7 @@ namespace IonLang
                     return false;
             }
         }
+
         int aggregate_field_index(Type* type, char* name) {
             assert(is_aggregate_type(type));
             for (int i = 0; i < type->aggregate.num_fields; i++) {
@@ -217,6 +222,7 @@ namespace IonLang
                     return null;
             }
         }
+
         void init_builtin_type(Type* type) {
             type->typeid = next_typeid++;
             register_typeid(type);
@@ -287,7 +293,6 @@ namespace IonLang
             return type;
         }
 
-
         Type* get_type_from_typeid(int typeid) {
             if (typeid == 0) {
                 return null;
@@ -307,7 +312,6 @@ namespace IonLang
             register_typeid(type);
             return type;
         }
-
 
         Type* type_const(Type* @base) {
             if (@base->kind == TYPE_CONST) {

@@ -318,6 +318,11 @@ namespace IonLang
         }
     }
 
+    unsafe struct SwitchCasePattern
+    {
+        public Expr *start;
+        public Expr *end;
+    }
 
     internal unsafe struct ElseIf
     {
@@ -328,8 +333,8 @@ namespace IonLang
 
     internal unsafe struct SwitchCase
     {
-        public Expr** exprs;
-        public int num_exprs;
+        public SwitchCasePattern *patterns;
+        public int  num_patterns;
         public bool is_default;
         public StmtList block;
     }

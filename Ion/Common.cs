@@ -660,7 +660,9 @@ namespace IonLang
 
             void map_put_uint64_from_uint64(ulong key, ulong val) {
                 assert(key != 0);
-                assert(val != 0);
+                if (val == 0) {
+                    return;
+                }
 
                 if (2 * len >= cap)
                     map_grow(2 * cap);
@@ -688,9 +690,10 @@ namespace IonLang
 
             public void map_put(void* key, void* val) => map_put_uint64_from_uint64((ulong)key, (ulong)val);
             public void map_put_from_uint64(ulong key, void* val) => map_put_uint64_from_uint64(key, (ulong)val);
-
             public T* map_get<T>(void* key) where T : unmanaged => (T*)map_get_from_uint64((ulong)key);
             public void* map_get_from_uint64(ulong key) => (void*)map_get_uint64_from_uint64(key);
+            public ulong map_get_uint64(void* key) => map_get_uint64_from_uint64((ulong)key);
+            public void map_put_uint64(void* key, ulong val) => map_put_uint64_from_uint64((ulong)key, val);
 
             internal bool exists(void* key) => map_get_uint64_from_uint64((ulong)key) != 0;
 

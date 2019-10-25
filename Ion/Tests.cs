@@ -335,6 +335,13 @@ namespace IonLang
 
             return buf->_begin;
         }
+        SwitchCasePattern* CreateSP(params Expr*[] arr) {
+            var buf = Buffer<SwitchCasePattern>.Create();
+            foreach (var v in arr)
+                buf.Add(new SwitchCasePattern { start = v });
+
+            return buf;
+        }
         internal void print_test() {
             use_print_buf = true;
             // Expressions
@@ -412,8 +419,8 @@ namespace IonLang
                     new_expr_name(default, "val".ToPtr()),
                     (SwitchCase*) new[] {
                         new SwitchCase {
-                            exprs = (Expr**) CreateArray(new_expr_int(default, 3, 0, 0), new_expr_int(default, 4, 0, 0)),
-                            num_exprs = 2,
+                            patterns = CreateSP(new_expr_int(default, 3, 0, 0), new_expr_int(default, 4, 0, 0)),
+                            num_patterns = 2,
                             is_default = false,
                             block = new StmtList {
                                 stmts = (Stmt**)
@@ -422,8 +429,8 @@ namespace IonLang
                             },
                         },
                         new SwitchCase {
-                            exprs = (Expr**) CreateArray(new_expr_int(default, 1, 0, 0)),
-                            num_exprs = 1,
+                            patterns = CreateSP(new_expr_int(default, 1, 0, 0)),
+                            num_patterns = 1,
                             is_default = true,
                             block = new StmtList {
                                 stmts = (Stmt**)

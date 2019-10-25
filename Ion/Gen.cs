@@ -203,7 +203,7 @@ namespace IonLang
         }
 
         bool is_excluded_typeinfo(Type* type) {
-            if (type->kind == TYPE_ARRAY || type->kind == TYPE_CONST) {
+            while (type->kind == TYPE_ARRAY || type->kind == TYPE_CONST || type->kind == TYPE_PTR) {
                 type = type->@base;
             }
             return type->sym != null && !gen_reachable(type->sym);
@@ -1184,13 +1184,47 @@ namespace IonLang
                     gen_indent++;
                     for (var i = 0; i < stmt->switch_stmt.num_cases; i++) {
                         var switch_case = stmt->switch_stmt.cases[i];
-                        for (var j = 0; j < switch_case.num_exprs; j++) {
-                            genlnf(case_keyword);
-                            c_write(' ');
-                            gen_expr(switch_case.exprs[j]);
-                            c_write(':');
+                        for (var j = 0; j < switch_case.num_patterns; j++) {
+                            SwitchCasePattern pattern = switch_case.patterns[j];
+                            if (pattern.end != null) {
+                                Val start_val = get_resolved_val(pattern.start);
+                                Val end_val = get_resolved_val(pattern.end);
+                                if (is_char_lit(pattern.start) && is_char_lit(pattern.end)) {
+                                    genln();
+                                    for (int c = (int)start_val.ll; c <= (int)end_val.ll; c++) {
+                                        genlnf(case_keyword);
+                                        c_write(' ');
+                                        gen_char((char)c);
+                                        c_write(':');
+                                        c_write(' ');
+                                    }
+                                }
+                                else {
+                                    c_write('/');
+                                    c_write('/');
+                                    c_write(' ');
+                                    gen_expr(pattern.start);
+                                    c_write('.');
+                                    c_write('.');
+                                    c_write('.');
+                                    gen_expr(pattern.end);
+                                    genln();
+                                    for (long ll = start_val.ll; ll <= end_val.ll; ll++) {
+                                        genlnf(case_keyword);
+                                        c_write(' ');
+                                        c_write(ll.itoa());
+                                        c_write(':');
+                                        c_write(' ');
+                                    }
+                                }
+                            }
+                            else {
+                                genlnf(case_keyword);
+                                c_write(' ');
+                                gen_expr(pattern.start);
+                                c_write(':');
+                            }
                         }
-
                         if (switch_case.is_default) {
                             genln();
                             has_default = true;
@@ -1239,6 +1273,10 @@ namespace IonLang
                     c_write(';');
                     break;
             }
+        }
+
+        static bool is_char_lit(Expr* expr) {
+            return expr->kind == EXPR_INT && expr->int_lit.mod == MOD_CHAR;
         }
 
         void gen_decl(Sym* sym) {

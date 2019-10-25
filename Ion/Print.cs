@@ -311,10 +311,13 @@ namespace IonLang
                     {
                         print_newline();
                         printf("(case ({0}", it->is_default ? " default" : "");
-                        for (var expr = it->exprs; expr != it->exprs + it->num_exprs; expr++)
-                        {
+                        for (var pattern = it->patterns; pattern != it->patterns + it->num_patterns; pattern++) {
                             printf(" ");
-                            print_expr(*expr);
+                            print_expr(pattern->start);
+                            if(pattern->end != null) {
+                                printf(", ");
+                                print_expr(pattern->end);
+                            }
                         }
 
                         printf(" ) ");

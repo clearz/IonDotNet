@@ -550,58 +550,62 @@
             return new_stmt_for(pos, init, cond, next, parse_stmt_block());
         }
 
+        SwitchCasePattern parse_switch_case_pattern() {
+            Expr *start = parse_expr();
+            Expr *end = null;
+            if (match_token(TOKEN_ELLIPSIS)) {
+                end = parse_expr();
+            }
+            return new SwitchCasePattern{start = start, end = end};
+        }
+
         SwitchCase parse_stmt_switch_case() {
-            var buf = PtrBuffer.GetPooledBuffer();
-            try {
-                var is_default = false;
-                var is_first_case = true;
-                while (is_keyword(case_keyword) || is_keyword(default_keyword)) {
-                    if (match_keyword(case_keyword)) {
-                        if (!is_first_case) {
-                            warning_here("Use comma-separated expressions to match multiple values with one case label");
-                            is_first_case = false;
-                        }
-                        buf->Add(parse_expr());
-                        while (match_token(TOKEN_COMMA)) {
-                            buf->Add(parse_expr());
-                        }
+            var patterns = Buffer<SwitchCasePattern>.Create();
+            var is_default = false;
+            var is_first_case = true;
+            while (is_keyword(case_keyword) || is_keyword(default_keyword)) {
+                if (match_keyword(case_keyword)) {
+                    if (!is_first_case) {
+                        warning_here("Use comma-separated expressions to match multiple values with one case label");
+                        is_first_case = false;
                     }
-                    else {
-                        assert(is_keyword(default_keyword));
-                        next_token();
-                        if (is_default)
-                            error_here("Duplicate default labels in same switch clause");
-
-                        is_default = true;
+                    patterns.Add(parse_switch_case_pattern());
+                    while (match_token(TOKEN_COMMA)) {
+                        patterns.Add(parse_switch_case_pattern());
                     }
+                }
+                else {
+                    assert(is_keyword(default_keyword));
+                    next_token();
+                    if (is_default)
+                        error_here("Duplicate default labels in same switch clause");
 
-                    expect_token(TOKEN_COLON);
+                    is_default = true;
                 }
 
-                var pos = token.pos;
+                expect_token(TOKEN_COLON);
+            }
 
-                var buf2 = PtrBuffer.GetPooledBuffer();
+            var pos = token.pos;
 
-                while (!is_token_eof() && !is_token(TOKEN_RBRACE) && !is_keyword(case_keyword) &&
-                       !is_keyword(default_keyword))
-                    buf2->Add(parse_stmt());
+            var buf2 = PtrBuffer.GetPooledBuffer();
 
-                var block = new StmtList
+            while (!is_token_eof() && !is_token(TOKEN_RBRACE) && !is_keyword(case_keyword) &&
+                   !is_keyword(default_keyword))
+                buf2->Add(parse_stmt());
+
+            var block = new StmtList
                 {
-                    pos = pos,
-                    stmts = (Stmt**) buf2->_begin,
-                    num_stmts = buf2->count
-                };
-                return new SwitchCase {
-                    exprs = (Expr**)ast_dup(buf->_begin, buf->buf_byte_size),
-                    num_exprs = buf->count,
-                    is_default = is_default,
-                    block = block
-                };
-            }
-            finally {
-                buf->Release();
-            }
+                pos = pos,
+                stmts = (Stmt**) buf2->_begin,
+                num_stmts = buf2->count
+            };
+            return new SwitchCase {
+                patterns = patterns,
+                num_patterns = patterns.count,
+                is_default = is_default,
+                block = block
+            };
         }
 
         Stmt* parse_stmt_switch(SrcPos pos) {
