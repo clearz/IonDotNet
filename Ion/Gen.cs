@@ -61,11 +61,11 @@ namespace IonLang
                                             "#define va_end_ptr(args) (va_end(*(args)))\n"                   +
                                             "\n"      +
                                             "struct Any;\n"+
-                                            "void va_arg_ptr(va_list *args, struct Any any);\n";
+                                            "static void va_arg_ptr(va_list *args, struct Any any);\n";
 
 
         string gen_postamble_str =          "\n// Postamble\n"                                           +
-                                            "void va_arg_ptr(va_list *args, Any any) {\n"                +
+                                            "static void va_arg_ptr(va_list *args, Any any) {\n"                +
                                             "    switch (typeid_kind(any.type)) {\n"                     +
                                             "    case TYPE_BOOL:\n"                                      +
                                             "        *(bool *)any.ptr = (bool)va_arg(*args, int);\n"           +

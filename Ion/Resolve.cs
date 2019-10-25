@@ -1458,7 +1458,7 @@ namespace IonLang
             switch (stmt->kind) {
                 case STMT_RETURN:
                     if (stmt->expr != null) {
-                        Operand operand = resolve_expected_expr(stmt->expr, ret_type);
+                        Operand operand = resolve_expected_expr_rvalue(stmt->expr, ret_type);
                         if (!convert_operand(&operand, ret_type)) {
                             fatal_error(stmt->pos, "Invalid type in return expression. Expected {0}, got {1}", get_type_name(ret_type), get_type_name(operand.type));
                         }
@@ -2494,7 +2494,7 @@ namespace IonLang
                     result = operand_const(expr->float_lit.suffix == SUFFIX_D ? type_double : type_float, default);
                     break;
                 case EXPR_STR:
-                    result = operand_rvalue(type_ptr(type_char));
+                    result = operand_rvalue(type_array(type_char, strlen(expr->str_lit.val) + 1));
                     break;
                 case EXPR_NAME:
                     // HACK
