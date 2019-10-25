@@ -15,8 +15,7 @@ namespace IonLang
     using static TokenSuffix;
     using static SymReachable;
 
-    unsafe partial class Ion
-    {
+    unsafe partial class Ion {
         const int MAX_LOCAL_SYMS = 1024;
 
         Package *current_package;
@@ -26,6 +25,8 @@ namespace IonLang
         Map resolved_sym_map;
         Map resolved_expected_type_map;
         Map resolved_type_map;
+        Map labels_map;
+        Buffer<Label> labels = Buffer<Label>.Create();
         Buffer<Sym> local_syms;
         PtrBuffer* package_list;
         PtrBuffer* sorted_syms;
@@ -42,6 +43,44 @@ namespace IonLang
 
         byte reachable_phase = (byte)REACHABLE_NATURAL;
 
+        Label* get_label(SrcPos pos, char *name) {
+            Label *label;
+            for (label = labels; label != labels._top; label++) {
+                if (label->name == name) {
+                    return label;
+                }
+            }
+            var lbl = new Label{name = name, pos = pos};
+            labels.Add(lbl);
+            label = (labels._top - 1);
+            labels_map.map_put(name, label);
+
+            return label;
+        }
+        void reference_label(SrcPos pos, char* name) {
+            Label *label = get_label(pos, name);
+            label->referenced = true;
+        }
+
+        void define_label(SrcPos pos, char* name) {
+            Label *label = get_label(pos, name);
+            if (label->defined) {
+                fatal_error(pos, "Multiple definitions of label '{0}'", _S(name));
+            }
+            label->defined = true;
+        }
+
+        void resolve_labels() {
+            for (Label* label = labels; label != labels._top; label++) {
+                if (label->referenced && !label->defined) {
+                    fatal_error(label->pos, "Label '{0}' referenced but not defined", _S(label->name));
+                }
+                if (label->defined && !label->referenced) {
+                    warning(label->pos, "Label '{0}' defined but not referenced", _S(label->name));
+                }
+            }
+            labels.clear();
+        }
         Sym* get_package_sym(Package* package, char* name) {
             return package->syms_map.map_get<Sym>(name);
         }
@@ -1550,6 +1589,12 @@ namespace IonLang
                 case STMT_EXPR:
                     resolve_expr(stmt->expr);
                     return false;
+                case STMT_LABEL:
+                    define_label(stmt->pos, stmt->label);
+                    return false;
+                case STMT_GOTO:
+                    reference_label(stmt->pos, stmt->label);
+                    return false;
                 default:
                     assert(false);
                     return false;
@@ -1572,6 +1617,7 @@ namespace IonLang
             }
             Type *ret_type = resolve_typespec(decl->func.ret_type);
             bool returns = resolve_stmt_block(decl->func.block, ret_type, default);
+            resolve_labels();
             sym_leave(scope);
             if (ret_type != type_void && !returns) {
                 fatal_error(decl->pos, "Not all control paths return values");
@@ -2011,12 +2057,32 @@ namespace IonLang
                         fatal_error(pos, "Operands of {0} must both have integer type", _S(op_name));
                     }
                     break;
+                case TOKEN_EQ:
+                case TOKEN_NOTEQ:
+                    if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
+                        Operand result = resolve_binary_arithmetic_op(op, left, right);
+                        cast_operand(&result, type_int);
+                        return result;
+                    }
+                    else if (is_ptr_type(left.type) && is_ptr_type(right.type)) {
+                        Type *unqual_left_base = unqualify_type(left.type->@base);
+                        Type *unqual_right_base = unqualify_type(right.type->@base);
+                        if (unqual_left_base != unqual_right_base && unqual_left_base != type_void && unqual_right_base != type_void) {
+                            fatal_error(pos, "Cannot compare pointers to different types");
+                        }
+                        return operand_rvalue(type_int);
+                    }
+                    else if ((is_null_ptr(left) && is_ptr_type(right.type)) || (is_null_ptr(right) && is_ptr_type(left.type))) {
+                        return operand_rvalue(type_int);
+                    }
+                    else {
+                        fatal_error(pos, "Operands of {0} must be arithmetic types or compatible pointer types", _S(op_name));
+                    }
+                    break;
                 case TOKEN_LT:
                 case TOKEN_LTEQ:
                 case TOKEN_GT:
                 case TOKEN_GTEQ:
-                case TOKEN_EQ:
-                case TOKEN_NOTEQ:
                     if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
                         Operand result = resolve_binary_arithmetic_op(op, left, right);
                         cast_operand(&result, type_int);
@@ -2783,8 +2849,10 @@ namespace IonLang
                 printf("Finalizing reachable symbols\n");
             int prev_num_reachable = 0;
             var num_reachable = reachable_syms->count;
-            for (int i = 0; i < num_reachable; i++) {
+            int i;
+            for (i = 0; i < num_reachable; i++) {
                 var sym = reachable_syms->Get<Sym>(i);
+                printf(" {0}/{1}\n", _S(sym->package->path), _S(sym->name));
                 finalize_sym(sym);
                 if (i == num_reachable - 1) {
                     if (flag_verbose) {

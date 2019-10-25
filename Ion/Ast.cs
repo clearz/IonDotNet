@@ -365,8 +365,21 @@ namespace IonLang
         }
 
 
+        Stmt* new_stmt_label(SrcPos pos, char* label) {
+            Stmt *s = new_stmt(STMT_LABEL, pos);
+            s->label = label;
+            return s;
+        }
 
-        Stmt* new_stmt(StmtKind kind, SrcPos pos)
+        Stmt* new_stmt_goto(SrcPos pos, char* label) {
+            Stmt *s = new_stmt(STMT_GOTO, pos);
+            s->label = label;
+            return s;
+        }
+
+
+
+    Stmt* new_stmt(StmtKind kind, SrcPos pos)
         {
             var s = (Stmt*) ast_alloc(sizeof(Stmt));
             s->pos = pos;

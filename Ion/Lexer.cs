@@ -41,6 +41,7 @@ namespace IonLang
         char *alignof_keyword;
         char *offsetof_keyword;
         char *import_keyword;
+        char *goto_keyword;
 
         Buffer<char> str_buf;
         char* stream;
@@ -255,6 +256,9 @@ namespace IonLang
 
             import_keyword = _I("import");
             keywords->Add(import_keyword);
+
+            goto_keyword = _I("goto");
+            keywords->Add(goto_keyword);
 
             default_keyword = _I("default");
             keywords->Add(default_keyword);

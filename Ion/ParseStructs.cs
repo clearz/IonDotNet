@@ -17,6 +17,13 @@ namespace IonLang
         public SrcPos pos;
     }
 
+    unsafe struct Label
+    {
+        public char *name;
+        public SrcPos pos;
+        public bool referenced;
+        public bool defined;
+    }
     internal struct StmtCtx
     {
         public bool is_break_legal;
@@ -344,6 +351,7 @@ namespace IonLang
         [FieldOffset(44)] public InitStmt init;
         [FieldOffset(44)] public Expr* expr;
         [FieldOffset(44)] public Decl* decl;
+        [FieldOffset(44)] public char* label;
 
 
         internal struct IfStmt
@@ -466,5 +474,7 @@ namespace IonLang
         STMT_INIT,
         STMT_EXPR,
         STMT_NOTE,
+        STMT_GOTO,
+        STMT_LABEL,
     }
 }

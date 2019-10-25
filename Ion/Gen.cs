@@ -1055,6 +1055,20 @@ namespace IonLang
                         c_write(';');
                     }
                     break;
+                case STMT_LABEL: {
+                    var indent = gen_indent;
+                    gen_indent = 0;
+                    genlnf(stmt->label);
+                    c_write(':');
+                    gen_indent = indent;
+                    break;
+                }
+                case STMT_GOTO:
+                    genlnf(goto_keyword, 4);
+                    c_write(' ');
+                    c_write(stmt->label);
+                    c_write(';');
+                    break;
                 case STMT_IF:
                     if (stmt->if_stmt.init != null) {
                         genlnf('{');
