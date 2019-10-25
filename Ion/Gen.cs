@@ -850,9 +850,10 @@ namespace IonLang
                     gen_expr(expr->index.index);
                     c_write(']');
                     break;
-                case EXPR_FIELD:
+                case EXPR_FIELD: {
+                    Type *type = unqualify_type(get_resolved_type(expr->field.expr));
                     gen_expr(expr->field.expr);
-                    if (get_resolved_type(expr->field.expr)->kind == TYPE_PTR) {
+                    if (type->kind == TYPE_PTR) {
 
                         c_write('-');
                         c_write('>');
@@ -861,6 +862,7 @@ namespace IonLang
                         c_write('.');
                     c_write(expr->field.name);
                     break;
+                }
                 case EXPR_COMPOUND:
                     gen_expr_compound(expr);
                     break;
