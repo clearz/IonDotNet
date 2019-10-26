@@ -1520,7 +1520,7 @@ namespace IonLang
                           ", .count = ".ToPtr(out int ti10),
                           ", .name = ".ToPtr(out int ti11),
                           ", .num_fields = ".ToPtr(out int ti12),
-                          ", .fields = (TypeFieldInfo[]) {".ToPtr(out int ti13),
+                          ".fields = (TypeFieldInfo[]) {".ToPtr(out int ti13),
                           "NULL, // Func".ToPtr(out int ti14),
                           "NULL, // Enum".ToPtr(out int ti15),
                           "NULL, // Incomplete: ".ToPtr(out int ti16),
@@ -1757,9 +1757,14 @@ namespace IonLang
                         gen_str(get_gen_name(type->sym), false);
                         c_write(tiInfo[12], ti12);
                         c_write(type->aggregate.num_fields.itoa());
-                        c_write(tiInfo[13], ti13);
+                        c_write(',');
+                        gen_indent++;
+                        genlnf(tiInfo[13], ti13);
                         gen_typeinfo_fields(type);
+                        genln();
                         c_write('}');
+                        gen_indent--;
+                        genln();
                         c_write('}');
                         c_write(',');
                         break;
