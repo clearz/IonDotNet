@@ -383,16 +383,16 @@ namespace IonLang
             var params_size = num_params * PTR_SIZE;
             ulong hash = Map.hash_mix(Map.hash_bytes(@params, params_size), Map.hash_ptr(ret));
             var key = hash != 0 ? hash : 1;
+            
             CachedFuncType *cached = (CachedFuncType*)cached_func_types.map_get_from_uint64(key);
             for (CachedFuncType* it = cached; it != null; it = it->next) {
                 Type *type1 = it->type;
-                if (type1->func.num_params == num_params && type1->func.ret == ret && type1->func.has_varargs == has_varargs) {
-                    if(num_params > 0)
-                        if (memcmp(type1->func.@params, @params, num_params)) {
+                if (num_params > 0)
+                    if (type1->func.num_params == num_params && type1->func.ret == ret && type1->func.has_varargs == has_varargs)
+                        if (memcmp(type1->func.@params, @params, num_params))
                             return type1;
-                        }
-                }
             }
+
             Type *type = type_alloc(TYPE_FUNC);
             type->size = type_metrics[(int)TYPE_PTR].size;
             type->align = type_metrics[(int)TYPE_PTR].align;
@@ -437,6 +437,7 @@ namespace IonLang
                 nonmodifiable = it->type->nonmodifiable || nonmodifiable;
             }
 
+            type->size = ALIGN_UP(type->size, type->align);
             type->aggregate.fields =
                 (TypeField*)xmalloc(num_fields * sizeof(TypeField));
             Unsafe.CopyBlock(type->aggregate.fields, fields,
@@ -452,6 +453,7 @@ namespace IonLang
             type->kind = TYPE_UNION;
             type->size = 0;
             bool nonmodifiable = false;
+
             for (var it = fields; it != fields + num_fields; it++) {
                 assert(it->type->kind > TYPE_COMPLETING);
                 it->offset = 0;
@@ -460,6 +462,7 @@ namespace IonLang
                 nonmodifiable = type->nonmodifiable || nonmodifiable;
             }
 
+            type->size = ALIGN_UP(type->size, type->align);
             type->aggregate.fields =
                 (TypeField*)xmalloc(sizeof(TypeField) * num_fields);
             Unsafe.CopyBlock(type->aggregate.fields, fields,
