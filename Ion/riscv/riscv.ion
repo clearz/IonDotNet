@@ -218,6 +218,56 @@ var op_to_mask: uint32[NUM_OPS] = {
     [EBREAK] = 0b000000000001_00000_000_00000_1110011,
 };
 
+var op_to_name: char const*[NUM_OPS] = {
+    [LUI] = "LUI",
+    [AUIPC] = "AUIPC",
+    [JAL] = "JAL",
+    [JALR] = "JALR",
+    [BEQ] = "BEQ",
+    [BNE] = "BNE",
+    [BLT] = "BLT",
+    [BGE] = "BGE",
+    [BLTU] = "BLTU",
+    [BGEU] = "BGEU",
+    [LB] = "LB",
+    [LH] = "LH",
+    [LW] = "LW",
+    [LBU] = "LBU",
+    [LHU] = "LHU",
+    [SB] = "SB",
+    [SH] = "SH",
+    [SW] = "SW",
+    [ADDI] = "ADDI",
+    [SLTI] = "SLTI",
+    [SLTIU] = "SLTIU",
+    [XORI] = "XORI",
+    [ORI] = "ORI",
+    [ANDI] = "ANDI",
+    [SLLI] = "SLLI",
+    [SRLI] = "SRLI",
+    [SRAI] = "SRAI",
+    [ADD] = "ADD",
+    [SUB] = "SUB",
+    [SLL] = "SLL",
+    [SLT] = "SLT",
+    [SLTU] = "SLTU",
+    [XOR] = "XOR",
+    [SRL] = "SRL",
+    [SRA] = "SRA",
+    [OR] = "OR",
+    [AND] = "AND",
+    [FENCE] = "FENCE",
+    [FENCEI] = "FENCEI",
+    [ECALL] = "ECALL",
+    [EBREAK] = "EBREAK",
+    [CSRRW] = "CSRRW",
+    [CSRRS] = "CSRRS",
+    [CSRRC] = "CSRRC",
+    [CSRRWI] = "CSRRWI",
+    [CSRRSI] = "CSRRSI",
+    [CSRRCI] = "CSRRCI",
+};
+
 const U_IMMEDIATE_MIN = -(1 << 30);
 const U_IMMEDIATE_MAX = 1 << 30 - 1;
 const U_IMMEDIATE_ALIGN = 1 << 12;
@@ -422,6 +472,40 @@ func encode_instruction(instr: Instruction): uint32 {
     }
 }
 
+func print_instruction(buf: char*, pc: uint32, instr: Instruction) {
+    op := instr.op;
+    if (op == ILLEGAL || op >= NUM_OPS) {
+        sprintf(buf, "ILLEGAL");
+        return;
+    }
+    buf += sprintf(buf, "%s", op_to_name[op]);
+    switch (op) {
+    case LUI, AUIPC:
+        sprintf(buf, " x%d, %d", instr.rd, instr.imm);
+    case JAL:
+        sprintf(buf, " x%d, [0x%x]", instr.rd, pc + instr.imm);
+    case JALR:
+        sprintf(buf, " x%d, [x%d, %d]", instr.rd, instr.rs1, instr.imm);
+    case BEQ, BNE, BLT, BGE, BLTU, BGEU:
+        sprintf(buf, " x%d, x%d, [0x%x]", instr.rs1, instr.rs2, pc + instr.imm);
+    case LB, LH, LW, LBU, LHU:
+        sprintf(buf, " x%d, [x%d, %d]", instr.rd, instr.rs1, instr.imm);
+    case SB, SH, SW:
+        sprintf(buf, " [x%d, %d], x%d", instr.rs1, instr.imm, instr.rs2);
+    case ADDI, SLTI, SLTIU, XORI, ORI, ANDI, SLLI, SRLI, SRAI:
+        sprintf(buf, " x%d, x%d, %d", instr.rd, instr.rs1, instr.imm);
+    case ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND:
+        sprintf(buf, " x%d, x%d, x%d", instr.rd, instr.rs1, instr.rs2);
+    case CSRRW, CSRRS, CSRRC:
+        break;
+    case CSRRWI, CSRRSI, CSRRCI:
+        break;
+    case FENCE, FENCEI, ECALL, EBREAK:
+        // No operands to print
+        break;
+    }
+}
+
 struct Bus {
     ram: uint8*;
     ram_start: uint32;
@@ -477,10 +561,21 @@ func bus_store_byte(bus: Bus*, addr: uint32, data: uint8) {
     }
 }
 
+struct Breakpoint {
+    enabled: bool;
+    addr: uint32;
+    callback: func(hart: Hart*, breakpoint: Breakpoint*, instr: Instruction const*);
+}
+
 struct Hart {
     pc: uint32;
     regs: uint32[32];
     bus: Bus*;
+    trace_load_enabled: bool;
+    trace_load_callback: func(hart: Hart*, addr: uint32, size: int);
+    trace_store_enabled: bool;
+    trace_store_callback: func(hart: Hart*, addr: uint32, data: uint32, size: int);
+    breakpoint: Breakpoint;
 }
 
 func fetch_instruction(hart: Hart*, addr: uint32): uint32 {
@@ -498,26 +593,44 @@ func write_reg(hart: Hart*, reg: Reg, val: uint32) {
 }
 
 func load_word(hart: Hart*, addr: uint32): uint32 {
+    if (hart.trace_load_enabled) {
+        hart.trace_load_callback(hart, addr, 4);
+    }
     return bus_load_word(hart.bus, addr);
 }
 
 func load_halfword(hart: Hart*, addr: uint32): uint32 {
+    if (hart.trace_load_enabled) {
+        hart.trace_load_callback(hart, addr, 2);
+    }
     return bus_load_halfword(hart.bus, addr);
 }
 
 func load_byte(hart: Hart*, addr: uint32): uint32 {
+    if (hart.trace_load_enabled) {
+        hart.trace_load_callback(hart, addr, 1);
+    }
     return bus_load_byte(hart.bus, addr);
 }
 
 func store_word(hart: Hart*, addr: uint32, data: uint32) {
+    if (hart.trace_store_enabled) {
+        hart.trace_store_callback(hart, addr, data, 4);
+    }
     bus_store_word(hart.bus, addr, data);
 }
 
 func store_halfword(hart: Hart*, addr: uint32, data: uint32) {
+    if (hart.trace_store_enabled) {
+        hart.trace_store_callback(hart, addr, data, 2);
+    }
     bus_store_halfword(hart.bus, addr, data);
 }
 
 func store_byte(hart: Hart*, addr: uint32, data: uint32) {
+    if (hart.trace_store_enabled) {
+        hart.trace_store_callback(hart, addr, data, 1);
+    }
     bus_store_byte(hart.bus, addr, data);
 }
 
@@ -532,6 +645,9 @@ func step(hart: Hart*) {
     pc := hart.pc;
     instr_data := fetch_instruction(hart, pc);
     instr := decode_instruction(instr_data);
+    if (hart.breakpoint.enabled && hart.breakpoint.addr == pc) {
+        hart.breakpoint.callback(hart, &hart.breakpoint, &instr);
+    }
     rs1 := instr.rs1;
     rs2 := instr.rs2;
     rd := instr.rd;
@@ -680,7 +796,12 @@ func step(hart: Hart*) {
 }
 
 func print_hart_state(hart: Hart*) {
-    printf("pc = %d\n", hart.pc);
+    instr_data := fetch_instruction(hart, hart.pc);
+    instr := decode_instruction(instr_data);
+    instr_str: char[128];
+    print_instruction(instr_str, hart.pc, instr);
+    printf("%s\n\n", instr_str);
+    printf("pc = %d (0x%x)\n", hart.pc, hart.pc);
     for (reg := 1; reg < 32; reg += 4) {
         printf("%2d = %10d | ", reg, hart.regs[reg]);
         printf("%2d = %10d | ", reg+1, hart.regs[reg+1]);
@@ -817,407 +938,4 @@ func test_main() {
         #assert(op_to_mask[op] != 0);
     }
     test_random_invertible_codings();
-}
-
-func imm_hi(imm: uint32): uint32 {
-    return imm + 0x800;
-}
-
-func imm_lo(imm: uint32): uint32 {
-    return imm;
-}
-
-enum AsmError {
-    ASM_ERROR_NONE,
-    ASM_ERROR_OVERFLOW,
-}
-
-enum SymRefKind {
-    REF_LO_OFFSET,
-    REF_HI_OFFSET,
-}
-
-struct SymRef {
-    kind: SymRefKind;
-    addr: uint32;
-    base: uint32;
-    next: SymRef*;
-}
-
-enum SymState {
-    SYM_UNRESOLVED,
-    SYM_RESOLVED,
-}
-
-struct Sym {
-    state: SymState;
-    addr: uint32;
-    ref: SymRef*;
-}
-
-const NUM_SYMS_PER_ALLOC = 128;
-const NUM_SYM_REFS_PER_ALLOC = 128;
-
-struct Asm {
-    buf: uint8*;
-    buf_size: uint32;
-    error: AsmError;
-    addr: uint32;
-    free_sym: Sym*;
-    free_ref: SymRef*;
-}
-
-func new_sym(asm: Asm*): Sym* {
-    if (!asm.free_sym) {
-        syms: Sym* = calloc(NUM_SYMS_PER_ALLOC, sizeof(Sym));
-        next := NULL;
-        for (i := 0; i < NUM_SYMS_PER_ALLOC; i++) {
-            sym := syms + i;
-            sym.ref = next;
-            next = sym;
-        }
-        asm.free_sym = next;
-    }
-    sym := asm.free_sym;
-    asm.free_sym = (:Sym*)sym.ref;
-    *sym = {};
-    return sym;
-}
-
-func free_sym(asm: Asm*, sym: Sym*) {
-    sym.ref = (:SymRef*)asm.free_sym;
-    asm.free_sym = sym;
-}
-
-func new_sym_ref(asm: Asm*): SymRef* {
-    if (!asm.free_ref) {
-        refs: SymRef* = calloc(NUM_SYM_REFS_PER_ALLOC, sizeof(SymRef));
-        next := NULL;
-        for (i := 0; i < NUM_SYM_REFS_PER_ALLOC ; i++) {
-            ref := refs + i;
-            ref.next = next;
-            next = ref;
-        }
-        asm.free_ref = next;
-    }
-    ref := asm.free_ref;
-    asm.free_ref = ref.next;
-    *ref = {};
-    return ref;
-}
-
-func free_sym_ref(asm: Asm*, ref: SymRef*) {
-    ref.next = asm.free_ref;
-    asm.free_ref = ref;
-}
-
-func resolve_sym_ref(asm: Asm*, sym: Sym const*, ref: SymRef const*) {
-    instr_ptr := (:uint32*)(asm.buf + ref.addr);
-    instr := decode_instruction(*instr_ptr);
-    @complete
-    switch (ref.kind) {
-    case REF_LO_OFFSET:
-        instr.imm = imm_lo(sym.addr - ref.base);
-    case REF_HI_OFFSET:
-        instr.imm = imm_hi(sym.addr - ref.base);
-    }
-    *instr_ptr = encode_instruction(instr);
-}
-
-func set_sym_here(asm: Asm*, sym: Sym*) {
-    #assert(sym.state == SYM_UNRESOLVED);
-    addr := asm.addr;
-    sym.state = SYM_RESOLVED;
-    sym.addr = addr;
-    next: SymRef*;
-    for (ref := sym.ref; ref; ref = next) {
-        resolve_sym_ref(asm, sym, ref);
-        next = ref.next;
-        free_sym_ref(asm, ref);
-    }
-}
-
-func new_sym_here(asm: Asm*): Sym* {
-    sym := new_sym(asm);
-    set_sym_here(asm, sym);
-    return sym;
-}
-
-func asm_ref_offset(asm: Asm*, sym: Sym*, kind: SymRefKind, base: uint32) {
-    addr := asm.addr - 4;
-    if (sym.state == SYM_UNRESOLVED) {
-        ref := new_sym_ref(asm);
-        *ref = {kind = kind, addr = addr, base = base, next = sym.ref};
-        sym.ref = ref;
-    } else {
-        resolve_sym_ref(asm, sym, &{kind = kind, addr = addr, base = base});
-    }
-}
-
-func asm_align(asm: Asm*, align: uint32) {
-    asm.addr = ((asm.addr + align - 1) / align) * align;
-}
-
-func asm_bytes(asm: Asm*, data: void const*, size: uint32) {
-    if (asm.addr + size <= asm.buf_size) {
-        memcpy(asm.buf + asm.addr, data, size);
-        asm.addr += size;
-    } else {
-        asm.error = ASM_ERROR_OVERFLOW;
-        #assert(0);
-    }
-}
-
-func asm_uint8(asm: Asm*, data: uint8) {
-    asm_bytes(asm, &data, 1);
-}
-
-func asm_uint16(asm: Asm*, data: uint16) {
-    asm_bytes(asm, &data, 2);
-}
-
-func asm_uint32(asm: Asm*, data: uint32) {
-    asm_bytes(asm, &data, 4);
-}
-
-func asm_str(asm: Asm*, str: char const*) {
-    asm_bytes(asm, str, strlen(str) + 1);
-}
-
-func asm_instr(asm: Asm*, instr: Instruction) {
-    asm_uint32(asm, encode_instruction(instr));
-}
-
-func asm_reg_op(asm: Asm*, op: Op, rd: Reg, rs1: Reg, rs2: Reg) {
-    asm_instr(asm, {op = op, rd = rd, rs1 = rs1, rs2 = rs2});
-}
-
-func asm_imm_op(asm: Asm*, op: Op, rd: Reg, rs1: Reg, imm: uint32) {
-    asm_instr(asm, {op = op, rd = rd, rs1 = rs1, imm = imm});
-}
-
-func asm_mv(asm: Asm*, dest: Reg, src: Reg) {
-    asm_reg_op(asm, ADD, dest, src, X0);
-}
-
-func asm_li(asm: Asm*, dest: Reg, imm: uint32) {
-    if (I_IMMEDIATE_MIN <= int32(imm) && I_IMMEDIATE_MAX <= int32(imm)) {
-        asm_imm_op(asm, ADDI, dest, X0, imm);
-    } else {
-        asm_lui(asm, dest, imm_hi(imm));
-        asm_imm_op(asm, ADDI, dest, dest, imm_lo(imm));
-    }
-}
-
-func asm_auipc(asm: Asm*, rd: Reg, imm: uint32) {
-    asm_instr(asm, {op = AUIPC, rd = rd, imm = imm});
-}
-
-func asm_lui(asm: Asm*, rd: Reg, imm: uint32) {
-    asm_instr(asm, {op = LUI, rd = rd, imm = imm});
-}
-
-func asm_lw_reg(asm: Asm*, rd: Reg, rs1: Reg, imm: uint32) {
-    asm_instr(asm, {op = LW, rd = rd, rs1 = rs1, imm = imm});
-}
-
-func asm_lw(asm: Asm*, dest: Reg, src: Sym*) {
-    base := asm.addr;
-    asm_auipc(asm, dest, 0);
-    asm_ref_offset(asm, src, REF_HI_OFFSET, base);
-    asm_lw_reg(asm, dest, dest, 0);
-    asm_ref_offset(asm, src, REF_LO_OFFSET, base);
-}
-
-func asm_lw_imm(asm: Asm*, dest: Reg, src: uint32) {
-    asm_lui(asm, dest, imm_hi(src));
-    asm_lw_reg(asm, dest, dest, imm_lo(src));
-}
-
-func asm_la(asm: Asm*, rd: Reg, src: Sym*) {
-    base := asm.addr;
-    asm_auipc(asm, rd, 0);
-    asm_ref_offset(asm, src, REF_HI_OFFSET, base);
-    asm_imm_op(asm, ADDI, rd, rd, 0);
-    asm_ref_offset(asm, src, REF_LO_OFFSET, base);
-}
-
-func asm_sw_reg(asm: Asm*, rs1: Reg, rs2: Reg, imm: uint32) {
-    asm_instr(asm, {op = SW, rs1 = rs1, rs2 = rs2, imm = imm});
-}
-
-func asm_sw_imm(asm: Asm*, dest: uint32, src: Reg, temp: Reg) {
-    asm_lui(asm, temp, imm_hi(dest));
-    asm_sw_reg(asm, temp, src, imm_lo(dest));
-}
-
-func asm_sw(asm: Asm*, dest: Sym*, src: Reg, temp: Reg) {
-    base := asm.addr;
-    asm_auipc(asm, temp, 0);
-    asm_ref_offset(asm, dest, REF_HI_OFFSET, base);
-    asm_sw_reg(asm, temp, src, 0);
-    asm_ref_offset(asm, dest, REF_LO_OFFSET, base);
-}
-
-func asm_branch(asm: Asm*, op: Op, rs1: Reg, rs2: Reg, target: Sym*) {
-    base := asm.addr;
-    asm_instr(asm, {op = op, rs1 = rs1, rs2 = rs2});
-    asm_ref_offset(asm, target, REF_LO_OFFSET, base);
-}
-
-func asm_jal(asm: Asm*, rd: Reg, target: Sym*) {
-    base := asm.addr;
-    asm_instr(asm, {op = JAL, rd = rd});
-    asm_ref_offset(asm, target, REF_LO_OFFSET, base);
-}
-
-func asm_j(asm: Asm*, target: Sym*) {
-    asm_jal(asm, X0, target);
-}
-
-func asm_getchar(asm: Asm*, dest: Reg) {
-    asm_lw_imm(asm, dest, GETCHAR_ADDR);
-}
-
-func asm_putchar(asm: Asm*, src: Reg, temp: Reg) {
-    asm_sw_imm(asm, PUTCHAR_ADDR, src, temp);
-}
-
-func gen_pop_reg(asm: Asm*, dest: Reg) {
-    asm_imm_op(asm, ADDI, X1, X1, -4);
-    asm_lw_reg(asm, dest, X1, 0);
-}
-
-func gen_push_reg(asm: Asm*, src: Reg) {
-    asm_sw_reg(asm, X1, src, 0);
-    asm_imm_op(asm, ADDI, X1, X1, 4);
-}
-
-func gen_push_imm(asm: Asm*, imm: uint32) {
-    asm_li(asm, X2, imm);
-    gen_push_reg(asm, X2);
-}
-
-func gen_bin_op(asm: Asm*, op: Op) {
-    gen_pop_reg(asm, X2);
-    gen_pop_reg(asm, X3);
-    asm_reg_op(asm, op, X2, X2, X3);
-    gen_push_reg(asm, X2);
-}
-
-func gen_getdigit(asm: Asm*) {
-    repeat := new_sym_here(asm);
-    asm_getchar(asm, X2);
-    asm_branch(asm, BLT, X9, X2, repeat);
-    asm_imm_op(asm, ADDI, X2, X2, -'0');
-    asm_branch(asm, BLT, X2, X0, repeat);
-    gen_push_reg(asm, X2);
-}
-
-func gen_putdigit(asm: Asm*) {
-    gen_pop_reg(asm, X2);
-    asm_imm_op(asm, ADDI, X2, X2, '0');
-    asm_putchar(asm, X2, X3);
-    asm_putchar(asm, X10, X3);
-}
-
-func gen_dup(asm: Asm*) {
-    gen_pop_reg(asm, X2);
-    gen_push_reg(asm, X2);
-    gen_push_reg(asm, X2);
-}
-
-func gen_swap(asm: Asm*) {
-    gen_pop_reg(asm, X2);
-    gen_pop_reg(asm, X3);
-    gen_push_reg(asm, X2);
-    gen_push_reg(asm, X3);
-}
-
-// x1 is the stack pointer, x2 and x3 are temp registers, x9 and x10 contain ASCII constants '9' and '\n'
-func gen_rpn(asm: Asm*, rpn: char const*, stack_size: uint32): Sym* {
-    asm_align(asm, 4);
-    stack := new_sym_here(asm);
-    asm.addr += stack_size;
-    asm_align(asm, 4);
-    start := new_sym_here(asm);
-    asm_la(asm, X1, stack);
-    asm_li(asm, X9, '9');
-    asm_li(asm, X10, '\n');
-    while (*rpn) {
-        switch (*rpn) {
-        case 'd':
-            gen_dup(asm);
-        case 's':
-            gen_swap(asm);
-        case '+':
-            gen_bin_op(asm, ADD);
-        case '-':
-            gen_bin_op(asm, SUB);
-        case '?':
-            gen_getdigit(asm);
-        case '!':
-            gen_putdigit(asm);
-        case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-            gen_push_imm(asm, *rpn - '0');
-        }
-        rpn++;
-    }
-    asm_j(asm, start);
-    return start;
-}
-
-func main(argc: int, argv: char**): int {
-    ram: uint8[256 * 1024];
-    asm := &Asm{buf = ram, buf_size = sizeof(ram)};
-
-    start := gen_rpn(asm, "??+?s-d+!", 1024);
-
- /*
-    count := new_sym_here(asm);
-    asm_uint32(asm, 10);
-    result := new_sym(asm);
-    asm_uint32(asm, 0);
-
-    start := new_sym_here(asm);
-
-    repeat := new_sym_here(asm);
-    asm_getchar(asm, X5);
-    asm_putchar(asm, X5, X6);
-    asm_j(asm, repeat);
-
-    asm_lw(asm, X1, count);
-    loop := new_sym_here(asm);
-    done := new_sym(asm);
-    asm_branch(asm, BEQ, X1, X0, done);
-    asm_reg_op(asm, ADD, X2, X2, X1);
-    asm_imm_op(asm, ADDI, X1, X1, -1);
-    asm_j(asm, loop);
-    set_sym_here(asm, done);
-    asm_sw(asm, result, X2, X1);
-
-    global := new_sym(asm);
-    asm_la(asm, X4, global);
-
-    asm_lw(asm, X1, global);
-    asm_reg_op(asm, ADD, X1, X1, X1);
-    asm_imm_op(asm, SLLI, X1, X1, 2);
-    asm_sw(asm, global, X1, X2);
-    asm_lw(asm, X2, global);
-    for (i := 0; i < 1001; i++) {
-        asm_uint8(asm, 0);
-    }
-    asm_align(asm, 4);
-    set_sym_here(asm, global);
-    asm_uint32(asm, 12345678);
-*/
-
-    bus := &Bus{ram = ram, ram_start = 0, ram_end = sizeof(ram)};
-    hart := Hart{pc = start.addr, bus = bus};
-    for (;;) {
-//        getchar();
-        step(&hart);
-//        print_hart_state(&hart);
-    }
-    return 0;
 }

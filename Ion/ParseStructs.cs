@@ -67,13 +67,25 @@ namespace IonLang
         public SrcPos pos;
     }
 
+    internal unsafe struct Aggregate
+    {
+        public SrcPos pos;
+        public AggregateKind kind;
+        public AggregateItem *items;
+        public int num_items;
+    }
+
     internal unsafe struct AggregateItem
     {
         public char** names;
         public int num_names;
         public Typespec* type;
         public SrcPos pos;
+        public AggregateItemKind kind;
+         public Aggregate* subaggregate;
+
     }
+
     internal unsafe struct ImportItem
     {
         public char* name;
@@ -98,7 +110,7 @@ namespace IonLang
         [FieldOffset(48 + Ion.PTR_SIZE)] public Note note;
         [FieldOffset(48 + Ion.PTR_SIZE)] public ImportDecl import;
         [FieldOffset(48 + Ion.PTR_SIZE)] public EnumDecl enum_decl;
-        [FieldOffset(48 + Ion.PTR_SIZE)] public AggregateDecl aggregate;
+        [FieldOffset(48 + Ion.PTR_SIZE)] public Aggregate* aggregate;
         [FieldOffset(48 + Ion.PTR_SIZE)] public FuncDecl func;
         [FieldOffset(48 + Ion.PTR_SIZE)] public TypedefDecl typedef_decl;
         [FieldOffset(48 + Ion.PTR_SIZE)] public VarDecl var;
@@ -122,25 +134,16 @@ namespace IonLang
             public int num_items;
         }
 
-        internal struct AggregateDecl
-        {
-            public AggregateItem* items;
-            public int num_items;
-        }
-
-
         internal struct TypedefDecl
         {
             public Typespec* type;
         }
-
 
         internal struct VarDecl
         {
             public Typespec* type;
             public Expr* expr;
         }
-
 
         internal struct ConstDecl
         {
@@ -409,7 +412,19 @@ namespace IonLang
             public Expr* expr;
         }
     }
+    enum AggregateKind
+    {
+        AGGREGATE_NONE,
+        AGGREGATE_STRUCT,
+        AGGREGATE_UNION,
+    }
 
+    enum AggregateItemKind
+    {
+        AGGREGATE_ITEM_NONE,
+        AGGREGATE_ITEM_FIELD,
+        AGGREGATE_ITEM_SUBAGGREGATE,
+    }
 
     internal enum TypespecKind
     {

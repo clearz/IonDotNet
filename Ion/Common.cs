@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -207,10 +208,12 @@ namespace IonLang
 
         #region MemAlloc
 
+        [DebuggerHidden]
         internal static void memcpy(void* dst, void* src, int len) {
             Unsafe.CopyBlock(dst, src, (uint)len);
         }
 
+        [DebuggerHidden]
         internal static void* xcalloc(int num_elems, int elem_size) {
             var size = num_elems * elem_size;
             var v = xmalloc(size);
@@ -220,38 +223,47 @@ namespace IonLang
             return v;
         }
 
+        [DebuggerHidden]
         internal static T* xcalloc<T>(int num_elems = 1) where T : unmanaged {
             return xcalloc<T>(num_elems, sizeof(T));
         }
 
+        [DebuggerHidden]
         internal static T* xcalloc<T>(int num_elems, int elem_size) where T : unmanaged {
             return (T*)xcalloc(num_elems, elem_size);
         }
 
+        [DebuggerHidden]
         internal static void* xrealloc(void* ptr, int num_bytes) {
             return (void*)Marshal.ReAllocHGlobal((IntPtr)ptr, (IntPtr)num_bytes);
         }
 
+        [DebuggerHidden]
         internal static T* xrealloc<T>(T* ptr, int num_bytes) where T : unmanaged {
             return (T*)Marshal.ReAllocHGlobal((IntPtr)ptr, (IntPtr)num_bytes);
         }
 
+        [DebuggerHidden]
         internal static void* xmalloc(int num_bytes) {
             return (void*)Marshal.AllocHGlobal((IntPtr)num_bytes);
         }
 
+        [DebuggerHidden]
         internal static T* xmalloc<T>() where T : unmanaged {
             return (T*)xmalloc(sizeof(T));
         }
 
+        [DebuggerHidden]
         internal static T* xmalloc<T>(int n) where T : unmanaged {
             return (T*)xmalloc(n * sizeof(T));
         }
 
+        [DebuggerHidden]
         internal static void xfree(void* ptr) {
             Marshal.FreeHGlobal((IntPtr)ptr);
         }
 
+        [DebuggerHidden]
         internal static void* memdup(void* src, int size) {
             var dest = xmalloc(size);
             Unsafe.CopyBlock(dest, src, (uint)size);

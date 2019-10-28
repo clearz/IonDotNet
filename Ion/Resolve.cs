@@ -11,10 +11,12 @@ namespace IonLang
     using static TypespecKind;
     using static ExprKind;
     using static TokenKind;
-    using static StmtKind;
+    using static AggregateKind;
+    using static AggregateItemKind;
+    using static SymReachable;
     using static CompoundFieldKind;
     using static TokenSuffix;
-    using static SymReachable;
+    using static StmtKind;
 
     unsafe partial class Ion {
         const int MAX_LOCAL_SYMS = 1024;
@@ -44,7 +46,7 @@ namespace IonLang
 
         byte reachable_phase = (byte)REACHABLE_NATURAL;
 
-        Label* get_label(SrcPos pos, char *name) {
+        Label* get_label(SrcPos pos, char* name) {
             Label *label;
             for (label = labels; label != labels._top; label++) {
                 if (label->name == name) {
@@ -115,7 +117,7 @@ namespace IonLang
             sym->kind = kind;
             sym->name = name;
             sym->decl = decl;
-            sym->package = current_package;
+            sym->home_package = current_package;
             set_resolved_sym(sym, sym);
             return sym;
         }
@@ -214,6 +216,9 @@ namespace IonLang
                 if (sym == old_sym) {
                     return;
                 }
+                if (sym->kind == SYM_PACKAGE && old_sym->kind == SYM_PACKAGE && sym->package == old_sym->package) {
+                    return;
+                }
                 SrcPos pos = sym->decl != null ? sym->decl->pos : pos_builtin;
                 if (old_sym->decl != null) {
                     warning(old_sym->decl->pos, "Previous definition of '{0}'", _S(name));
@@ -271,7 +276,7 @@ namespace IonLang
         void set_resolved_type(void* ptr, Type* type) {
             resolved_type_map.map_put(ptr, type);
         }
-        
+
         Sym* get_resolved_sym(void* ptr) {
             return resolved_sym_map.map_get<Sym>(ptr);
         }
@@ -281,7 +286,7 @@ namespace IonLang
                 resolved_sym_map.map_put(ptr, sym);
             }
         }
-        
+
         Type* get_resolved_expected_type(Expr* expr) {
             return resolved_expected_type_map.map_get<Type>(expr);
         }
@@ -1251,6 +1256,49 @@ namespace IonLang
             return result;
         }
 
+
+        Type* complete_aggregate(Type* type, Aggregate* aggregate) {
+            var fields = Buffer<TypeField>.Create();
+            for (var i = 0; i < aggregate->num_items; i++) {
+                AggregateItem item = aggregate->items[i];
+                if (item.kind == AGGREGATE_ITEM_FIELD) {
+                    Type *item_type = resolve_typespec(item.type);
+                    complete_type(item_type);
+                    if (type_sizeof(item_type) == 0) {
+                        fatal_error(item.pos, "Field type of size 0 is not allowed");
+                    }
+                    for (var j = 0; j < item.num_names; j++) {
+                        fields.Add(new TypeField { name = item.names[j], type = item_type });
+                    }
+                }
+                else {
+                    assert(item.kind == AGGREGATE_ITEM_SUBAGGREGATE);
+                    Type *item_type = complete_aggregate(null, item.subaggregate);
+                    fields.Add(new TypeField { type = item_type });
+                }
+            }
+            if (type == null) {
+                type = type_incomplete(null);
+                type->kind = TYPE_COMPLETING;
+            }
+            if (aggregate->kind == AGGREGATE_STRUCT) {
+                type_complete_struct(type, fields, fields.count);
+            }
+            else {
+                assert(aggregate->kind == AGGREGATE_UNION);
+                type_complete_union(type, fields, fields.count);
+            }
+            if (type->aggregate.num_fields == 0) {
+                fatal_error(aggregate->pos, "No fields");
+            }
+            if (has_duplicate_fields(type)) {
+                fatal_error(aggregate->pos, "Duplicate fields");
+            }
+            return type;
+        }
+
+
+
         void complete_type(Type* type) {
             if (type->kind == TYPE_COMPLETING) {
                 fatal_error(type->sym->decl->pos, "Type completion cycle");
@@ -1261,7 +1309,7 @@ namespace IonLang
                 return;
 
             Sym *sym = type->sym;
-            Package *old_package = enter_package(sym->package);
+            Package *old_package = enter_package(sym->home_package);
             Decl *decl = sym->decl;
 
             if (decl->is_incomplete) {
@@ -1269,33 +1317,7 @@ namespace IonLang
             }
             type->kind = TYPE_COMPLETING;
             assert(decl->kind == DECL_STRUCT || decl->kind == DECL_UNION);
-            var fields = Buffer<TypeField>.Create();
-            for (var i = 0; i < decl->aggregate.num_items; i++) {
-                var item = decl->aggregate.items[i];
-                var item_type = resolve_typespec(item.type);
-                //if (item_type->kind == TYPE_CONST) {
-                //    fatal_error(item.pos, "Field cannot be const qualified");
-                //}
-                complete_type(item_type);
-                if (type_sizeof(item_type) == 0) {
-                    fatal_error(item.pos, "Field type of size 0 is not allowed");
-                }
-                for (var j = 0; j < item.num_names; j++)
-                    fields.Add(new TypeField { name = item.names[j], type = item_type });
-            }
-
-            if (fields.count == 0)
-                fatal_error(decl->pos, "No fields");
-            if (has_duplicate_fields(fields._begin, fields.count))
-                fatal_error(decl->pos, "Duplicate fields");
-            if (decl->kind == DECL_STRUCT) {
-                type_complete_struct(type, fields._begin, fields.count);
-            }
-            else {
-                assert(decl->kind == DECL_UNION);
-                type_complete_union(type, fields._begin, fields.count);
-            }
-
+            complete_aggregate(type, decl->aggregate);
             sorted_syms->Add(type->sym);
             leave_package(old_package);
         }
@@ -1645,7 +1667,7 @@ namespace IonLang
                 return;
             }
 
-            Package *old_package = enter_package(sym->package);
+            Package *old_package = enter_package(sym->home_package);
             var scope = sym_enter();
             for (var i = 0; i < decl->func.num_params; i++) {
                 var param = decl->func.@params[i];
@@ -1678,7 +1700,7 @@ namespace IonLang
             }
             sym->state = SYM_RESOLVING;
             Decl *decl = sym->decl;
-            Package *old_package = enter_package(sym->package);
+            Package *old_package = enter_package(sym->home_package);
             switch (sym->kind) {
                 case SYM_TYPE:
                     if (decl != null && decl->kind == DECL_TYPEDEF) {
@@ -1703,6 +1725,9 @@ namespace IonLang
                     break;
                 case SYM_FUNC:
                     sym->type = resolve_decl_func(decl);
+                    break;
+                case SYM_PACKAGE:
+                    // Do nothing
                     break;
                 default:
                     assert(false);
@@ -1738,9 +1763,37 @@ namespace IonLang
             resolve_sym(sym);
             return sym;
         }
+        Package* try_resolve_package(Expr* expr) {
+            if (expr->kind == EXPR_NAME) {
+                Sym *sym = resolve_name(expr->name);
+                if (sym != null && sym->kind == SYM_PACKAGE) {
+                    return sym->package;
+                }
+            }
+            else if (expr->kind == EXPR_FIELD) {
+                Package *package = try_resolve_package(expr->field.expr);
+                if (package != null) {
+                    Sym *sym = get_package_sym(package, expr->field.name);
+                    if (sym != null && sym->kind == SYM_PACKAGE) {
+                        return sym->package;
+                    }
+                }
+            }
+            return null;
+        }
+
 
         Operand resolve_expr_field(Expr* expr) {
             assert(expr->kind == EXPR_FIELD);
+            Package *package = try_resolve_package(expr->field.expr);
+            if (package != null) {
+                Package *old_package = enter_package(package);
+                Sym *sym = resolve_name(expr->field.name);
+                Operand o = resolve_name_operand(expr->pos, expr->field.name);
+                leave_package(old_package);
+                set_resolved_sym(expr, sym);
+                return o;
+            }
             Operand operand = resolve_expr(expr->field.expr);
             bool was_const_type = is_const_type(operand.type);
             Type *type = unqualify_type(operand.type);
@@ -2208,7 +2261,7 @@ namespace IonLang
                     if (field.kind == FIELD_INDEX)
                         fatal_error(field.pos, "Index field initializer not allowed for struct/union compound literal");
                     else if (field.kind == FIELD_NAME) {
-                        index = aggregate_field_index(type, field.name);
+                        index = aggregate_item_field_index(type, field.name);
                         if (index == -1) {
                             fatal_error(field.pos, "Named field in compound literal does not exist");
                         }
@@ -2645,7 +2698,7 @@ namespace IonLang
                     if (type->kind != TYPE_STRUCT && type->kind != TYPE_UNION) {
                         fatal_error(expr->pos, "offsetof can only be used with struct/union types");
                     }
-                    int field = aggregate_field_index(type, expr->offsetof_field.name);
+                    int field = aggregate_item_field_index(type, expr->offsetof_field.name);
                     if (field < 0) {
                         fatal_error(expr->pos, "No field '{0}' in type", _S(expr->offsetof_field.name));
                     }
@@ -2772,7 +2825,7 @@ namespace IonLang
             char *main_name = _I("main");
             for (int i = 0; i < package->syms->count; i++) {
                 Sym* sym = package->syms->Get<Sym>(i);
-                if (sym->package == package && sym->name != main_name) {
+                if (sym->home_package == package && sym->name != main_name) {
                     sym_global_put(sym->name, sym);
                 }
             }
@@ -2789,6 +2842,7 @@ namespace IonLang
                 sym_global_put(item.rename != null ? item.rename : item.name, sym);
             }
         }
+
         void process_package_imports(Package* package) {
             for (int i = 0; i < package->num_decls; i++) {
                 int n = 0;
@@ -2824,6 +2878,10 @@ namespace IonLang
                     if (decl->import.import_all) {
                         import_all_package_symbols(imported_package);
                     }
+                    char *sym_name = decl->name != null ? decl->name : decl->import.names[decl->import.num_names - 1];
+                    Sym *sym = sym_new(SYM_PACKAGE, sym_name, decl);
+                    sym->package = imported_package;
+                    sym_global_put(sym_name, sym);
                 }
             }
         }
@@ -2873,7 +2931,7 @@ namespace IonLang
             Package *old_package = enter_package(package);
             for (int i = 0; i < package->syms->count; i++) {
                 var sym = package->syms->Get<Sym>(i);
-                if (sym->package == package) {
+                if (sym->home_package == package) {
                     resolve_sym(sym);
                 }
             }
@@ -2888,15 +2946,13 @@ namespace IonLang
             int i;
             for (i = 0; i < num_reachable; i++) {
                 var sym = reachable_syms->Get<Sym>(i);
-                printf(" {0}/{1}\n", _S(sym->package->path), _S(sym->name));
                 finalize_sym(sym);
                 if (i == num_reachable - 1) {
                     if (flag_verbose) {
                         printf("New reachable symbols:");
-                        for (int k = prev_num_reachable; k < num_reachable; k++) {
+                        for (var k = prev_num_reachable; k < num_reachable; k++) {
                             var s = reachable_syms->Get<Sym>(k);
-                            if (flag_verbose)
-                                printf(" {0}/{1}", _S(s->package->path), _S(s->name));
+                            printf(" {0}/{1}", _S(s->home_package->path), _S(s->name));
                         }
                         printf("\n");
                     }
@@ -3005,7 +3061,8 @@ namespace IonLang
         SYM_VAR,
         SYM_CONST,
         SYM_FUNC,
-        SYM_TYPE
+        SYM_TYPE,
+        SYM_PACKAGE,
     }
 
     internal enum SymState
@@ -3030,7 +3087,7 @@ namespace IonLang
     internal unsafe struct Sym
     {
         public char* name;
-        public Package* package;
+        public Package* home_package;
         public SymKind kind;
         public SymState state;
         public byte reachable;
@@ -3038,6 +3095,7 @@ namespace IonLang
         public Decl* decl;
         public Type* type;
         public Val val;
+        public Package *package;
     }
 
 }

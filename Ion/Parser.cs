@@ -5,6 +5,8 @@
     using static ExprKind;
     using static StmtKind;
     using static CompoundFieldKind;
+    using static AggregateKind;
+    using static AggregateItemKind;
 
     public unsafe partial class Ion {
         internal Decls* parse_decls() {
@@ -724,44 +726,64 @@
         }
 
         AggregateItem parse_decl_aggregate_item() {
-            var buf = PtrBuffer.GetPooledBuffer();
             var pos = token.pos;
-            try {
-                buf->Add(parse_name());
-                while (match_token(TOKEN_COMMA))
-                    buf->Add(parse_name());
 
+            if (match_keyword(struct_keyword)) {
+                return new AggregateItem {
+                    pos = pos,
+                    kind = AGGREGATE_ITEM_SUBAGGREGATE,
+                    subaggregate = parse_aggregate(AGGREGATE_STRUCT),
+                };
+            }
+            else if (match_keyword(union_keyword)) {
+                return new AggregateItem {
+                    pos = pos,
+                    kind = AGGREGATE_ITEM_SUBAGGREGATE,
+                    subaggregate = parse_aggregate(AGGREGATE_UNION),
+                };
+            }
+            else {
+                var names = PtrBuffer.Create();
+                names->Add(parse_name());
+                while (match_token(TOKEN_COMMA)) {
+                    names->Add(parse_name());
+                }
                 expect_token(TOKEN_COLON);
-                var type = parse_type();
+                Typespec *type = parse_type();
                 expect_token(TOKEN_SEMICOLON);
                 return new AggregateItem {
                     pos = pos,
-                    names = (char**)ast_dup(buf->_begin, buf->count * sizeof(char*)),
-                    num_names = buf->count,
-                    type = type
+                    kind = AGGREGATE_ITEM_FIELD,
+                    names = (char**)names->_begin,
+                    num_names = names->count,
+                    type = type,
                 };
             }
-            finally {
-                buf->Release();
+        }
+
+        Aggregate* parse_aggregate(AggregateKind kind) {
+            SrcPos pos = token.pos;
+            expect_token(TOKEN_LBRACE);
+            var items = Buffer<AggregateItem>.Create();
+            while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
+                var item = parse_decl_aggregate_item();
+                items.Add(item);
             }
+            expect_token(TOKEN_RBRACE);
+            return new_aggregate(pos, kind, items, items.count);
         }
 
         Decl* parse_decl_aggregate(SrcPos pos, DeclKind kind) {
             assert(kind == DECL_STRUCT || kind == DECL_UNION);
             var name = parse_name();
+            AggregateKind aggregate_kind = kind == DECL_STRUCT ? AGGREGATE_STRUCT : AGGREGATE_UNION;
             if (match_token(TOKEN_SEMICOLON)) {
-                Decl *decl = new_decl_aggregate(pos, kind, name, null, 0);
+                Decl *decl = new_decl_aggregate(pos, kind, name, new_aggregate(pos, aggregate_kind, null, 0));
                 decl->is_incomplete = true;
                 return decl;
             }
             else {
-                expect_token(TOKEN_LBRACE);
-                var buf = Buffer<AggregateItem>.Create();
-                while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
-                    buf.Add(parse_decl_aggregate_item());
-                }
-                expect_token(TOKEN_RBRACE);
-                return new_decl_aggregate(pos, kind, name, buf, buf.count);
+                return new_decl_aggregate(pos, kind, name, parse_aggregate(aggregate_kind));
             }
         }
 
@@ -898,10 +920,21 @@
         }
 
         Decl* parse_decl_import(SrcPos pos) {
-            var names = PtrBuffer.GetPooledBuffer();
+            char *rename_name = null;
+repeat:
             bool is_relative = match_token(TOKEN_DOT);
+            char *name = token.name;
+            expect_token(TOKEN_NAME);
+            if (!is_relative && match_token(TOKEN_ASSIGN)) {
+                if (rename_name != null) {
+                    fatal_error(pos, "Only one import assignment is allowed");
+                }
+                rename_name = name;
+                goto repeat;
+            }
 
-            names->Add(parse_name());
+            var names = PtrBuffer.GetPooledBuffer();
+            names->Add(name);
 
             while (match_token(TOKEN_DOT)) {
                 names->Add(parse_name());
@@ -914,12 +947,12 @@
                         import_all = true;
                     }
                     else {
-                        char *name = parse_name();
+                        char *name2 = parse_name();
                         if (match_token(TOKEN_ASSIGN)) {
-                            items.Add(new ImportItem { name = parse_name(), rename = name });
+                            items.Add(new ImportItem { name = parse_name(), rename = name2 });
                         }
                         else {
-                            items.Add(new ImportItem { name =  name });
+                            items.Add(new ImportItem { name =  name2 });
                         }
                         if (!match_token(TOKEN_COMMA)) {
                             break;
@@ -928,7 +961,7 @@
                 }
                 expect_token(TOKEN_RBRACE);
             }
-            return new_decl_import(pos, is_relative, (char**)names->_begin, names->count, import_all, items, items.count);
+            return new_decl_import(pos, rename_name, is_relative, (char**)names->_begin, names->count, import_all, items, items.count);
         }
 
         Decl* parse_decl_opt() {

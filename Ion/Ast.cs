@@ -121,13 +121,20 @@ namespace IonLang
             d->enum_decl.num_items = num_items;
             return d;
         }
+        
+        Aggregate* new_aggregate(SrcPos pos, AggregateKind kind, AggregateItem* items, int num_items) {
+            Aggregate* aggregate = (Aggregate*)ast_alloc(sizeof(Aggregate));
+            aggregate->pos = pos;
+            aggregate->kind = kind;
+            aggregate->items = (AggregateItem*)ast_dup(items, num_items * sizeof(AggregateItem));
+            aggregate->num_items = num_items;
+            return aggregate;
+        }
 
-        Decl* new_decl_aggregate(SrcPos pos, DeclKind kind, char* name, AggregateItem* items, int num_items)
-        {
+        Decl* new_decl_aggregate(SrcPos pos, DeclKind kind, char* name, Aggregate* aggregate) {
             assert(kind == DECL_STRUCT || kind == DECL_UNION);
-            var d = new_decl(kind, pos, name);
-            d->aggregate.items = (AggregateItem*) ast_dup(items, num_items * sizeof(AggregateItem));
-            d->aggregate.num_items = num_items;
+            Decl *d = new_decl(kind, pos, name);
+            d->aggregate = aggregate;
             return d;
         }
 
@@ -172,8 +179,9 @@ namespace IonLang
             return d;
         }
 
-        Decl* new_decl_import(SrcPos pos, bool is_relative, char** names, int num_names, bool import_all, ImportItem* items, int num_items) {
+        Decl* new_decl_import(SrcPos pos, char* rename_name, bool is_relative, char** names, int num_names, bool import_all, ImportItem* items, int num_items) {
             Decl *d = new_decl(DECL_IMPORT, pos, null);
+            d->name = rename_name;
             d->import.is_relative = is_relative;
             d->import.names = (char**)ast_dup(names, sizeof(char**) * num_names);
             d->import.num_names = num_names;

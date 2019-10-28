@@ -357,15 +357,15 @@ namespace IonLang
 
         void print_aggregate_decl(Decl* decl)
         {
-            var d = decl;
-            for (var it = d->aggregate.items; it != d->aggregate.items + d->aggregate.num_items; it++)
-            {
-                print_newline();
-                printf("(");
-                for (var name = it->names; name != it->names + it->num_names; name++) printf("{0} ", *name);
-                print_typespec(it->type);
-                printf(")");
-            }
+          //  var d = decl;
+          //  for (var it = d->aggregate.items; it != d->aggregate.items + d->aggregate.num_items; it++)
+          //  {
+          //      print_newline();
+          //      printf("(");
+          //      for (var name = it->names; name != it->names + it->num_names; name++) printf("{0} ", *name);
+          //      print_typespec(it->type);
+          //      printf(")");
+          //  }
         }
 
         void print_decl(Decl* decl)

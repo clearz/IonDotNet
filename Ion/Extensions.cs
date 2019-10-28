@@ -49,6 +49,13 @@ namespace IonLang
                 return c;
             }
         }
+        [DebuggerHidden]
+        public static char* ToPtr2(this string s, out int len) {
+            len = s.Length;
+            fixed (char* c = s) {
+                return c;
+            }
+        }
 
 
 

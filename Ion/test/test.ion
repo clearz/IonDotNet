@@ -1,14 +1,31 @@
-﻿import libc {...}
+﻿import C = libc {gc = getchar, ...}
 
-func main(argc: int, argv: char**): int {
-	printf("1");
-	printf("2");
-	goto four;
-	printf("3");
-:four
-	printf("4");
-	goto end;
-	printf("5");
-:end
-    return 0;
+enum TokenKind {
+    TOKEN_NONE,
+    TOKEN_INT,
+    TOKEN_STR,
+}
+
+struct Token {
+    kind: TokenKind;
+    union {
+        struct {
+            val: llong;
+            mod: uint16;
+        }
+        str: char const*;
+    }
+}
+
+func test_token() {
+    t1 := Token{kind = TOKEN_INT, val = 42};
+    t2 := Token{kind = TOKEN_STR, str = "Hello"};
+}
+
+#static_assert(offsetof(Token, val) == offsetof(Token, str))
+#static_assert(sizeof(Token) == 24)
+
+func main(argc: int, argv: char**) {
+	test_token();
+	C.getchar();
 }

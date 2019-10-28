@@ -166,7 +166,7 @@ namespace IonLang
             }
         }
 
-        int aggregate_field_index(Type* type, char* name) {
+        int aggregate_item_field_index(Type* type, char* name) {
             assert(is_aggregate_type(type));
             for (int i = 0; i < type->aggregate.num_fields; i++) {
                 if (type->aggregate.fields[i].name == name) {
@@ -176,19 +176,19 @@ namespace IonLang
             return -1;
         }
 
-        Type* aggregate_field_type_from_index(Type* type, int index) {
+        Type* aggregate_item_field_type_from_index(Type* type, int index) {
             assert(is_aggregate_type(type));
             assert(0 <= index && index < (int)type->aggregate.num_fields);
             return type->aggregate.fields[index].type;
         }
 
-        Type* aggregate_field_type_from_name(Type* type, char* name) {
+        Type* aggregate_item_field_type_from_name(Type* type, char* name) {
             assert(is_aggregate_type(type));
-            int index = aggregate_field_index(type, name);
+            int index = aggregate_item_field_index(type, name);
             if (index < 0) {
                 return null;
             }
-            return aggregate_field_type_from_index(type, index);
+            return aggregate_item_field_type_from_index(type, index);
         }
 
         int type_rank(Type* type) {
@@ -414,12 +414,20 @@ namespace IonLang
         }
 
         // TODO: This probably shouldn't use an O(n^2) algorithm
-        bool has_duplicate_fields(TypeField* fields, long num_fields) {
-            for (var i = 0; i < num_fields; i++)
-                for (var j = i + 1; j < num_fields; j++)
-                    if (fields[i].name == fields[j].name)
+        bool has_duplicate_fields(Type* type) {
+            for (var i = 0; i < type->aggregate.num_fields; i++) 
+                for (var j = i + 1; j < type->aggregate.num_fields; j++) 
+                    if (type->aggregate.fields[i].name == type->aggregate.fields[j].name) 
                         return true;
             return false;
+        }
+
+        void add_type_fields(Buffer<TypeField>* fields, Type* type, long offset) { //TypeField**
+            assert(type->kind == TYPE_STRUCT || type->kind == TYPE_UNION);
+            for (var i = 0; i < type->aggregate.num_fields; i++) {
+                TypeField *field = &type->aggregate.fields[i];
+                fields->Add(new TypeField { name = field->name, type = field->type, offset = (field->offset + offset) });
+            }
         }
 
         Type* type_complete_struct(Type* type, TypeField* fields, int num_fields) {
@@ -428,22 +436,25 @@ namespace IonLang
             type->size = 0;
             type->align = 0;
             bool nonmodifiable = false;
+            var new_fields = Buffer<TypeField>.Create();
 
             for (var it = fields; it != fields + num_fields; it++) {
                 assert(IS_POW2(type_alignof(it->type)));
-                it->offset = type->size;
-                type->size = type_sizeof(it->type) + ALIGN_UP(type->size, type_alignof(it->type));
+                if (it->name != null) {
+                    it->offset = type->size;
+                    new_fields.Add(it);
+                }
+                else {
+                    add_type_fields(&new_fields, it->type, type->size);
+                }
+            
                 type->align = MAX(type->align, type_alignof(it->type));
+                type->size = type_sizeof(it->type) + ALIGN_UP(type->size, type_alignof(it->type));
                 nonmodifiable = it->type->nonmodifiable || nonmodifiable;
             }
-
             type->size = ALIGN_UP(type->size, type->align);
-            type->aggregate.fields =
-                (TypeField*)xmalloc(num_fields * sizeof(TypeField));
-            Unsafe.CopyBlock(type->aggregate.fields, fields,
-                (uint)(num_fields *
-                        sizeof(TypeField)));
-            type->aggregate.num_fields = num_fields;
+            type->aggregate.fields = new_fields;
+            type->aggregate.num_fields = new_fields.count;
             type->nonmodifiable = nonmodifiable;
             return type;
         }
@@ -452,23 +463,28 @@ namespace IonLang
             assert(type->kind == TYPE_COMPLETING);
             type->kind = TYPE_UNION;
             type->size = 0;
+            type->align = 0;
             bool nonmodifiable = false;
+            var new_fields = Buffer<TypeField>.Create();
 
             for (var it = fields; it != fields + num_fields; it++) {
                 assert(it->type->kind > TYPE_COMPLETING);
-                it->offset = 0;
-                type->size = MAX(type->size, it->type->size);
+                if (it->name != null) {
+                    it->offset = 0;
+                    new_fields.Add(it);
+                }
+                else {
+                    add_type_fields(&new_fields, it->type, 0);
+                }
+
                 type->align = MAX(type->align, type_alignof(it->type));
-                nonmodifiable = type->nonmodifiable || nonmodifiable;
+                type->size = MAX(type->size, type_sizeof(it->type));
+                nonmodifiable = it->type->nonmodifiable || nonmodifiable;
             }
 
             type->size = ALIGN_UP(type->size, type->align);
-            type->aggregate.fields =
-                (TypeField*)xmalloc(sizeof(TypeField) * num_fields);
-            Unsafe.CopyBlock(type->aggregate.fields, fields,
-                (uint)(num_fields *
-                        sizeof(TypeField)));
-            type->aggregate.num_fields = num_fields;
+            type->aggregate.fields = new_fields;
+            type->aggregate.num_fields = new_fields.count;
             type->nonmodifiable = nonmodifiable;
             return type;
         }

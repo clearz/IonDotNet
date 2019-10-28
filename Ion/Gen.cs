@@ -13,6 +13,8 @@ namespace IonLang
     using static TokenMod;
     using static SymKind;
     using static SymReachable;
+    using static AggregateItemKind;
+    using static AggregateKind;
 
     unsafe partial class Ion
     {
@@ -23,6 +25,11 @@ namespace IonLang
                                             "#ifndef _CRT_SECURE_NO_WARNINGS\n" +
                                             "#define _CRT_SECURE_NO_WARNINGS\n" +
                                             "#endif\n" +
+                                            "\n" +
+                                            "#ifndef _CRT_NONSTDC_NO_DEPRECATE\n" +
+                                            "#define _CRT_NONSTDC_NO_DEPRECATE\n" +
+                                            "#endif\n" +
+                                            "\n" +
                                             "#if _MSC_VER >= 1900 || __STDC_VERSION__ >= 201112L\n" +
                                             "// Visual Studio 2015 supports enough C99/C11 features for us.\n" +
                                             "#else\n" +
@@ -206,7 +213,13 @@ namespace IonLang
             while (type->kind == TYPE_ARRAY || type->kind == TYPE_CONST || type->kind == TYPE_PTR) {
                 type = type->@base;
             }
-            return type->sym != null && !gen_reachable(type->sym);
+            if (type->sym != null) {
+                return !gen_reachable(type->sym);
+            }
+            else {
+                assert(type->sym == null);
+                return type->kind == TYPE_STRUCT || type->kind == TYPE_UNION;
+            }
         }
 
         Map gen_name_map;
@@ -218,8 +231,8 @@ namespace IonLang
                     if (sym->external_name != null) {
                         name = sym->external_name;
                     }
-                    else if (sym->package->external_name != null && *sym->package->external_name != '\0') {
-                        char *external_name = sym->package->external_name;
+                    else if (sym->home_package->external_name != null && *sym->home_package->external_name != '\0') {
+                        char *external_name = sym->home_package->external_name;
                         const int SIZE = 256;
                         char* buf = stackalloc char[SIZE];
                         if (sym->kind == SYM_CONST) {
@@ -643,6 +656,37 @@ namespace IonLang
             }
         }
 
+        void gen_aggregate_items(Aggregate* aggregate) {
+            gen_indent++;
+            for (var i = 0; i < aggregate->num_items; i++) {
+                AggregateItem item = aggregate->items[i];
+                if (item.kind == AGGREGATE_ITEM_FIELD) {
+                    for (var j = 0; j < item.num_names; j++) {
+                        gen_sync_pos(item.pos);
+                        genln();
+                        typespec_to_cdecl(item.type, item.names[j]);
+                        c_write(';');
+                    }
+                }
+                else if (item.kind == AGGREGATE_ITEM_SUBAGGREGATE) {
+                    if (item.subaggregate->kind == AGGREGATE_STRUCT)
+                        c_write(struct_keyword, 6);
+                    else
+                        c_write(union_keyword, 5);
+                    c_write(' ');
+                    c_write('{');
+                    gen_aggregate_items(item.subaggregate);
+                    c_write('}');
+                    c_write(';');
+                }
+                else {
+                    assert(0);
+                }
+            }
+            gen_indent--;
+        }
+
+
         void gen_aggregate(Decl* decl) {
             assert(decl->kind == DECL_STRUCT || decl->kind == DECL_UNION);
             if (decl->is_incomplete) {
@@ -658,18 +702,8 @@ namespace IonLang
             c_write(' ');
             c_write('{');
 
-            gen_indent++;
-            for (var i = 0; i < decl->aggregate.num_items; i++) {
-                var item = decl->aggregate.items[i];
-                for (var j = 0; j < item.num_names; j++) {
-                    gen_sync_pos(item.pos);
-                    genln();
-                    typespec_to_cdecl(item.type, item.names[j]);
-                    c_write(';');
-                }
-            }
+            gen_aggregate_items(decl->aggregate);
 
-            gen_indent--;
             genln();
             c_write('}');
             c_write(';');
@@ -851,16 +885,25 @@ namespace IonLang
                     c_write(']');
                     break;
                 case EXPR_FIELD: {
-                    Type *type = unqualify_type(get_resolved_type(expr->field.expr));
-                    gen_expr(expr->field.expr);
-                    if (type->kind == TYPE_PTR) {
-
-                        c_write('-');
-                        c_write('>');
+                    Sym* sym1 = get_resolved_sym(expr);
+                    if (sym1 != null) {
+                        c_write('(');
+                        c_write(get_gen_name(sym1));
+                        c_write(')');
                     }
-                    else
-                        c_write('.');
-                    c_write(expr->field.name);
+                    else {
+                        Type *type = unqualify_type(get_resolved_type(expr->field.expr));
+                        gen_expr(expr->field.expr);
+                        if (type->kind == TYPE_PTR) {
+
+                            c_write('-');
+                            c_write('>');
+                        }
+                        else
+                            c_write('.');
+                        c_write(expr->field.name);
+                    }
+              
                     break;
                 }
                 case EXPR_COMPOUND:
@@ -1343,6 +1386,9 @@ namespace IonLang
                     c_write(' ');
                     typespec_to_cdecl(decl->typedef_decl.type, get_gen_name(sym));
                     c_write(';');
+                    break;
+                case DECL_IMPORT:
+                    // Do nothing
                     break;
                 default:
                     assert(false);

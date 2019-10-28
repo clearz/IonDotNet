@@ -1,4 +1,4 @@
-import libc {printf}
+import LIBC = libc {printf}
 
 func bogus_func() {
     printf("Hello, world!\n");
@@ -7,7 +7,8 @@ func bogus_func() {
 }
 
 func func3() {
-    printf("func3\n");
+	//printf("func3\n");
+    LIBC.printf("LIBC func3\n");
 }
 
 func func4() {
