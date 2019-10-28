@@ -839,8 +839,12 @@ namespace IonLang
                 }
                 break;
                 case EXPR_FLOAT:
-                    c_write(expr->float_lit.val.ToString("0.0###############", CultureInfo.InvariantCulture).ToPtr());
-                    if (expr->float_lit.suffix != TokenSuffix.SUFFIX_D)
+                    bool isfloat = expr->float_lit.suffix != TokenSuffix.SUFFIX_D;
+                    int len = (int)(expr->float_lit.end - expr->float_lit.start);
+                    if (!isfloat)
+                        len--;
+                    c_write(expr->float_lit.start, len);
+                    if (isfloat)
                         c_write('f');
                     break;
                 case EXPR_STR:

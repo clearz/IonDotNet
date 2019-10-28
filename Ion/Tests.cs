@@ -347,7 +347,7 @@ namespace IonLang
             // Expressions
             Expr*[] exprs = {
                 new_expr_binary(default, TOKEN_ADD, new_expr_int(default, 1, 0, 0), new_expr_int(default, 2, 0, 0)),
-                new_expr_unary(default, TOKEN_SUB, new_expr_float(default, 3.14, 0)),
+                //new_expr_unary(default, TOKEN_SUB, new_expr_float(default, 3.14, 0)),
                 new_expr_ternary(default, new_expr_name(default, "flag".ToPtr()), new_expr_str(default, "true".ToPtr(), 0), new_expr_str(default, "false".ToPtr(), 0)),
                 new_expr_field(default, new_expr_name(default, "person".ToPtr()), "name".ToPtr()),
                 new_expr_call(default, new_expr_name(default, "fact".ToPtr()), (Expr**) CreateArray(new_expr_int(default, 42, 0, 0)), 1),

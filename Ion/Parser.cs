@@ -162,10 +162,12 @@
             }
 
             if (is_token(TOKEN_FLOAT)) {
+                char *start = token.start;
+                char *end = token.end;
                 double val = token.float_val;
                 TokenSuffix suffix = token.suffix;
                 next_token();
-                return new_expr_float(pos, val, suffix);
+                return new_expr_float(pos, start, end, val, suffix);
             }
 
             if (is_token(TOKEN_STR)) {

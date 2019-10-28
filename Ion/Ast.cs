@@ -268,9 +268,11 @@ namespace IonLang
             return e;
         }
 
-        Expr* new_expr_float(SrcPos pos, double val, TokenSuffix suffix)
+        Expr* new_expr_float(SrcPos pos, char* start, char *end, double val, TokenSuffix suffix)
         {
             var e = new_expr(EXPR_FLOAT, pos);
+            e->float_lit.start = start;
+            e->float_lit.end = end;
             e->float_lit.val = val;
             e->float_lit.suffix = suffix;
             return e;

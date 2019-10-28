@@ -241,6 +241,8 @@ namespace IonLang
         internal struct _float_lit
         {
             public double val;
+            public char* start;
+            public char* end;
             public TokenSuffix suffix;
         }
 
