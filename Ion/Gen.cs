@@ -22,6 +22,7 @@ namespace IonLang
         readonly char[] char_to_escape  = new char[256];
 
         readonly string gen_preamble_str =  "// Preamble\n" +
+                                            "#define __USE_MINGW_ANSI_STDIO 1\n"+
                                             "#ifndef _CRT_SECURE_NO_WARNINGS\n" +
                                             "#define _CRT_SECURE_NO_WARNINGS\n" +
                                             "#endif\n" +
@@ -841,8 +842,7 @@ namespace IonLang
                 case EXPR_FLOAT:
                     bool isfloat = expr->float_lit.suffix != TokenSuffix.SUFFIX_D;
                     int len = (int)(expr->float_lit.end - expr->float_lit.start);
-                    if (!isfloat)
-                        len--;
+                    if (!isfloat) len--; // remove prefix 'd' from double literal
                     c_write(expr->float_lit.start, len);
                     if (isfloat)
                         c_write('f');
