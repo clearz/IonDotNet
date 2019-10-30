@@ -51,7 +51,7 @@ namespace IonLang
                 {pos = pos, stmts = (Stmt**) ast_dup(stmts, num_stmts * sizeof(Stmt*)), num_stmts = num_stmts};
         }
 
-        Typespec* typespec_new(TypespecKind kind, SrcPos pos) {
+        Typespec* new_typespec(TypespecKind kind, SrcPos pos) {
             var t = (Typespec*) ast_alloc(sizeof(Typespec));
             t->pos = pos;
             t->kind = kind;
@@ -60,27 +60,27 @@ namespace IonLang
 
         Typespec* new_typespec_name(SrcPos pos, char* name)
         {
-            var t = typespec_new(TYPESPEC_NAME, pos);
+            var t = new_typespec(TYPESPEC_NAME, pos);
             t->name = name;
             return t;
         }
 
         Typespec* new_typespec_ptr(SrcPos pos, Typespec* @base)
         {
-            var t = typespec_new(TYPESPEC_PTR, pos);
+            var t = new_typespec(TYPESPEC_PTR, pos);
             t->@base = @base;
             t->@base = @base;
             return t;
         }
         Typespec* new_typespec_const(SrcPos pos, Typespec* @base) {
-            Typespec *t = typespec_new(TYPESPEC_CONST, pos);
+            Typespec *t = new_typespec(TYPESPEC_CONST, pos);
             t->@base = @base;
             return t;
         }
 
         Typespec* new_typespec_array(SrcPos pos, Typespec* elem, Expr* size)
         {
-            var t = typespec_new(TYPESPEC_ARRAY, pos);
+            var t = new_typespec(TYPESPEC_ARRAY, pos);
             t->@base = elem;
             t->num_elems = size;
             return t;
@@ -88,7 +88,7 @@ namespace IonLang
 
         Typespec* new_typespec_func(SrcPos pos, Typespec** args, int num_args, Typespec* ret, bool has_varargs)
         {
-            var t = typespec_new(TYPESPEC_FUNC, pos);
+            var t = new_typespec(TYPESPEC_FUNC, pos);
             t->func.args = (Typespec**) ast_dup(args, num_args * sizeof(Typespec*));
             t->func.num_args = num_args;
             t->func.ret = ret;
