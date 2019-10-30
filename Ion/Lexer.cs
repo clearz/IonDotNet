@@ -1002,8 +1002,8 @@ repeat:
             [FieldOffset(9)] public TokenMod mod;
             [FieldOffset(10)] public TokenSuffix suffix;
             [FieldOffset(11)] public char* start;
-            [FieldOffset(12 + PTR_SIZE)] public char* end;
-            [FieldOffset(12 + 2 * PTR_SIZE)] public SrcPos pos;
+            [FieldOffset(11 + PTR_SIZE)] public char* end;
+            [FieldOffset(11 + 2 * PTR_SIZE)] public SrcPos pos;
         }
     }
 

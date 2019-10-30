@@ -15,6 +15,7 @@ namespace IonLang
     using static SymReachable;
     using static AggregateItemKind;
     using static AggregateKind;
+    using static TokenSuffix;
 
     unsafe partial class Ion
     {
@@ -840,11 +841,11 @@ namespace IonLang
                 }
                 break;
                 case EXPR_FLOAT:
-                    bool isfloat = expr->float_lit.suffix != TokenSuffix.SUFFIX_D;
+                    bool is_double = expr->type->kind == TYPE_DOUBLE;
                     int len = (int)(expr->float_lit.end - expr->float_lit.start);
-                    if (!isfloat) len--; // remove prefix 'd' from double literal
+                    if ((is_double && expr->float_lit.suffix == SUFFIX_D) || expr->float_lit.suffix == SUFFIX_D) len--; // remove prefix 'd' from literal
                     c_write(expr->float_lit.start, len);
-                    if (isfloat)
+                    if (!is_double)
                         c_write('f');
                     break;
                 case EXPR_STR:

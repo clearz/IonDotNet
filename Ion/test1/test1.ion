@@ -843,8 +843,7 @@ func test_token() {
 
 func main(argc: int, argv: char**): int {
 
-    printf("Sizeof: %d\n", sizeof(Token));
-    printf("Offsets: kind=%d, val=%d, mod=%d, str=%d\n\n", offsetof(Token, kind), offsetof(Token, val), offsetof(Token, mod), offsetof(Token, str));
+    d : double = 3.13;
     if (argv == 0) {
         printf("argv is null\n");
     }

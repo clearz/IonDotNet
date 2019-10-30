@@ -1350,6 +1350,7 @@ namespace IonLang
                     if (type == null) {
                         fatal_error(pos, "Invalid type in initialization. Expected {0}", get_type_name(declared_type));
                     }
+                    expr->type = type;
                 }
             }
             else {
@@ -1361,6 +1362,8 @@ namespace IonLang
                 }
                 else
                     set_resolved_expected_type(expr, type);
+
+                expr->type = type;
             }
             complete_type(type);
             if (type->size == 0) {
