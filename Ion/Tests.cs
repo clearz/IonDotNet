@@ -352,7 +352,7 @@ namespace IonLang
                 new_expr_field(default, new_expr_name(default, "person".ToPtr()), "name".ToPtr()),
                 new_expr_call(default, new_expr_name(default, "fact".ToPtr()), (Expr**) CreateArray(new_expr_int(default, 42, 0, 0)), 1),
                 new_expr_index(default, new_expr_field(default, new_expr_name(default, "person".ToPtr()), "siblings".ToPtr()), new_expr_int(default, 3, 0, 0)),
-                new_expr_cast(default, new_typespec_ptr(default, new_typespec_name(default, "int".ToPtr())), new_expr_name(default, "void_ptr".ToPtr())),
+                //new_expr_cast(default, new_typespec_ptr(default, new_typespec_name(default, "int".ToPtr())), new_expr_name(default, "void_ptr".ToPtr())),
             };
             foreach (Expr* it in exprs) {
                 print_expr(it);

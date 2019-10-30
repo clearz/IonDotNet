@@ -51,7 +51,7 @@ namespace IonLang
             switch (t->kind)
             {
                 case TYPESPEC_NAME:
-                    printf("{0}", t->name);
+                    printf("{0}", *(t->names));
                     break;
                 case TYPESPEC_FUNC:
                     printf("(func (");

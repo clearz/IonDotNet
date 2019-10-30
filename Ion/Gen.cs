@@ -437,12 +437,12 @@ namespace IonLang
             switch (typespec->kind) {
                 case TYPESPEC_NAME:
                     if (str != null) {
-                        c_write(get_gen_name_or_default(typespec, typespec->name));
+                        c_write(get_gen_name(typespec));
                         c_write(' ');
                         c_write(str);
                     }
                     else {
-                        c_write(get_gen_name_or_default(typespec, typespec->name));
+                        c_write(get_gen_name(typespec));
                     }
 
                     break;
@@ -474,9 +474,9 @@ namespace IonLang
                     else {
                         if (typespec->@base != null)
                             typespec_to_cdecl(typespec->@base, null);
-                        if (typespec->name != null)
-                            c_write(typespec->name);
-                        c_write(' ');
+                        //if (typespec->name != null)
+                        //    c_write(typespec->name);
+                        //c_write(' ');
                         c_write('*');
                     }
 
@@ -841,7 +841,7 @@ namespace IonLang
                 }
                 break;
                 case EXPR_FLOAT:
-                    bool is_double = expr->type->kind == TYPE_DOUBLE;
+                    bool is_double = expr->type != null && expr->type->kind == TYPE_DOUBLE;
                     int len = (int)(expr->float_lit.end - expr->float_lit.start);
                     if ((is_double && expr->float_lit.suffix == SUFFIX_D) || expr->float_lit.suffix == SUFFIX_D) len--; // remove prefix 'd' from literal
                     c_write(expr->float_lit.start, len);

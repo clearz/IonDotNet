@@ -236,7 +236,8 @@ namespace IonLang
                 sym_global_put(sym->name, sym);
             }
             if (decl->kind == DECL_ENUM) {
-                Typespec *enum_typespec = enum_typespec = new_typespec_name(decl->pos, sym != null ? sym->name : _I("int"));
+                char *name = sym != null ? sym->name : _I("int");
+                Typespec *enum_typespec = enum_typespec = new_typespec_name(decl->pos, &name, 1);
                 char *prev_item_name = null;
                 for (int i = 0; i < decl->enum_decl.num_items; i++) {
                     EnumItem item = decl->enum_decl.items[i];
@@ -1197,15 +1198,29 @@ namespace IonLang
             Type* result = null;
             switch (typespec->kind) {
                 case TYPESPEC_NAME: {
-                    var sym = resolve_name(typespec->name);
+                    Package *package = current_package;
+                    for (var i = 0; i < typespec->num_names - 1; i++) {
+                        char* name2 = typespec->names[i];
+                        Sym *sym2 = get_package_sym(package, name2);
+                        if (sym2 == null) {
+                            fatal_error(typespec->pos, "Unresolved package '%s'", _S(name2));
+                        }
+                        if (sym2->kind != SYM_PACKAGE) {
+                            fatal_error(typespec->pos, "%s must denote a package", _S(name2));
+                            return null;
+                        }
+                        package = sym2->package;
+                    }
+                    char *name = typespec->names[typespec->num_names - 1];
+                    Sym *sym = get_package_sym(package, name);
                     if (sym == null) {
-                        fatal_error(typespec->pos, "Unresolved type name '{0}'", _S(typespec->name));
+                        fatal_error(typespec->pos, "Unresolved type name '{0}'", _S(name));
                     }
                     if (sym->kind != SYM_TYPE) {
-                        fatal_error(typespec->pos, "{0} must denote a type", _S(typespec->name));
+                        fatal_error(typespec->pos, "{0} must denote a type", _S(name));
                         return null;
                     }
-
+                    resolve_sym(sym);
                     set_resolved_sym(typespec, sym);
                     result = sym->type;
                 }
@@ -1251,7 +1266,6 @@ namespace IonLang
                     assert(false);
                     return null;
             }
-
             set_resolved_type(typespec, result);
             return result;
         }

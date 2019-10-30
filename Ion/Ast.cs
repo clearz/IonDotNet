@@ -58,10 +58,11 @@ namespace IonLang
             return t;
         }
 
-        Typespec* new_typespec_name(SrcPos pos, char* name)
+        Typespec* new_typespec_name(SrcPos pos, char** names, int num_names)
         {
             var t = new_typespec(TYPESPEC_NAME, pos);
-            t->name = name;
+            t->names = (char**)ast_dup(names, num_names * sizeof(char**));
+            t->num_names = num_names;
             return t;
         }
 

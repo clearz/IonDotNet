@@ -60,11 +60,15 @@
         }
 
         Typespec* parse_type_base() {
+            var buf = PtrBuffer.GetPooledBuffer();
             var pos = token.pos;
             if (is_token(TOKEN_NAME)) {
-                var name = token.name;
+                buf->Add(token.name);
                 next_token();
-                return new_typespec_name(pos, name);
+                while (match_token(TOKEN_DOT)) {
+                    buf->Add(parse_name());
+                }
+                return new_typespec_name(pos, (char**)buf->_begin, buf->count);
             }
 
             if (match_keyword(func_keyword))
@@ -181,7 +185,7 @@
                 var name = token.name;
                 next_token();
                 if (is_token(TOKEN_LBRACE))
-                    return parse_expr_compound(new_typespec_name(pos, name));
+                    return parse_expr_compound(new_typespec_name(pos, &name, 1));
                 return new_expr_name(pos, name);
             }
 

@@ -36,7 +36,8 @@ namespace IonLang
         [FieldOffset(0)] public TypespecKind kind;
         [FieldOffset(4)] public SrcPos pos;
         [FieldOffset(28)] public Typespec* @base;
-        [FieldOffset(28 + Ion.PTR_SIZE)] public char* name;
+        [FieldOffset(28 + Ion.PTR_SIZE)] public int num_names;
+        [FieldOffset(32 + Ion.PTR_SIZE)] public char** names;
         [FieldOffset(28 + Ion.PTR_SIZE)] public FuncTypespec func;
         [FieldOffset(28 + Ion.PTR_SIZE)] public Expr *num_elems;
 
