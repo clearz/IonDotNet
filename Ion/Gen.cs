@@ -1,5 +1,6 @@
 ﻿//#define DEBUG_VERBOSE
 using System.Globalization;
+using System.IO;
 using System.Text;
 
 namespace IonLang
@@ -983,7 +984,7 @@ namespace IonLang
                 case EXPR_OFFSETOF: {
                     c_write(offsetof_keyword);
                     c_write('(');
-                    type_to_cdecl(get_resolved_type(expr->alignof_type), null);
+                    typespec_to_cdecl(expr->offsetof_field.type, null);
                     c_write(',');
                     c_write(' ');
                     c_write(expr->offsetof_field.name);
@@ -1408,7 +1409,7 @@ namespace IonLang
 
             for (var i = 0; i < sym_cnt; i++) {
                 var sym = *(Sym**) (sorted_syms->_begin + i);
-                if (sym->reachable == (byte)REACHABLE_NATURAL) {
+                if (gen_reachable(sym)) {
                     gen_decl(sym);
                 }
             }
@@ -1453,6 +1454,11 @@ namespace IonLang
             }
         }
 
+        static readonly char *header_name = _I("header");
+        static readonly char *source_name = _I("source");
+        static readonly char *preamble_name = _I("preamble");
+        static readonly char *postamble_name = _I("postamble");
+
         void preprocess_package(Package* package) {
             if (package->external_name == null) {
                 char *external_name = stackalloc char[256];
@@ -1466,10 +1472,6 @@ namespace IonLang
                 external_name[i] = '_';
                 package->external_name = _I(external_name);
             }
-            char *header_name = _I("header");
-            char *source_name = _I("source");
-            char *preamble_name = _I("preamble");
-            char *postamble_name = _I("postamble");
             for (var i = 0; i < package->num_decls; i++) {
                 Decl *decl = package->decls[i];
                 if (decl->kind != DECL_NOTE) {
@@ -1549,10 +1551,9 @@ namespace IonLang
                 path_absolute(path);
             }
         }
+
         void path_absolute(char* path) {
-            char* rel_path = null;
-            //path_copy(rel_path, path);
-            //_fullpath(path, rel_path, MAX_PATH);
+            path = Path.GetFullPath(_S(path)).ToPtr();
         }
 
 

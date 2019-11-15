@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -197,7 +198,7 @@ namespace IonLang
             sym->kind = SYM_VAR;
             sym->state = SYM_RESOLVED;
             sym->type = type;
-            *local_syms._top++ = *sym;
+            local_syms.Add(*sym);
 
             return true;
         }
@@ -1700,6 +1701,7 @@ namespace IonLang
             leave_package(old_package);
         }
 
+        private int idd = 0;
         void resolve_sym(Sym* sym) {
             if (sym->state == SYM_RESOLVED)
                 return;
@@ -1715,6 +1717,8 @@ namespace IonLang
                 reachable_syms->Add(sym);
                 sym->reachable = reachable_phase;
             }
+            Console.Write("".PadLeft(idd += 2));
+            Console.WriteLine("  Resolving: " + _S(sym->name));
             sym->state = SYM_RESOLVING;
             Decl *decl = sym->decl;
             Package *old_package = enter_package(sym->home_package);
@@ -1753,6 +1757,9 @@ namespace IonLang
 
             leave_package(old_package);
             sym->state = SYM_RESOLVED;
+            Console.Write("".PadLeft(idd));
+            Console.WriteLine("  Resolved: " + _S(sym->name));
+            idd -= 2;
             if (decl->is_incomplete || (decl->kind != DECL_STRUCT && decl->kind != DECL_UNION)) {
                 sorted_syms->Add(sym);
             }
@@ -2966,11 +2973,13 @@ namespace IonLang
                 finalize_sym(sym);
                 if (i == num_reachable - 1) {
                     if (flag_verbose) {
-                        printf("New reachable symbols:");
+                       // printf("New reachable symbols:");
+                        printf("\n");
                         for (var k = prev_num_reachable; k < num_reachable; k++) {
-                            var s = reachable_syms->Get<Sym>(k);
-                            printf(" {0}/{1}", _S(s->home_package->path), _S(s->name));
+                            //var s = reachable_syms->Get<Sym>(k);
+                            //printf(" {0}: {1}/{2}",k, _S(s->home_package->path), _S(s->name));
                         }
+                        //System.Console.ReadKey();
                         printf("\n");
                     }
                     prev_num_reachable = num_reachable;

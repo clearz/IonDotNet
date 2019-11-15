@@ -309,6 +309,7 @@ namespace IonLang
             Unsafe.InitBlock(type, 0, (uint)sizeof(Type));
             type->kind = kind;
             type->typeid = next_typeid++;
+            System.Console.WriteLine("      ".PadLeft(idd) + kind + ": " + next_typeid);
             register_typeid(type);
             return type;
         }
@@ -387,7 +388,6 @@ namespace IonLang
             CachedFuncType *cached = (CachedFuncType*)cached_func_types.map_get_from_uint64(key);
             for (CachedFuncType* it = cached; it != null; it = it->next) {
                 Type *type1 = it->type;
-                if (num_params > 0)
                     if (type1->func.num_params == num_params && type1->func.ret == ret && type1->func.has_varargs == has_varargs)
                         if (memcmp(type1->func.@params, @params, num_params))
                             return type1;

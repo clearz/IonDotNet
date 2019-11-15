@@ -7,8 +7,14 @@
     using static CompoundFieldKind;
     using static AggregateKind;
     using static AggregateItemKind;
+    using System;
 
     public unsafe partial class Ion {
+
+        public Ion() {
+            lex_init();
+        }
+
         internal Decls* parse_decls() {
             var buf = PtrBuffer.GetPooledBuffer();
             try {
@@ -720,7 +726,7 @@
             }
             expect_token(TOKEN_LBRACE);
             EnumItem* items = null;
-            var buf = Buffer<EnumItem>.Create();
+            var buf = Buffer<EnumItem>.Create(32);
             while (!is_token(TOKEN_RBRACE)) {
                 buf.Add(parse_decl_enum_item());
                 if (!match_token(TOKEN_COMMA))
@@ -770,7 +776,7 @@
         Aggregate* parse_aggregate(AggregateKind kind) {
             SrcPos pos = token.pos;
             expect_token(TOKEN_LBRACE);
-            var items = Buffer<AggregateItem>.Create();
+            var items = Buffer<AggregateItem>.Create(16);
             while (!is_token_eof() && !is_token(TOKEN_RBRACE)) {
                 var item = parse_decl_aggregate_item();
                 items.Add(item);

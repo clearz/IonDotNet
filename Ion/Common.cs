@@ -9,15 +9,13 @@ namespace IonLang
     unsafe partial class Ion
     {
         static Map interns;
-        static MemArena intern_arena;
+        static readonly MemArena intern_arena = MemArena.Create();
 
         void initialise() {
             local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
             reachable_syms = PtrBuffer.Create();
             package_list = PtrBuffer.Create();
             sorted_syms = PtrBuffer.Create(capacity: 256);
-            ast_arena = MemArena.Create();
-            intern_arena = MemArena.Create();
             init_compiler();
             init_chars();
 
@@ -337,8 +335,10 @@ namespace IonLang
 
             const int START_CAPACITY = 4,
                 MULTIPLIER = 2;
-            public int count { get; set; }
-            public int  buffer_size, item_size;
+
+            internal int count;
+
+            int  buffer_size, item_size;
             int _capacity, _multiplier;
 
             public static implicit operator T*(Buffer<T> b) {

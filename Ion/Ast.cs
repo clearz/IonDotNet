@@ -8,7 +8,7 @@ namespace IonLang
     using static StmtKind;
 
     public unsafe partial class Ion {
-        MemArena ast_arena;
+        static readonly MemArena ast_arena = MemArena.Create();
 
         void* ast_alloc(int size) {
             assert(size != 0);

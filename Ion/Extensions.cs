@@ -60,14 +60,14 @@ namespace IonLang
 
 
         #region Numeric Conversion
-
+        const int NUM_SIZE = 24;
         static char* ZERO = "0".ToPtr();
-        static char* tmp = Ion.xmalloc<char>(24);
+        static char* tmp = Ion.xmalloc<char>(NUM_SIZE+1);
         static char[] num_vals = { '0', '1',  '2',  '3',  '4',  '5',  '6',  '7',  '8',  '9',  'A',  'B',  'C',  'D',  'E',  'F' };
         public static char* itoa(this int i, int @base = 10) {
             if (i == 0)
                 return ZERO;
-            int pos = 11;
+            int pos = NUM_SIZE;
 
             tmp[pos] = '\0';
             var j = i;
@@ -82,7 +82,7 @@ namespace IonLang
         }
         public static char* itoa(this uint i) {
             if (i == 0) return ZERO;
-            int pos = 11;
+            int pos = NUM_SIZE;
 
             tmp[pos] = '\0';
             var j = i;
@@ -96,7 +96,7 @@ namespace IonLang
         public static char* itoa(this long i) {
             if (i == 0)
                 return ZERO;
-            int pos = 11;
+            int pos = NUM_SIZE;
 
             tmp[pos] = '\0';
             var j = i;
@@ -116,7 +116,7 @@ namespace IonLang
         public static char* itoa(this ulong i, ulong @base = 10) {
             if (i == 0)
                 return ZERO;
-            int pos = 11;
+            int pos = NUM_SIZE;
 
             tmp[pos] = '\0';
             var j = i;

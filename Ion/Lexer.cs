@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 
 namespace IonLang
 {
@@ -935,6 +936,11 @@ repeat:
 
         void init_stream(string buf, string name = "<anonymous>") {
             init_stream(buf.ToPtr(), $"\"{name}\"".ToPtr());
+        }
+        void init_stream(Span<char> s, string name = "<anonymous>") {
+
+            fixed(char* c = s)
+            init_stream(c, $"\"{name}\"".ToPtr());
         }
 
         void init_stream(char* str, char* name = null) {
