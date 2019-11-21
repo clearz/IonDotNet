@@ -56,18 +56,18 @@ namespace IonLang
 
         [Conditional("DEBUG")]
         [DebuggerHidden]
-        static void assert(long l = 0) => assert(l != 0);
+        internal static void assert(long l = 0) => assert(l != 0);
 
         [Conditional("DEBUG")]
         [DebuggerHidden]
-        static void assert(void* v) => assert(v != null);
+        internal static void assert(void* v) => assert(v != null);
 
         [Conditional("DEBUG")]
         [DebuggerHidden]
-        static void assert(bool b) => Debug.Assert(b);
+        internal static void assert(bool b) => Debug.Assert(b);
 
         [DebuggerHidden]
-        static void Exit(int wait_ms = 2000, int rtn_code = 1) {
+        internal static void Exit(int wait_ms = 2000, int rtn_code = 1) {
             assert(false);
             Console.Error.WriteLine("Exiting...");
             Thread.Sleep(wait_ms);

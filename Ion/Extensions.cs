@@ -9,21 +9,8 @@ namespace IonLang
     internal static unsafe class Extensions
     {
         [DebuggerHidden]
-        public static void* ToArrayPtr<T>(this T[] objs) where T : unmanaged {
-            var size_of = Marshal.SizeOf<T>();
-            var size = size_of * objs.Length;
-            var ptr = (byte*) Ion.xmalloc(size);
-            for (int i = 0, j = 0; i < size; i += size_of, j++) {
-                var obj = objs[j];
-                Unsafe.CopyBlock(ptr + i, Ion.AsPointer(ref obj), (uint)size_of);
-            }
-
-            return ptr;
-        }
-
-        [DebuggerHidden]
         public static char* ToPtr(this string s) {
-            var stream = Ion.xmalloc<char>(s.Length + 1);
+            var stream =  (char*)Marshal.AllocHGlobal(sizeof(char) * (s.Length + 1));
             fixed (char* c = s) {
                 Unsafe.CopyBlock(stream, c, (uint)s.Length << 1);
             }
@@ -34,7 +21,7 @@ namespace IonLang
         [DebuggerHidden]
         public static char* ToPtr(this string s, out int len) {
             len = s.Length;
-            var stream = Ion.xmalloc<char>(len+ 1);
+            var stream =  (char*)Marshal.AllocHGlobal(sizeof(char) * (len+ 1));
             fixed (char* c = s) {
                 Unsafe.CopyBlock(stream, c, (uint)len << 1);
             }
@@ -43,26 +30,10 @@ namespace IonLang
             return stream;
         }
 
-        [DebuggerHidden]
-        public static char* ToPtr2(this string s) {
-            fixed (char* c = s) {
-                return c;
-            }
-        }
-        [DebuggerHidden]
-        public static char* ToPtr2(this string s, out int len) {
-            len = s.Length;
-            fixed (char* c = s) {
-                return c;
-            }
-        }
-
-
-
         #region Numeric Conversion
         const int NUM_SIZE = 24;
         static char* ZERO = "0".ToPtr();
-        static char* tmp = Ion.xmalloc<char>(NUM_SIZE+1);
+        static char* tmp = (char*)Marshal.AllocHGlobal(sizeof(char) * (NUM_SIZE+1));
         static char[] num_vals = { '0', '1',  '2',  '3',  '4',  '5',  '6',  '7',  '8',  '9',  'A',  'B',  'C',  'D',  'E',  'F' };
         public static char* itoa(this int i, int @base = 10) {
             if (i == 0)

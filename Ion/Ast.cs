@@ -8,11 +8,13 @@ namespace IonLang
     using static StmtKind;
 
     public unsafe partial class Ion {
-        static readonly MemArena ast_arena = MemArena.Create();
+         readonly MemArena ast_arena = MemArena.Create();
 
+        long ast_memory_usage;
         void* ast_alloc(int size) {
             assert(size != 0);
             var ptr = ast_arena.Alloc(size);
+            ast_memory_usage += size;
             Unsafe.InitBlock(ptr, 0, (uint)size);
             return ptr;
         }
@@ -33,6 +35,7 @@ namespace IonLang
         }
 
         Note* get_decl_note(Decl* decl, char* name) {
+            if (decl == null) return null;
             for (int i = 0; i < decl->notes.num_notes; i++) {
                 Note *note = decl->notes.notes + i;
                 if (note->name == name) {
@@ -41,14 +44,18 @@ namespace IonLang
             }
             return null;
         }
+        bool is_decl_threadlocal(Decl* decl) {
+            return decl != null && get_decl_note(decl, _I("threadlocal")) != null;
+        }
+
 
         bool is_decl_foreign(Decl* decl) {
-            return get_decl_note(decl, foreign_name) != null;
+            return decl != null && get_decl_note(decl, foreign_name) != null;
         }
         StmtList stmt_list(SrcPos pos, Stmt** stmts, int num_stmts)
         {
             return new StmtList
-                {pos = pos, stmts = (Stmt**) ast_dup(stmts, num_stmts * sizeof(Stmt*)), num_stmts = num_stmts};
+                {pos = pos, stmts = stmts, num_stmts = num_stmts};
         }
 
         Typespec* new_typespec(TypespecKind kind, SrcPos pos) {
@@ -79,23 +86,31 @@ namespace IonLang
             return t;
         }
 
-        Typespec* new_typespec_array(SrcPos pos, Typespec* elem, Expr* size)
+        Typespec* new_typespec_array(SrcPos pos, Typespec* @base, Expr* num_elems)
         {
             var t = new_typespec(TYPESPEC_ARRAY, pos);
-            t->@base = elem;
-            t->num_elems = size;
+            t->@base = @base;
+            t->num_elems = num_elems;
             return t;
         }
 
         Typespec* new_typespec_func(SrcPos pos, Typespec** args, int num_args, Typespec* ret, bool has_varargs)
         {
             var t = new_typespec(TYPESPEC_FUNC, pos);
-            t->func.args = (Typespec**) ast_dup(args, num_args * sizeof(Typespec*));
+            t->func.args = args;
             t->func.num_args = num_args;
             t->func.ret = ret;
             t->func.has_varargs = has_varargs;
             return t;
         }
+
+        Typespec* new_typespec_tuple(SrcPos pos, Typespec** fields, int num_fields) {
+            Typespec *t = new_typespec(TYPESPEC_TUPLE, pos);
+            t->tuple.fields = fields;
+            t->tuple.num_fields = num_fields;
+            return t;
+        }
+
 
         Decl* new_decl(DeclKind kind, SrcPos pos, char* name)
         {
@@ -109,7 +124,7 @@ namespace IonLang
         Decls* new_decls(Decl** decls, int num_items)
         {
             var d = (Decls*) ast_alloc(sizeof(Decls));
-            d->decls = (Decl**) ast_dup(decls, num_items * sizeof(Decl*));
+            d->decls = decls;
             d->num_decls = num_items;
             return d;
         }
@@ -117,7 +132,7 @@ namespace IonLang
         Decl* new_decl_enum(SrcPos pos, char* name, Typespec* type, EnumItem* items, int num_items)
         {
             var d = new_decl(DECL_ENUM, pos, name);
-            d->enum_decl.items = (EnumItem*) ast_dup(items, num_items * sizeof(EnumItem));
+            d->enum_decl.items = items;
             d->enum_decl.type = type;
             d->enum_decl.num_items = num_items;
             return d;
@@ -127,7 +142,7 @@ namespace IonLang
             Aggregate* aggregate = (Aggregate*)ast_alloc(sizeof(Aggregate));
             aggregate->pos = pos;
             aggregate->kind = kind;
-            aggregate->items = (AggregateItem*)ast_dup(items, num_items * sizeof(AggregateItem));
+            aggregate->items = items;
             aggregate->num_items = num_items;
             return aggregate;
         }
@@ -148,13 +163,14 @@ namespace IonLang
             return d;
         }
 
-        Decl* new_decl_func(SrcPos pos, char* name, FuncParam* @params, int num_params, Typespec* ret_type, bool has_varargs, StmtList block)
+        Decl* new_decl_func(SrcPos pos, char* name, FuncParam* @params, int num_params, Typespec* ret_type, bool has_varargs, Typespec *varargs_type, StmtList block)
         {
             var d = new_decl(DECL_FUNC, pos, name);
             d->func.@params = (FuncParam*) ast_dup(@params, num_params * sizeof(FuncParam));
             d->func.num_params = num_params;
             d->func.ret_type = ret_type;
             d->func.has_varargs = has_varargs;
+            d->func.varargs_type = varargs_type;
             d->func.block = block;
             return d;
         }
@@ -184,10 +200,10 @@ namespace IonLang
             Decl *d = new_decl(DECL_IMPORT, pos, null);
             d->name = rename_name;
             d->import.is_relative = is_relative;
-            d->import.names = (char**)ast_dup(names, sizeof(char**) * num_names);
+            d->import.names = names;
             d->import.num_names = num_names;
             d->import.import_all = import_all;
-            d->import.items = (ImportItem*)ast_dup(items, sizeof(ImportItem) * num_items);
+            d->import.items = items;
             d->import.num_items = num_items;
             return d;
         }
@@ -297,7 +313,7 @@ namespace IonLang
         {
             var e = new_expr(EXPR_COMPOUND, pos);
             e->compound.type = type;
-            e->compound.fields = (CompoundField*) ast_dup(fields, num_fields * sizeof(CompoundField));
+            e->compound.fields = fields;
             e->compound.num_fields = num_fields;
             return e;
         }
@@ -314,7 +330,7 @@ namespace IonLang
         {
             var e = new_expr(EXPR_CALL, pos);
             e->call.expr = expr;
-            e->call.args = (Expr**) ast_dup(args, num_args * sizeof(Expr*));
+            e->call.args = args;
             e->call.num_args = num_args;
             return e;
         }
@@ -360,6 +376,16 @@ namespace IonLang
             e->ternary.else_expr = else_expr;
             return e;
         }
+
+        Expr* new_expr_new(SrcPos pos, Expr* alloc, Expr* len, Expr* arg) {
+            Expr *e = new_expr(EXPR_NEW, pos);
+            e->new_expr.alloc = alloc;
+            e->new_expr.len = len;
+            e->new_expr.arg = arg;
+            return e;
+        }
+
+
         Note* get_stmt_note(Stmt* stmt, char* name) {
             for (var i = 0; i < stmt->notes.num_notes; i++) {
                 Note *note = stmt->notes.notes + i;
@@ -388,9 +414,7 @@ namespace IonLang
             return s;
         }
 
-
-
-    Stmt* new_stmt(StmtKind kind, SrcPos pos)
+        Stmt* new_stmt(StmtKind kind, SrcPos pos)
         {
             var s = (Stmt*) ast_alloc(sizeof(Stmt));
             s->pos = pos;
@@ -436,7 +460,7 @@ namespace IonLang
             s->if_stmt.cond = cond;
             s->if_stmt.init = init;
             s->if_stmt.then_block = then_block;
-            s->if_stmt.elseifs = (ElseIf**) ast_dup(elseifs, num_elseifs * sizeof(ElseIf*));
+            s->if_stmt.elseifs = elseifs;
             s->if_stmt.num_elseifs = num_elseifs;
             s->if_stmt.else_block = else_block;
             return s;
@@ -472,7 +496,7 @@ namespace IonLang
         {
             var s = new_stmt(STMT_SWITCH, pos);
             s->switch_stmt.expr = expr;
-            s->switch_stmt.cases = (SwitchCase*) ast_dup(cases, num_cases * sizeof(SwitchCase));
+            s->switch_stmt.cases = cases;
             s->switch_stmt.num_cases = num_cases;
             return s;
         }

@@ -1,4 +1,5 @@
 ﻿//#define DEBUG_VERBOSE
+using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -20,120 +21,10 @@ namespace IonLang
 
     unsafe partial class Ion
     {
-        readonly StringBuilder gen_buf = new StringBuilder();
+        StringBuilder gen_buf = new StringBuilder();
+        StringBuilder gen_preamble_buf = new StringBuilder();
+        StringBuilder gen_postamble_buf = new StringBuilder();
         readonly char[] char_to_escape  = new char[256];
-
-        readonly string gen_preamble_str =  "// Preamble\n" +
-                                            "#define __USE_MINGW_ANSI_STDIO 1\n"+
-                                            "#ifndef _CRT_SECURE_NO_WARNINGS\n" +
-                                            "#define _CRT_SECURE_NO_WARNINGS\n" +
-                                            "#endif\n" +
-                                            "\n" +
-                                            "#ifndef _CRT_NONSTDC_NO_DEPRECATE\n" +
-                                            "#define _CRT_NONSTDC_NO_DEPRECATE\n" +
-                                            "#endif\n" +
-                                            "\n" +
-                                            "#if _MSC_VER >= 1900 || __STDC_VERSION__ >= 201112L\n" +
-                                            "// Visual Studio 2015 supports enough C99/C11 features for us.\n" +
-                                            "#else\n" +
-                                            "#error \"C11 support required or Visual Studio 2015 or later\"\n" +
-                                            "#endif\n" +
-                                            "\n" +
-                                            "#ifdef __GNUC__\n"                              +
-                                            "#pragma GCC diagnostic push\n"                  +
-                                            "#pragma GCC diagnostic ignored \"-Wvarargs\"\n" +
-                                            "#endif\n" +
-                                            "\n" +
-                                            "#include <stdbool.h>\n" +
-                                            "#include <stdint.h>\n" +
-                                            "#include <stdarg.h>\n" +
-                                            "#include <assert.h>\n" +
-                                            "#include <stddef.h>\n\n" +
-
-                                            "typedef unsigned char uchar;\n" +
-                                            "typedef signed char schar;\n" +
-                                            "typedef unsigned short ushort;\n" +
-                                            "typedef unsigned int uint;\n" +
-                                            "typedef unsigned long ulong;\n" +
-                                            "typedef long long llong;\n" +
-                                            "typedef unsigned long long ullong;\n" +
-                                            "\n" +
-                                            "#ifdef _WIN32\n" +
-                                            "#include <errno.h>\n" +
-                                            "#define strdup _strdup\n" +
-                                            "#define alignof(x) __alignof(x)\n" +
-                                            "#else\n" +
-                                            "#define alignof(x) __alignof__(x)\n" +
-                                            "#endif\n" +
-                                            "\n"  +
-                                            "#define va_start_ptr(args, arg) (va_start(*(args), *(arg)))\n"  +
-                                            "#define va_copy_ptr(dest, src) (va_copy(*(dest), *(src)))\n"    +
-                                            "#define va_end_ptr(args) (va_end(*(args)))\n"                   +
-                                            "\n"      +
-                                            "struct Any;\n"+
-                                            "static void va_arg_ptr(va_list *args, struct Any any);\n";
-
-
-        string gen_postamble_str =          "\n// Postamble\n"                                           +
-                                            "static void va_arg_ptr(va_list *args, Any any) {\n"                +
-                                            "    switch (typeid_kind(any.type)) {\n"                     +
-                                            "    case TYPE_BOOL:\n"                                      +
-                                            "        *(bool *)any.ptr = (bool)va_arg(*args, int);\n"           +
-                                            "        break;\n"                                           +
-                                            "    case TYPE_CHAR:\n"                                      +
-                                            "        *(char *)any.ptr = (char)va_arg(*args, int);\n"           +
-                                            "        break;\n"                                           +
-                                            "    case TYPE_UCHAR:\n"                                     +
-                                            "        *(uchar *)any.ptr = (uchar)va_arg(*args, int);\n"          +
-                                            "        break;\n"                                           +
-                                            "    case TYPE_SCHAR:\n"                                     +
-                                            "        *(schar *)any.ptr = (schar)va_arg(*args, int);\n"          +
-                                            "        break;\n"                                           +
-                                            "    case TYPE_SHORT:\n"                                     +
-                                            "        *(short *)any.ptr = (short)va_arg(*args, int);\n"          +
-                                            "        break;\n"                                           +
-                                            "    case TYPE_USHORT:\n"                                    +
-                                            "        *(ushort *)any.ptr = (ushort)va_arg(*args, int);\n"         +
-                                            "        break;\n"                                           +
-                                            "    case TYPE_INT:\n"                                       +
-                                            "        *(int *)any.ptr = va_arg(*args, int);\n"            +
-                                            "        break;\n"                                           +
-                                            "    case TYPE_UINT:\n"                                      +
-                                            "        *(uint *)any.ptr = va_arg(*args, uint);\n"          +
-                                            "        break;\n"                                           +
-                                            "    case TYPE_LONG:\n"                                      +
-                                            "        *(long *)any.ptr = va_arg(*args, long);\n"          +
-                                            "        break;\n"                                           +
-                                            "    case TYPE_ULONG:\n"                                     +
-                                            "        *(ulong *)any.ptr = va_arg(*args, ulong);\n"        +
-                                            "        break;\n"                                           +
-                                            "    case TYPE_LLONG:\n"                                     +
-                                            "        *(llong *)any.ptr = va_arg(*args, llong);\n"        +
-                                            "        break;\n"                                           +
-                                            "    case TYPE_ULLONG:\n"                                    +
-                                            "        *(ullong *)any.ptr = va_arg(*args, ullong);\n"      +
-                                            "        break;\n"                                           +
-                                            "    case TYPE_FLOAT:\n"                                     +
-                                            "        *(float *)any.ptr = (float)va_arg(*args, double);\n"+
-                                            "        break;\n"                                           +
-                                            "    case TYPE_DOUBLE:\n"                                    +
-                                            "        *(double *)any.ptr = va_arg(*args, double);\n"      +
-                                            "        break;\n"                                           +
-                                            "    case TYPE_FUNC:\n"                                      +
-                                            "    case TYPE_PTR:\n"                                       +
-                                            "        *(void **)any.ptr = va_arg(*args, void *);\n"       +
-                                            "        break;\n"                                           +
-                                            "    default:\n"                                             +
-                                            "        assert(0 && \"argument type not supported\");\n"    +
-                                            "        break;\n"                                           +
-                                            "    }\n"                                                    +
-                                            "}\n" +
-                                            "\n" +
-                                            "#ifdef __GNUC__\n"+
-                                            "#pragma GCC diagnostic pop\n"+
-                                            "#endif\n"
-                                            ;
-
 
         readonly char* defineStr = "#define ".ToPtr();
         readonly char* includeStr = "#include ".ToPtr();
@@ -147,7 +38,7 @@ namespace IonLang
         void indent() {
             var size = gen_indent * 4;
 
-            gen_buf.Append(string.Empty.PadRight(size).ToPtr(out int s), s);
+            gen_buf.Append(string.Empty.PadRight(size));
             gen_pos.line++;
         }
 
@@ -155,7 +46,7 @@ namespace IonLang
 #if DEBUG_VERBOSE
             System.Console.WriteLine();
 #endif
-            gen_buf.Append('\n');
+            gen_buf.AppendLine();
         }
 
         void c_write(char c) {
@@ -181,18 +72,34 @@ namespace IonLang
             //Unsafe.CopyBlock(gen_buf + gen_pos, c, (uint)len << 1);
             //gen_pos += len;
         }
-        void c_write(string s) {
+        void c_write(ReadOnlySpan<char> s) {
 #if DEBUG_VERBOSE
-            System.Console.Write(s);
+            System.Console.Write(s.ToString());
 #endif
             gen_buf.Append(s);
             //Unsafe.CopyBlock(gen_buf + gen_pos, c, (uint)len << 1);
             //gen_pos += len;
         }
+        void c_write(StringBuilder s) {
+#if DEBUG_VERBOSE
+            System.Console.Write(s);
+#endif
+            gen_buf.Append(s);
+        }
         void genlnf(char c) {
             genln();
             c_write(c);
         }
+        void genlnf(StringBuilder sb) {
+            genln();
+            c_write(sb);
+        }
+
+        void genlnf(ReadOnlySpan<char> c) {
+            genln();
+            c_write(c);
+        }
+
         void genlnf(char* fmt) {
             genln();
             c_write(fmt);
@@ -209,7 +116,7 @@ namespace IonLang
         }
 
         bool gen_reachable(Sym* sym) {
-            return flag_fullgen || sym->reachable == (byte)REACHABLE_NATURAL;
+            return flag_fullgen || sym->reachable == REACHABLE_NATURAL;
         }
 
         bool is_excluded_typeinfo(Type* type) {
@@ -217,7 +124,12 @@ namespace IonLang
                 type = type->@base;
             }
             if (type->sym != null) {
-                return !gen_reachable(type->sym);
+                if (get_decl_note(type->sym->decl, _I("notypeinfo")) != null) {
+                    return true;
+                }
+                else {
+                    return !gen_reachable(type->sym);
+                }
             }
             else {
                 assert(type->sym == null);
@@ -234,7 +146,7 @@ namespace IonLang
                     if (sym->external_name != null) {
                         name = sym->external_name;
                     }
-                    else if (sym->home_package->external_name != null && *sym->home_package->external_name != '\0') {
+                    else if (sym->home_package->external_name != null) {
                         char *external_name = sym->home_package->external_name;
                         const int SIZE = 256;
                         char* buf = stackalloc char[SIZE];
@@ -263,13 +175,21 @@ namespace IonLang
             return name;
         }
 
+        static readonly char *errorStr = "ERROR".ToPtr();
         char* get_gen_name(void* ptr) {
-            return get_gen_name_or_default(ptr, "ERROR".ToPtr());
+            char *name = get_gen_name_or_default(ptr, errorStr);
+            assert(name != errorStr);
+            return name;
         }
+
         char* cdecl_name(Type* type) {
             char* type_name = type_names[(int)type->kind];
             if (type_name != null) {
                 return type_name;
+            }
+            else if (type->kind == TYPE_TUPLE) {
+                char* id = type->typeid.itoa();
+                return strcat2("tuple".ToPtr(), id);
             }
             else {
                 assert(type->sym != null);
@@ -413,9 +333,25 @@ namespace IonLang
             }
         }
 
-        void gen_sync_pos(SrcPos pos) {
-            if (flag_skip_lines)
+        void gen_buf_pos(ref StringBuilder pbuf, SrcPos pos) {
+            if (flag_nosync) {
                 return;
+            }
+            var buf = pbuf;
+            buf.AppendLine().Append(lineStr, 6).Append(pos.line).Append(' ');
+            var old_gen_buf = gen_buf;
+            gen_buf = buf;
+            gen_str(pos.name, false);
+            buf = gen_buf;
+            gen_buf = old_gen_buf;
+            buf.AppendLine();
+            pbuf = buf;
+        }
+
+        void gen_sync_pos(SrcPos pos) {
+            if (flag_nosync)
+                return;
+
             assert(pos.name != null && pos.line != 0);
             if (gen_pos.line != pos.line || gen_pos.name != pos.name) {
                 genln();
@@ -448,20 +384,7 @@ namespace IonLang
 
                     break;
                 case TYPESPEC_CONST:
-                    if (str != null) {
-                        c_write(const_keyword);
-                        c_write(' ');
-                        typespec_to_cdecl(typespec->@base, null);
-                        c_write(' ');
-                        c_write('(');
-                        c_write(str);
-                        c_write(')');
-                    }
-                    else {
-                        c_write(const_keyword);
-                        c_write(' ');
-                        typespec_to_cdecl(typespec->@base, null);
-                    }
+                    typespec_to_cdecl(typespec->@base, str);
                     break;
                 case TYPESPEC_PTR:
                     if (str != null) {
@@ -475,9 +398,6 @@ namespace IonLang
                     else {
                         if (typespec->@base != null)
                             typespec_to_cdecl(typespec->@base, null);
-                        //if (typespec->name != null)
-                        //    c_write(typespec->name);
-                        //c_write(' ');
                         c_write('*');
                     }
 
@@ -500,14 +420,22 @@ namespace IonLang
                         c_write(')');
 
                     break;
+                case TYPESPEC_TUPLE:
+                        Type *type = get_resolved_type(typespec);
+                        c_write("tuple");
+                        c_write(type->typeid.itoa());
+                    if (str != null) {
+                        c_write(' ');
+                        c_write(str);
+                    }
+                    break;
                 case TYPESPEC_FUNC: {
                     if (typespec->func.ret != null)
                         typespec_to_cdecl(typespec->func.ret, null);
                     else
                         c_write(void_str, 4);
+
                     c_write(' ');
-
-
                     c_write('(');
                     c_write('*');
                     if (str != null)
@@ -552,18 +480,34 @@ namespace IonLang
             for (Sym** it = (Sym**)sorted_syms->_begin; it < sorted_syms->_top; it++) {
                 Sym* sym = *it;
                 Decl* decl = sym->decl;
-                if (sym->state != SymState.SYM_RESOLVED || decl == null || is_decl_foreign(decl) || decl->is_incomplete || sym->reachable != (byte)REACHABLE_NATURAL) {
+                if (sym->state != SymState.SYM_RESOLVED || decl == null || decl->is_incomplete || sym->reachable != REACHABLE_NATURAL) {
                     continue;
                 }
                 if (decl->kind == DECL_FUNC) {
-
+                    bool foreign = is_decl_foreign(decl);
+                    var buf = gen_buf;
+                    if (foreign) {
+                        gen_buf = new StringBuilder();
+                    }
+                    if (get_decl_note(decl, inline_name) != null) {
+                        genlnf("INLINE");
+                    }
+                    if (get_decl_note(decl, _I("noinline")) != null) {
+                        genlnf("NOINLINE");
+                    }
                     gen_func_decl(decl);
                     c_write(' ');
                     gen_stmt_block(decl->func.block);
                     genln();
+                    if (foreign) {
+                        gen_buf = buf;
+                    }
 
                 }
                 else if (decl->kind == DECL_VAR) {
+                    if (is_decl_threadlocal(decl)) {
+                        genlnf("THREADLOCAL");
+                    }
                     genln();
                     if (decl->var.type != null && !is_incomplete_array_typespec(decl->var.type)) {
                         typespec_to_cdecl(decl->var.type, get_gen_name(sym));
@@ -582,19 +526,19 @@ namespace IonLang
                 }
             }
         }
+
         void gen_func_decl(Decl* decl) {
             assert(decl->kind == DECL_FUNC);
-
             gen_sync_pos(decl->pos);
+            genln();
+
             if (decl->func.ret_type != null) {
-                genln();
                 typespec_to_cdecl(decl->func.ret_type, null);
                 c_write(' ');
                 c_write(get_gen_name(decl));
                 c_write('(');
             }
             else {
-                genln();
                 c_write(void_str);
                 c_write(' ');
                 c_write(get_gen_name(decl));
@@ -621,10 +565,19 @@ namespace IonLang
             }
             c_write(')');
         }
-        void gen_forward_decls() {
-            for (var it = (Sym**)sorted_syms->_begin; it != sorted_syms->_top; it++) {
-                var sym = *it;
 
+        void gen_forward_decls() {
+            for (int i = 0; i < tuple_types->count; i++) {
+                Type *type = tuple_types->Get<Type>(i);
+                char* id = type->typeid.itoa();
+                genlnf("typedef struct tuple");
+                c_write(id);
+                c_write(" tuple");
+                c_write(id);
+                c_write(';');
+            }
+            for (var it = (Sym**)sorted_syms->_begin; it != sorted_syms->_top; it++) {
+                var sym = *it;         
                 var decl = sym->decl;
                 if (decl == null || !gen_reachable(sym))
                     continue;
@@ -659,6 +612,27 @@ namespace IonLang
             }
         }
 
+        void gen_tuple_decl(Type* type) {
+            var name = get_gen_name(type->sym);
+            genln();
+            c_write(struct_keyword);
+            c_write(' ');
+            c_write(name);
+            c_write(' ');
+            c_write('{');
+            gen_indent++;
+            for (var i = 0; i < type->aggregate.num_fields; i++) {
+                TypeField field = type->aggregate.fields[i];
+                genln();
+                type_to_cdecl(field.type, field.name);
+                c_write(';');
+            }
+            gen_indent--;
+            genln();
+            c_write('}');
+            c_write(';');
+        }
+
         void gen_aggregate_items(Aggregate* aggregate) {
             gen_indent++;
             for (var i = 0; i < aggregate->num_items; i++) {
@@ -666,9 +640,17 @@ namespace IonLang
                 if (item.kind == AGGREGATE_ITEM_FIELD) {
                     for (var j = 0; j < item.num_names; j++) {
                         gen_sync_pos(item.pos);
-                        genln();
-                        typespec_to_cdecl(item.type, item.names[j]);
-                        c_write(';');
+                        if (item.type->kind == TYPESPEC_ARRAY && item.type->num_elems == null) {
+
+                            genln();
+                            typespec_to_cdecl(new_typespec_ptr(item.pos, item.type->@base), item.names[j]);
+                            c_write(';');
+                        }
+                        else {
+                            genln();
+                            typespec_to_cdecl(item.type, item.names[j]);
+                            c_write(';');
+                        }
                     }
                 }
                 else if (item.kind == AGGREGATE_ITEM_SUBAGGREGATE) {
@@ -744,6 +726,291 @@ namespace IonLang
             }
         }
 
+        void gen_intrinsic(Sym* sym, Expr* expr) {
+            Type *type = get_resolved_type(expr->call.args[0]);
+            Type * @base = is_ptr_type(type) ? unqualify_type(type->@base) : null;
+            Type *key = @base != null && is_aggregate_type(@base) && @base->aggregate.num_fields == 2 ? @base->aggregate.fields[0].type : null;
+            Type *val = @base != null  && is_aggregate_type(@base) && @base->aggregate.num_fields == 2 ? @base->aggregate.fields[1].type : null;
+            if (sym->name == _I("va_copy") || sym->name == _I("va_start") || sym->name == _I("va_end")) {
+                c_write(sym->name);
+                c_write('(');
+                for (int i = 0; i < expr->call.num_args; i++) {
+                    if (i != 0) {
+                        c_write(',');
+                        c_write(' ');
+                    }
+                    gen_expr(expr->call.args[i]);
+                }
+                c_write(')');
+            }
+            else if (sym->name == _I("va_arg")) {
+                assert(expr->call.num_args == 2);
+                gen_expr(expr->call.args[1]);
+                c_write(' ');
+                c_write('=');
+                c_write(' ');
+                c_write(sym->name);
+                c_write('(');
+                gen_expr(expr->call.args[0]);
+                type = get_resolved_type(expr->call.args[1]);
+                c_write(',');
+                c_write(' ');
+                type_to_cdecl(type, null);
+                c_write(')');
+            }
+            else if (sym->name == _I("apush") || sym->name == _I("aputv") || sym->name == _I("adelv") ||
+              sym->name == _I("agetvi") || sym->name == _I("agetvp") || sym->name == _I("agetv") ||
+              sym->name == _I("asetcap") || sym->name == _I("afit") || sym->name == _I("acat") ||
+              sym->name == _I("adeli") || sym->name == _I("aindexv") || sym->name == _I("asetlen") ||
+              sym->name == _I("ainit")) {
+                // (t, a, v)
+                c_write(sym->name);
+                c_write('(');
+                type_to_cdecl(@base, null);
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[0]);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[1]);
+                c_write(')');
+                c_write(')');
+            }
+            else if (sym->name == _I("adefault")) {
+                // (t, tv, a, v)
+                c_write(sym->name);
+                c_write('(');
+                type_to_cdecl(@base, null);
+                c_write(',');
+                c_write(' ');
+                type_to_cdecl(val, null);
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[0]);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[1]);
+                c_write(')');
+                c_write(')');
+            }
+            else if (sym->name == _I("afill")) {
+                // (t, a, v, n)
+                c_write(sym->name);
+                c_write('(');
+                type_to_cdecl(@base, null);
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[0]);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[1]);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[2]);
+                c_write(')');
+                c_write(')');
+            }
+            else if (sym->name == _I("acatn") || sym->name == _I("adeln")) {
+                c_write(sym->name);
+                c_write('(');
+                type_to_cdecl(@base, null);
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[0]);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[1]);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[2]);
+                c_write(')');c_write(')');
+            }
+            else if (sym->name == _I("aindex") || sym->name == _I("ageti") || sym->name == _I("adel")) {
+                c_write(sym->name);
+                c_write('(');
+                type_to_cdecl(@base, null);
+                c_write(',');
+                c_write(' ');
+                type_to_cdecl(key, null);
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[0]);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[1]);
+                c_write(')');
+                c_write(')');
+            }
+            else if (sym->name == _I("agetp") || sym->name == _I("aget")) {
+                c_write(sym->name);
+                c_write('(');
+                type_to_cdecl(@base, null);
+                c_write(',');
+                c_write(' ');
+                type_to_cdecl(key, null);
+                c_write(',');
+                c_write(' ');
+                type_to_cdecl(val, null);
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[0]);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[1]);
+                c_write(')');
+                c_write(')');
+            }
+            else if (sym->name == _I("aput")) {
+                c_write(sym->name);
+                c_write('(');
+                type_to_cdecl(@base, null);
+                c_write(',');
+                c_write(' ');
+                type_to_cdecl(key, null);
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[0]);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[1]);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[2]);
+                c_write(')');
+                c_write(')');
+            }
+            else if (sym->name == _I("ahdrsize") || sym->name == _I("ahdralign") || sym->name == _I("ahdr") ||
+              sym->name == _I("alen") || sym->name == _I("acap") || sym->name == _I("afree") ||
+              sym->name == _I("aclear") || sym->name == _I("apop")) {
+                c_write(sym->name);
+                c_write('(');
+                type_to_cdecl(@base, null);
+                c_write(',');
+                c_write(' ');
+                c_write('(');
+                gen_expr(expr->call.args[0]);
+                c_write(')');
+                c_write(')');
+            }
+            else {
+                fatal_error(expr->pos, "Call to unimplemented intrinsic {0}", _S(sym->name));
+            }
+        }
+
+        static  readonly char* generic_alloc_copy = "generic_alloc_copy".ToPtr();
+        readonly char* alloc_copy = generic_alloc_copy + 8;
+         readonly char* allocator_cast = "(Allocator *)".ToPtr();
+        void gen_expr_new(Expr* expr) {
+            assert(expr->kind == EXPR_NEW);
+            Type *type = get_resolved_type(expr);
+            assert(is_ptr_type(type));
+            if (expr->new_expr.alloc != null) {
+                c_write('(');
+                c_write('(');
+                type_to_cdecl(type, null);
+                c_write(')');
+                c_write(generic_alloc_copy, 18);
+                if (expr->new_expr.len != null) {
+                    c_write('n');
+                    c_write('(');
+                    c_write(allocator_cast, 13);
+                    c_write('(');
+                    gen_expr(expr->new_expr.alloc);
+                    c_write(')');
+                    c_write(',');
+                    c_write(' ');
+                    gen_expr(expr->new_expr.len);
+      
+                }
+                else {
+                    c_write('(');
+                    c_write(allocator_cast, 13);
+                    c_write('(');
+                    gen_expr(expr->new_expr.alloc);
+                    c_write(')');
+                }
+                c_write(',');
+                c_write(' ');
+                c_write(sizeof_keyword, 6);
+                c_write('(');
+                type_to_cdecl(type->@base, null);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write(alignof_keyword, 7);
+                c_write('(');
+                type_to_cdecl(type->@base, null);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write('&');
+                c_write('(');
+            }
+            else {
+                c_write('(');
+                c_write('(');
+                type_to_cdecl(type, null);
+                c_write(')');
+                c_write(alloc_copy, 10);
+                if (expr->new_expr.len != null) {
+                    c_write('n');
+                    c_write('(');
+                    gen_expr(expr->new_expr.len);
+                    c_write(',');
+                    c_write(' ');
+                }
+                else {
+                    c_write('(');
+                }
+                c_write(sizeof_keyword, 6);
+                c_write('(');
+                type_to_cdecl(type->@base, null);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write(alignof_keyword, 7);
+                c_write('(');
+                type_to_cdecl(type->@base, null);
+                c_write(')');
+                c_write(',');
+                c_write(' ');
+                c_write('&');
+                c_write('(');
+            }
+            gen_expr(expr->new_expr.arg);
+            c_write(')');
+            c_write(')');
+            c_write(')');
+        }
+
+
         void gen_expr_compound(Expr* expr) {
             Type *expected_type = get_resolved_expected_type(expr);
 
@@ -810,6 +1077,22 @@ namespace IonLang
         }
 
         void gen_expr(Expr* expr) {
+            Type *type = null;
+            Type *conv = type_conv(expr);
+            if (conv != null) {
+                c_write('(');
+                type_to_cdecl(conv, null);
+                c_write(')');
+                c_write('(');
+            }
+            bool gen_any = is_implicit_any(expr);
+            if (gen_any) {
+                type = get_resolved_type(expr);
+                c_write("(any){(");
+                type_to_cdecl(type, null);
+                c_write("[]){");
+            }
+
             switch (expr->kind) {
                 case EXPR_PAREN:
                     c_write('(');
@@ -865,31 +1148,46 @@ namespace IonLang
                     break;
                 case EXPR_CALL:
                     Sym *sym = get_resolved_sym(expr->call.expr);
-                    if (sym != null && sym->kind == SymKind.SYM_TYPE) {
-                        c_write('(');
-                        c_write(get_gen_name(sym));
-                        c_write(')');
+                    if (is_intrinsic(sym)) {
+                        gen_intrinsic(sym, expr);
                     }
-                    else
-                        gen_expr(expr->call.expr);
-                    c_write('(');
-                    for (var i = 0; i < expr->call.num_args; i++) {
-                        if (i != 0) {
-                            c_write(',');
-                            c_write(' ');
+                    else {
+                        if (sym != null && sym->kind == SymKind.SYM_TYPE) {
+                            c_write('(');
+                            c_write(get_gen_name(sym));
+                            c_write(')');
+                        }
+                        else
+                            gen_expr(expr->call.expr);
+                        c_write('(');
+                        for (var i = 0; i < expr->call.num_args; i++) {
+                            if (i != 0) {
+                                c_write(',');
+                                c_write(' ');
+                            }
+
+                            gen_expr(expr->call.args[i]);
                         }
 
-                        gen_expr(expr->call.args[i]);
+                        c_write(')');
                     }
-
-                    c_write(')');
                     break;
-                case EXPR_INDEX:
-                    gen_expr(expr->index.expr);
-                    c_write('[');
-                    gen_expr(expr->index.index);
-                    c_write(']');
+                case EXPR_INDEX: {
+                    type = unqualify_type(get_resolved_type(expr->index.expr));
+                    if (is_aggregate_type(type)) {
+                        gen_expr(expr->index.expr);
+                        c_write('.');
+                        long i = get_resolved_val(expr->index.index).ll;
+                        c_write(type->aggregate.fields[i].name);
+                    }
+                    else {
+                        gen_expr(expr->index.expr);
+                        c_write('[');
+                        gen_expr(expr->index.index);
+                        c_write(']');
+                    }
                     break;
+                }
                 case EXPR_FIELD: {
                     Sym* sym1 = get_resolved_sym(expr);
                     if (sym1 != null) {
@@ -898,7 +1196,8 @@ namespace IonLang
                         c_write(')');
                     }
                     else {
-                        Type *type = unqualify_type(get_resolved_type(expr->field.expr));
+                        char *name = expr->field.name;
+                        type = unqualify_type(get_resolved_type(expr->field.expr));
                         gen_expr(expr->field.expr);
                         if (type->kind == TYPE_PTR) {
 
@@ -907,7 +1206,8 @@ namespace IonLang
                         }
                         else
                             c_write('.');
-                        c_write(expr->field.name);
+
+                        c_write(name);
                     }
               
                     break;
@@ -923,12 +1223,24 @@ namespace IonLang
                     break;
                 case EXPR_BINARY:
                     c_write('(');
+                    Type *left_promo = pointer_promo_type(expr->binary.left);
+                    if (left_promo != null) {
+                        c_write('(');
+                        type_to_cdecl(left_promo, null);
+                        c_write(')');
+                    }
                     gen_expr(expr->binary.left);
                     c_write(')');
                     c_write(' ');
                     c_write(_token_kind_name(expr->binary.op));
                     c_write(' ');
                     c_write('(');
+                    Type *right_promo = pointer_promo_type(expr->binary.right);
+                    if (right_promo != null) {
+                        c_write('(');
+                        type_to_cdecl(right_promo, null);
+                        c_write(')');
+                    }
                     gen_expr(expr->binary.right);
                     c_write(')');
                     break;
@@ -970,13 +1282,13 @@ namespace IonLang
                     c_write(')');
                     break;
                 case EXPR_TYPEOF_EXPR: {
-                    Type *type = get_resolved_type(expr->typeof_expr);
+                    type = get_resolved_type(expr->typeof_expr);
                     assert(type->typeid);
                     gen_typeid(type);
                     break;
                 }
                 case EXPR_TYPEOF_TYPE: {
-                    Type *type = get_resolved_type(expr->typeof_type);
+                    type = get_resolved_type(expr->typeof_type);
                     assert(type->typeid);
                     gen_typeid(type);
                     break;
@@ -1000,9 +1312,22 @@ namespace IonLang
                         c_write(_token_kind_name(expr->modify.op));
                     }
                     break;
+                case EXPR_NEW:
+                    gen_expr_new(expr);
+                    break;
                 default:
                     assert(false);
                     break;
+            }
+            if (gen_any) {
+                c_write('}');
+                c_write(',');
+                c_write(' ');
+                gen_typeid(type);
+                c_write('}');
+            }
+            if (conv != null) {
+                c_write(')');
             }
         }
 
@@ -1034,21 +1359,30 @@ namespace IonLang
                 case STMT_INIT:
                     if (stmt->init.type != null) {
                         Typespec *init_typespec = stmt->init.type;
-                        if (is_incomplete_array_typespec(stmt->init.type)) {
-                            Expr *size = new_expr_int(init_typespec->pos, (ulong)get_resolved_type(stmt->init.expr)->num_elems, 0, 0);
-                            init_typespec = new_typespec_array(init_typespec->pos, init_typespec->@base, size);
-                        }
-                        typespec_to_cdecl(stmt->init.type, stmt->init.name);
-                        c_write(' ');
-                        c_write('=');
-                        c_write(' ');
-                        if (stmt->init.expr != null) {
-                            gen_expr(stmt->init.expr);
+                        bool incomplete = is_incomplete_array_typespec(stmt->init.type);
+                        if (incomplete && stmt->init.expr == null) {
+                            Type *init_type = get_resolved_type(stmt->init.type);
+                            type_to_cdecl(type_decay(init_type), stmt->init.name);
+                            c_write(" = 0");
                         }
                         else {
-                            c_write('{');
-                            c_write('0');
-                            c_write('}');
+                            if (incomplete) {
+                                Expr *size = new_expr_int(init_typespec->pos, (ulong)get_resolved_type(stmt->init.expr)->num_elems, 0, 0);
+                                init_typespec = new_typespec_array(init_typespec->pos, init_typespec->@base, size);
+                            }
+
+                            typespec_to_cdecl(stmt->init.type, stmt->init.name);
+                            c_write(' ');
+                            c_write('=');
+                            c_write(' ');
+                            if (stmt->init.expr != null) {
+                                gen_expr(stmt->init.expr);
+                            }
+                            else {
+                                c_write('{');
+                                c_write('0');
+                                c_write('}');
+                            }
                         }
                     }
                     else {
@@ -1060,11 +1394,41 @@ namespace IonLang
                     }
                     break;
                 case STMT_ASSIGN:
-                    gen_expr(stmt->assign.left);
-                    c_write(' ');
-                    c_write(_token_kind_name(stmt->assign.op));
-                    c_write(' ');
-                    gen_expr(stmt->assign.right);
+                    Type *promo_type = pointer_promo_type(stmt->assign.left);
+                    if (promo_type != null) {
+                        assert(stmt->assign.op == TokenKind.TOKEN_ADD_ASSIGN);
+                        Type *left_type = get_resolved_type(stmt->assign.left);
+                        if (stmt->assign.left->kind == EXPR_NAME) {
+                            char *name = get_gen_name_or_default(stmt->assign.left, stmt->assign.left->name);
+                            c_write(name);
+                            c_write(" = (char *)(");
+                            c_write(name);
+                            c_write(") + ");
+                            gen_expr(stmt->assign.right);
+                        }
+                        else {
+                            // TODO: this is an ugly codegen template that needs to avoid both illegal aliasing and multiple evaluation.
+                            // However, 99.9% of use cases will use a name on the left-hand side, and we handle that cleanly.
+                            c_write("do { ");
+                            type_to_cdecl(type_ptr(left_type), "__pp".ToPtr());
+                            c_write(" = (");
+                            type_to_cdecl(type_ptr(left_type), null);
+                            c_write(")&(");
+                            gen_expr(stmt->assign.left);
+                            c_write("); *__pp = (");
+                            type_to_cdecl(left_type, null);
+                            c_write(")(*(char **)__pp + ");
+                            gen_expr(stmt->assign.right);
+                            c_write("); } while(0)");
+                        }
+                    }
+                    else {
+                        gen_expr(stmt->assign.left);
+                        c_write(' ');
+                        c_write(_token_kind_name(stmt->assign.op));
+                        c_write(' ');
+                        gen_expr(stmt->assign.right);
+                    }
                     break;
                 default:
                     assert(false);
@@ -1096,16 +1460,40 @@ namespace IonLang
                     genln();
                     gen_stmt_block(stmt->block);
                     break;
-                case STMT_NOTE:
-                    if (stmt->note.name == assert_name) {
+                case STMT_NOTE: {
+                    Note note = stmt->note;
+                    if (note.name == assert_name) {
                         genlnf(assert_name);
                         c_write('(');
-                        assert(stmt->note.num_args == 1);
-                        gen_expr(stmt->note.args[0].expr);
+                        assert(note.num_args == 1);
+                        gen_expr(note.args[0].expr);
                         c_write(')');
                         c_write(';');
                     }
+                    else if (note.name == foreign_name) {
+                        char *preamble_name = _I("preamble");
+                        char *postamble_name = _I("postamble");
+                        for (var i = 0; i < note.num_args; i++) {
+                            char *name = note.args[i].name;
+                            Expr *expr = note.args[i].expr;
+                            if (expr->kind != EXPR_STR) {
+                                fatal_error(expr->pos, "#foreign argument must be a string");
+                            }
+                            char *str = expr->str_lit.val;
+                            if (name == preamble_name) {
+                                gen_buf_pos(ref gen_preamble_buf, note.args[i].pos);
+                                gen_preamble_buf.Append(str, strlen(str));
+                                gen_preamble_buf.Append('\n');
+                            }
+                            else if (name == postamble_name) {
+                                gen_buf_pos(ref gen_postamble_buf, note.args[i].pos);
+                                gen_postamble_buf.Append(str, strlen(str));
+                                gen_postamble_buf.Append('\n');
+                            }
+                        }
+                    }
                     break;
+                }
                 case STMT_LABEL: {
                     var indent = gen_indent;
                     gen_indent = 0;
@@ -1324,7 +1712,7 @@ namespace IonLang
             }
         }
 
-        static bool is_char_lit(Expr* expr) {
+         bool is_char_lit(Expr* expr) {
             return expr->kind == EXPR_INT && expr->int_lit.mod == MOD_CHAR;
         }
 
@@ -1354,6 +1742,9 @@ namespace IonLang
                     c_write(')');
                     break;
                 case DECL_VAR:
+                    if (is_decl_threadlocal(decl)) {
+                        genlnf("THREADLOCAL");
+                    }
                     genlnf(externStr, 6);
                     c_write(' ');
                     if (decl->var.type != null && !is_incomplete_array_typespec(decl->var.type)) {
@@ -1405,6 +1796,23 @@ namespace IonLang
         }
 
         void gen_sorted_decls() {
+            for (int i = 0; i < tuple_types->count; i++) {
+                Type *type = tuple_types->Get<Type>(i);
+                char* id = type->typeid.itoa();
+                genlnf("struct tuple");
+                c_write(id);
+                c_write(' ');
+                c_write('{');
+                gen_indent++;
+                for (var j = 0; j < type->aggregate.num_fields; j++) {
+                    TypeField field = type->aggregate.fields[j];
+                    type_to_cdecl(field.type, field.name);
+                    c_write(';');
+                }
+                gen_indent--;
+                c_write('}');
+                c_write(';');
+            }
             var sym_cnt = sorted_syms->count;
 
             for (var i = 0; i < sym_cnt; i++) {
@@ -1414,15 +1822,13 @@ namespace IonLang
                 }
             }
         }
-        static Map gen_foreign_headers_map;
-        static PtrBuffer* gen_foreign_headers_buf = PtrBuffer.Create();
-        static PtrBuffer* gen_foreign_sources_buf = PtrBuffer.Create();
-        static PtrBuffer* gen_sources_buf = PtrBuffer.Create();
-        static Buffer<char> gen_preamble_buf = Buffer<char>.Create();
-        static Buffer<char> gen_postamble_buf = Buffer<char>.Create();
+         Map gen_foreign_headers_map;
+         PtrBuffer* gen_foreign_headers_buf = PtrBuffer.Create();
+         PtrBuffer* gen_foreign_sources_buf = PtrBuffer.Create();
+         PtrBuffer* gen_sources_buf = PtrBuffer.Create();
 
 
-        static void add_foreign_header(char* name) {
+         void add_foreign_header(char* name) {
             name = _I(name);
             if (!gen_foreign_headers_map.exists(name)) {
                 gen_foreign_headers_map.map_put(name, (void*)1);
@@ -1431,7 +1837,7 @@ namespace IonLang
         }
 
 
-        static void add_foreign_source(char* name) {
+         void add_foreign_source(char* name) {
             gen_foreign_sources_buf->Add(_I(name));
         }
 
@@ -1447,17 +1853,16 @@ namespace IonLang
 
         void gen_foreign_headers() {
             if (gen_foreign_headers_buf->count > 0) {
-                genlnf("// Foreign header files".ToPtr());
                 for (var i = 0; i < gen_foreign_headers_buf->count; i++) {
                     gen_include(gen_foreign_headers_buf->Get<char>(i));
                 }
             }
         }
 
-        static readonly char *header_name = _I("header");
-        static readonly char *source_name = _I("source");
-        static readonly char *preamble_name = _I("preamble");
-        static readonly char *postamble_name = _I("postamble");
+         readonly char *header_name = _I("header");
+         readonly char *source_name = _I("source");
+         readonly char *preamble_name = _I("preamble");
+         readonly char *postamble_name = _I("postamble");
 
         void preprocess_package(Package* package) {
             if (package->external_name == null) {
@@ -1497,16 +1902,17 @@ namespace IonLang
                             add_foreign_source(path);
                         }
                         else if (arg.name == preamble_name) {
+                            gen_buf_pos(ref gen_preamble_buf, arg.pos);
                             gen_preamble_buf.Append(str, strlen(str));
-                            gen_preamble_buf.Add('\n');
-                            gen_preamble_buf.Add('\0');
+                            gen_preamble_buf.AppendLine();
                         }
                         else if (arg.name == postamble_name) {
+                            gen_buf_pos(ref gen_postamble_buf, arg.pos);
                             gen_postamble_buf.Append(str, strlen(str));
-                            gen_postamble_buf.Add('\n');
+                            gen_postamble_buf.AppendLine();
                         }
                         else {
-                            fatal_error(decl->pos, "Unknown #foreign named argument '%s'", _S(arg.name));
+                            fatal_error(decl->pos, "Unknown #foreign named argument '{0}'", _S(arg.name));
                         }
                     }
                 }
@@ -1525,19 +1931,13 @@ namespace IonLang
         }
 
         void gen_preamble() {
-            c_write(gen_preamble_str);
-            if (gen_preamble_buf.count > 0) {
-                genln();
-                genlnf("// Foreign preamble".ToPtr());
+            if (gen_preamble_buf.Length > 0) {
                 genlnf(gen_preamble_buf);
             }
         }
 
         void gen_postamble() {
-            c_write(gen_postamble_str);
-            if (gen_postamble_buf.count > 0) {
-                genln();
-                genlnf("// Foreign preamble".ToPtr());
+            if (gen_postamble_buf.Length > 0) {
                 genlnf(gen_postamble_buf);
             }
         }
@@ -1559,10 +1959,10 @@ namespace IonLang
 
         char*[] tiInfo;
         void gen_typeinfos() {
-            tiInfo = new[] {"const TypeInfo *typeinfo_table[".ToPtr(out int ti0),
+            tiInfo = new[] {"TypeInfo *typeinfo_table[".ToPtr(out int ti0),
                           "] = {".ToPtr(out int ti1),
                           "int num_typeinfos = ".ToPtr(out int ti2),
-                          "const TypeInfo **typeinfos = (const TypeInfo **)typeinfo_table;".ToPtr(out int ti3),
+                          "TypeInfo **typeinfos = (TypeInfo **)typeinfo_table;".ToPtr(out int ti3),
                           "NULL, // No associated type".ToPtr(out int ti4),
                           "&(TypeInfo){TYPE_VOID, .name = \"void\", .size = 0, .align = 0},".ToPtr(out int ti5),
                           "&(TypeInfo){TYPE_PTR, .size = sizeof(void *), .align = alignof(void *), .base = ".ToPtr(out int ti6),
@@ -1840,22 +2240,21 @@ namespace IonLang
 
         void gen_all() {
             preprocess_packages();
-            gen_preamble();
             gen_foreign_headers();
             genln();
-            genlnf("// Forward declarations".ToPtr());
             gen_forward_decls();
             genln();
-            genlnf("// Sorted declarations".ToPtr());
             gen_sorted_decls();
-            genlnf("// Typeinfo".ToPtr());
             gen_typeinfos();
-            genlnf("// Definitions".ToPtr());
             gen_defs();
-            genlnf("// Foreign source files".ToPtr());
             gen_foreign_sources();
             genln();
             gen_postamble();
+
+            var buf = gen_buf;
+            gen_buf = new StringBuilder();
+            gen_preamble();
+            gen_buf.Append(buf);
         }
 
         void init_chars() {

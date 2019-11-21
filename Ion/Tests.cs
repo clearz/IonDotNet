@@ -4,12 +4,12 @@ namespace IonLang
 {
     using static TokenKind;
     using static TokenMod;
-
+    /*
     unsafe partial class Ion
     {
         void main_test() {
             lex_init();
-            var tests = new Action[] {resolve_test, common_test, lex_test, print_test, parse_test, /*ion_test*/ };
+            var tests = new Action[] {resolve_test, common_test, lex_test, print_test, parse_test,  }; // ion_test
             foreach(var test in tests) {
                 Console.Write($"\nPress a key to preform '{test.Method.Name}', Press Space to skip");
                 if (Console.ReadKey().KeyChar != ' ')
@@ -171,7 +171,7 @@ namespace IonLang
 
         #region Parser Tests
 
-        static readonly string[] decls =
+         readonly string[] decls =
         {
        "var x: char[256] = {1, 2, 3, ['a'] = 4}",
         "struct Vector { x, y: float; }",
@@ -236,20 +236,20 @@ namespace IonLang
             type_to_cdecl(type_int, &c);
             type_to_cdecl(type_ptr(type_int), &c);
             c++;
-            type_to_cdecl(type_array(type_int, 10), &c);
+            type_to_cdecl(type_array(type_int, 10, false), &c);
             c++;
-            type_to_cdecl(type_func(new[] { type_int }, 1, type_int), &c);
+            type_to_cdecl(type_func(new[] { type_int }, 1, type_int, false, false, null), &c);
             c++;
-            type_to_cdecl(type_array(type_func(new[] { type_int }, 1, type_int), 10), &c);
+            type_to_cdecl(type_array(type_func(new[] { type_int }, 1, type_int, false, false, null), 10, false), &c);
             c++;
-            type_to_cdecl(type_func(new[] { type_ptr(type_int) }, 1, type_int), &c);
+            type_to_cdecl(type_func(new[] { type_ptr(type_int) }, 1, type_int, false, false, null), &c);
             c++;
-            var type1 = type_func(new[] {type_array(type_int, 10)}, 1, type_int);
+            var type1 = type_func(new[] {type_array(type_int, 10,  false)}, 1, type_int, false, false, null);
             type_to_cdecl(type1, &c);
             c++;
-            type_to_cdecl(type_func((Type**)null, 0, type1), &c);
+            type_to_cdecl(type_func((Type**)null, 0, type1, false, false, null), &c);
             c++;
-            type_to_cdecl(type_func((Type**)null, 0, type_array(type_func((Type**)null, 0, type_int), 10)), &c);
+            type_to_cdecl(type_func((Type**)null, 0, type_array(type_func((Type**)null, 0, type_int, false, false, null), 10, false), false, false, null), &c);
             Console.WriteLine(gen_buf);
         }
 
@@ -291,18 +291,18 @@ namespace IonLang
             assert(int_ptr != float_ptr);
             var int_ptr_ptr = type_ptr(type_ptr(type_int));
             assert(type_ptr(type_ptr(type_int)) == int_ptr_ptr);
-            var float4_array = type_array(type_float, 4);
-            assert(type_array(type_float, 4) == float4_array);
-            var float3_array = type_array(type_float, 3);
-            assert(type_array(type_float, 3) == float3_array);
+            var float4_array = type_array(type_float, 4, false);
+            assert(type_array(type_float, 4, false) == float4_array);
+            var float3_array = type_array(type_float, 3, false);
+            assert(type_array(type_float, 3, false) == float3_array);
             assert(float4_array != float3_array);
             fixed (Type** t = &type_int) {
-                var int_int_func = type_func(t, 1, type_int);
-                assert(type_func(t, 1, type_int) == int_int_func);
+                var int_int_func = type_func(t, 1, type_int, false, false, null);
+                assert(type_func(t, 1, type_int, false, false, null) == int_int_func);
 
-                var int_func = type_func((Type**) null, 0, type_int);
+                var int_func = type_func((Type**) null, 0, type_int, false, false, null);
                 assert(int_int_func != int_func);
-                assert(int_func == type_func((Type**)null, 0, type_int));
+                assert(int_func == type_func((Type**)null, 0, type_int, false, false, null));
             }
 
             for (var i = 0; i < code.Length; i++) {
@@ -453,4 +453,6 @@ namespace IonLang
         }
         #endregion
     }
+
+    */
 }

@@ -36,11 +36,17 @@ namespace IonLang
         [FieldOffset(0)] public TypespecKind kind;
         [FieldOffset(4)] public SrcPos pos;
         [FieldOffset(28)] public Typespec* @base;
-        [FieldOffset(28 + Ion.PTR_SIZE)] public int num_names;
-        [FieldOffset(32 + Ion.PTR_SIZE)] public char** names;
+        [FieldOffset(28 + Ion.PTR_SIZE)] public char** names;
         [FieldOffset(28 + Ion.PTR_SIZE)] public FuncTypespec func;
         [FieldOffset(28 + Ion.PTR_SIZE)] public Expr *num_elems;
+        [FieldOffset(28 + Ion.PTR_SIZE)] public Tuple tuple;
+        [FieldOffset(28 + Ion.PTR_SIZE * 2)] public int num_names;
 
+        internal struct Tuple
+        {
+            public Typespec **fields;
+            public int num_fields;
+        }
 
         internal struct FuncTypespec
         {
@@ -51,7 +57,6 @@ namespace IonLang
         }
 
     }
-
 
     internal unsafe struct FuncParam
     {
@@ -83,7 +88,7 @@ namespace IonLang
         public Typespec* type;
         public SrcPos pos;
         public AggregateItemKind kind;
-         public Aggregate* subaggregate;
+        public Aggregate* subaggregate;
 
     }
 
@@ -123,6 +128,7 @@ namespace IonLang
             public FuncParam* @params;
             public int num_params;
             public bool has_varargs;
+            public Typespec *varargs_type;
             public Typespec* ret_type;
             public StmtList block;
         }
@@ -152,7 +158,8 @@ namespace IonLang
             public Expr* expr;
         }
 
-        internal struct ImportDecl {
+        internal struct ImportDecl
+        {
             public bool is_relative;
             public char** names;
             public long num_names;
@@ -160,7 +167,7 @@ namespace IonLang
             public ImportItem *items;
             public long num_items;
         }
-}
+    }
     unsafe struct NoteArg
     {
         public SrcPos pos;
@@ -175,13 +182,13 @@ namespace IonLang
         public int num_args;
     }
 
-    [StructLayout(LayoutKind.Sequential, Size=16)]
+    [StructLayout(LayoutKind.Sequential, Size = 16)]
     unsafe struct Notes
     {
         public Note *notes;
         public int num_notes;
     }
-    
+
     internal enum CompoundFieldKind
     {
         FIELD_DEFAULT,
@@ -227,6 +234,14 @@ namespace IonLang
         [FieldOffset(28 + Ion.PTR_SIZE)] public CallExpr call;
         [FieldOffset(28 + Ion.PTR_SIZE)] public IndexExpr index;
         [FieldOffset(28 + Ion.PTR_SIZE)] public FieldExpr field;
+        [FieldOffset(28 + Ion.PTR_SIZE)] public NewExpr new_expr;
+
+        internal struct NewExpr
+        {
+            public Expr *alloc;
+            public Expr *len;
+            public Expr *arg;
+        }
 
         internal struct _offsetof_field
         {
@@ -272,7 +287,7 @@ namespace IonLang
         {
             public Expr *expr;
         }
-    
+
         internal struct CastExpr
         {
             public Typespec* type;
@@ -437,7 +452,8 @@ namespace IonLang
         TYPESPEC_FUNC,
         TYPESPEC_ARRAY,
         TYPESPEC_PTR,
-        TYPESPEC_CONST
+        TYPESPEC_CONST,
+        TYPESPEC_TUPLE
     }
 
     internal enum DeclKind
@@ -478,6 +494,7 @@ namespace IonLang
         EXPR_ALIGNOF_EXPR,
         EXPR_ALIGNOF_TYPE,
         EXPR_OFFSETOF,
+        EXPR_NEW,
     }
 
 

@@ -77,12 +77,6 @@
     <None Update="test1\test1.ion">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
-    <None Update="test2\main.ion">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-    <None Update="test2\test2.ion">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
     <None Update="test3.ion">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

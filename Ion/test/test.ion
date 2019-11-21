@@ -1,6 +1,4 @@
-﻿import C = libc {gc = getchar, ...}
-
-enum TokenKind {
+﻿enum TokenKind {
     TOKEN_NONE,
     TOKEN_INT,
     TOKEN_STR,
@@ -26,6 +24,6 @@ func test_token() {
 #static_assert(sizeof(Token) == 24)
 
 func main(argc: int, argv: char**) {
-	test_token();
-	C.getchar();
+
+
 }

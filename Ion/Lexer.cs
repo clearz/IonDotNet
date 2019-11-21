@@ -9,10 +9,10 @@ namespace IonLang
 
     public unsafe partial class Ion
     {
-        static PtrBuffer* keywords;
+         PtrBuffer* keywords;
 
 
-        static bool inited;
+         bool inited;
 
         readonly byte[] char_to_digit = new byte[256];
         readonly char[] escape_to_char = new char[256];
@@ -43,6 +43,7 @@ namespace IonLang
         char *offsetof_keyword;
         char *import_keyword;
         char *goto_keyword;
+        char *new_keyword;
 
         Buffer<char> str_buf;
         char* stream;
@@ -57,6 +58,9 @@ namespace IonLang
         char* while_keyword;
 
         char *always_name;
+        char *inline_name;
+        char *intrinsic_name;
+        char *void_name;
         char *foreign_name;
         char *complete_name;
         char *assert_name;
@@ -261,10 +265,16 @@ namespace IonLang
             goto_keyword = _I("goto");
             keywords->Add(goto_keyword);
 
+            new_keyword = _I("new");
+            keywords->Add(new_keyword);
+
             default_keyword = _I("default");
             keywords->Add(default_keyword);
 
             always_name = _I("always");
+            inline_name = _I("inline");
+            intrinsic_name = _I("intrinsic");
+            void_name = _I("void");
             foreign_name  = _I("foreign");
             complete_name = _I("complete");
             assert_name   = _I("assert");
@@ -932,15 +942,6 @@ repeat:
 
             token.end = stream;
             token.pos.col = token.start - line_start + 1;
-        }
-
-        void init_stream(string buf, string name = "<anonymous>") {
-            init_stream(buf.ToPtr(), $"\"{name}\"".ToPtr());
-        }
-        void init_stream(Span<char> s, string name = "<anonymous>") {
-
-            fixed(char* c = s)
-            init_stream(c, $"\"{name}\"".ToPtr());
         }
 
         void init_stream(char* str, char* name = null) {

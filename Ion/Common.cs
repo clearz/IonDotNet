@@ -12,7 +12,9 @@ namespace IonLang
         static readonly MemArena intern_arena = MemArena.Create();
 
         void initialise() {
-            local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
+            //local_syms = Buffer<Sym>.Create(MAX_LOCAL_SYMS);
+            local_syms = (Sym*)xmalloc(sizeof(Sym) * MAX_LOCAL_SYMS);
+            local_syms_end = local_syms;
             reachable_syms = PtrBuffer.Create();
             package_list = PtrBuffer.Create();
             sorted_syms = PtrBuffer.Create(capacity: 256);
@@ -61,7 +63,7 @@ namespace IonLang
             void arena_grow(long min_size) {
                 //Console.WriteLine("Growing: " + arenas->count);
                 var size = (int) ALIGN_UP(CLAMP_MIN(min_size, ARENA_BLOCK_SIZE), ARENA_ALIGNMENT);
-                ptr = (byte*)xmalloc(size);
+                ptr = (byte*)Marshal.AllocHGlobal(size);
                 assert(ptr == ALIGN_DOWN_PTR(ptr, ARENA_ALIGNMENT));
                 end = ptr + size;
                 arenas->Add(ptr);
@@ -70,7 +72,7 @@ namespace IonLang
             public static MemArena Create() {
                 var arena = new MemArena();
                 arena.arenas = PtrBuffer.Create();
-                arena.ptr = (byte*)xmalloc(ARENA_BLOCK_SIZE);
+                arena.ptr = (byte*)Marshal.AllocHGlobal(ARENA_BLOCK_SIZE);
                 assert(arena.ptr == ALIGN_DOWN_PTR(arena.ptr, ARENA_ALIGNMENT));
                 arena.end = arena.ptr + ARENA_BLOCK_SIZE;
                 arena.arenas->Add(arena.ptr);
@@ -94,14 +96,16 @@ namespace IonLang
             internal void free() {
                 for (int i = 0; i < arenas->count; i++) {
                     byte* p = *((byte**)arenas->_begin) + (PTR_SIZE * i);
-                    xfree(p);
+                    Marshal.FreeHGlobal((IntPtr)p);
                 }
             }
         }
 
 
+        
         internal struct Intern
         {
+            internal static long intern_memory_usage;
             long len;
             Intern* next;
             char* str;
@@ -121,6 +125,7 @@ namespace IonLang
                 new_intern->str = (char*)intern_arena.Alloc(len_bytes + 2);
                 Unsafe.CopyBlock(new_intern->str, start, (uint)len_bytes);
                 *(new_intern->str + len) = '\0';
+                intern_memory_usage += sizeof(Intern) + len + 1 + 16;
                 interns.map_put_from_uint64(key, new_intern);
                 return new_intern->str;
             }
@@ -205,7 +210,7 @@ namespace IonLang
         #endregion
 
         #region MemAlloc
-
+        static MemArena main_arena = MemArena.Create();
         [DebuggerHidden]
         internal static void memcpy(void* dst, void* src, int len) {
             Unsafe.CopyBlock(dst, src, (uint)len);
@@ -238,11 +243,13 @@ namespace IonLang
 
         [DebuggerHidden]
         internal static T* xrealloc<T>(T* ptr, int num_bytes) where T : unmanaged {
+            //var ptr = main_arena.Alloc(num_bytes);
             return (T*)Marshal.ReAllocHGlobal((IntPtr)ptr, (IntPtr)num_bytes);
         }
 
         [DebuggerHidden]
         internal static void* xmalloc(int num_bytes) {
+            //return main_arena.Alloc(num_bytes);
             return (void*)Marshal.AllocHGlobal((IntPtr)num_bytes);
         }
 
@@ -328,177 +335,6 @@ namespace IonLang
         static string _S(char* c) => new string(c);
 
         #region Buffers
-
-        internal struct Buffer<T> where T : unmanaged
-        {
-            internal T* _begin, _top;
-
-            const int START_CAPACITY = 4,
-                MULTIPLIER = 2;
-
-            internal int count;
-
-            int  buffer_size, item_size;
-            int _capacity, _multiplier;
-
-            public static implicit operator T*(Buffer<T> b) {
-                return b._begin;
-            }
-
-            public T* this[int i] => _begin + i;
-
-            public static Buffer<T> Create(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
-                assert(capacity >= START_CAPACITY);
-                assert(multiplier > 1);
-                var b = new Buffer<T>
-                {
-                    item_size = sizeof(T),
-                    _capacity = capacity,
-                    _multiplier = multiplier,
-                    count = 0
-                };
-                b.buffer_size = b._capacity * b.item_size;
-                b._begin = (T*)xmalloc(b.buffer_size);
-                b._top = b._begin;
-                return b;
-            }
-
-            public void Add(T val) {
-                Write(_top, ref val);
-
-                if (++count == _capacity) {
-                    _capacity *= _multiplier;
-                    buffer_size = _capacity * item_size;
-                    _begin = xrealloc(_begin, buffer_size);
-                    _top = _begin + count;
-                }
-                else {
-                    _top++;
-                }
-            }
-
-            public void Add(T* val) {
-                Write(_top, val);
-
-                if (++count == _capacity) {
-                    _capacity *= _multiplier;
-                    buffer_size = _capacity * item_size;
-                    _begin = xrealloc(_begin, buffer_size);
-                    _top = _begin + count;
-                }
-                else {
-                    _top++;
-                }
-            }
-
-            public void Append(T* val, int len) {
-                if (count + len >= _capacity) {
-                    while (_capacity < len)
-                        _capacity *= _multiplier;
-                    buffer_size = _capacity * item_size;
-                    _begin = xrealloc(_begin, buffer_size);
-                    _top = _begin + count;
-                }
-
-                Unsafe.CopyBlock(_top, val, (uint)(len * item_size));
-                count += len;
-                _top += len;
-            }
-
-            public void free() {
-                xfree(_begin);
-                this = default;
-            }
-
-            public void clear() {
-                _top = _begin;
-                count = 0;
-            }
-        }
-
-
-        internal struct PtrBuffer
-        {
-            const int START_CAPACITY = 8,
-                MULTIPLIER = 2;
-
-            public int count;
-            internal void** _begin, _top, _end;
-            public int Count => (int)(_top - _begin) / PTR_SIZE;
-            public int buf_byte_size;
-            int _capacity, _multiplier;
-
-            internal static PtrBuffer* buffers = Create();
-
-            public static PtrBuffer* GetPooledBuffer() {
-                if (buffers->count > 0)
-                    return (PtrBuffer*)buffers->Remove();
-                var buf = Create();
-                return buf;
-            }
-
-
-            public static PtrBuffer* Create(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
-                assert(multiplier >= MULTIPLIER);
-                assert(capacity > 0);
-                var b = (PtrBuffer*) xmalloc(sizeof(PtrBuffer));
-
-                b->_capacity = capacity;
-                b->_multiplier = multiplier;
-                b->count = 0;
-                b->buf_byte_size = capacity * PTR_SIZE;
-                b->_begin = (void**)xmalloc(b->buf_byte_size);
-                b->_top = b->_begin;
-                b->_end = b->_begin + b->buf_byte_size;
-                return b;
-            }
-
-            public void* Remove() {
-                assert(_top != _begin);
-                _top--;
-                count--;
-                return *_top;
-            }
-
-            public void Add(void* val) {
-                *_top = val;
-
-                if (++count == _capacity) {
-                    _capacity *= _multiplier;
-                    buf_byte_size = _capacity * PTR_SIZE;
-                    _begin = (void**)xrealloc(_begin, buf_byte_size);
-                    _top = _begin + count;
-                    _end = _begin + _capacity;
-                }
-                else {
-                    _top++;
-                }
-            }
-
-            public T** Cast<T>() where T : unmanaged {
-                return (T**)_begin;
-            }
-
-            public T* Get<T>(int i) where T : unmanaged {
-                return *(((T**)_begin) + i);
-            }
-
-            public void free() {
-                xfree(_begin);
-            }
-
-            public void clear() {
-                _top = _begin;
-                count = 0;
-            }
-
-            public void Release() {
-                clear();
-                fixed (void* v = &this) {
-                    buffers->Add(v);
-                }
-            }
-        }
 
         #endregion
 
@@ -602,122 +438,122 @@ namespace IonLang
             return n;
         }
 
-        internal unsafe struct Map
-        {
-            ulong* keys, vals;
-            ulong len, cap;
 
-            internal static ulong hash_uint64(ulong x) {
-                ulong a = x * 0xff51afd7ed558ccd;
-                ulong b = a ^ (x >> 32);
-                return b;
-            }
+    }
 
-            internal static ulong hash_ptr(void* ptr) {
-                return hash_uint64((ulong)ptr);
-            }
+    internal unsafe struct Map
+    {
+        ulong* keys, vals;
+        ulong len, cap;
 
-            internal static ulong hash_mix(ulong x, ulong y) {
-                x ^= y;
-                x *= 0xff51afd7ed558ccd;
+        internal static ulong hash_uint64(ulong x) {
+            ulong a = x * 0xff51afd7ed558ccd;
+            ulong b = a ^ (x >> 32);
+            return b;
+        }
+
+        internal static ulong hash_ptr(void* ptr) {
+            return hash_uint64((ulong)ptr);
+        }
+
+        internal static ulong hash_mix(ulong x, ulong y) {
+            x ^= y;
+            x *= 0xff51afd7ed558ccd;
+            x ^= x >> 32;
+            return x;
+        }
+
+        internal static ulong hash_bytes(void* ptr, long len) {
+            var x = 0xcbf29ce484222325;
+            byte *buf = (byte *)ptr;
+            for (long i = 0; i < len; i++) {
+                x ^= buf[i];
+                x *= 0x100000001b3;
                 x ^= x >> 32;
-                return x;
             }
 
-            internal static ulong hash_bytes(void* ptr, long len) {
-                var x = 0xcbf29ce484222325;
-                byte *buf = (byte *)ptr;
-                for (long i = 0; i < len; i++) {
-                    x ^= buf[i];
-                    x *= 0x100000001b3;
-                    x ^= x >> 32;
-                }
+            return x;
+        }
 
-                return x;
-            }
-
-            void map_grow(ulong new_cap) {
-                new_cap = CLAMP_MIN(new_cap, 16);
-                var new_map = new Map
+        void map_grow(ulong new_cap) {
+            new_cap = Ion.CLAMP_MIN(new_cap, 16);
+            var new_map = new Map
                 {
-                    keys = (ulong*) xcalloc((int) new_cap, sizeof(ulong)),
-                    vals = (ulong*)(void**) xmalloc((int) new_cap * sizeof(ulong)),
-                    cap = new_cap
-                };
+                keys = (ulong*) Ion.xcalloc((int) new_cap, sizeof(ulong)),
+                vals = (ulong*)(void**) Ion.xmalloc((int) new_cap * sizeof(ulong)),
+                cap = new_cap
+            };
 
-                for (ulong i = 0; i < cap; i++)
-                    if (keys[i] != 0)
-                        new_map.map_put_uint64_from_uint64(keys[i], vals[i]);
-                xfree(keys);
-                xfree(vals);
-                this = new_map;
-            }
+            for (ulong i = 0; i < cap; i++)
+                if (keys[i] != 0)
+                    new_map.map_put_uint64_from_uint64(keys[i], vals[i]);
+            Ion.xfree(keys);
+            Ion.xfree(vals);
+            this = new_map;
+        }
 
 
-            ulong map_get_uint64_from_uint64(ulong key) {
-                if (len == 0)
+        ulong map_get_uint64_from_uint64(ulong key) {
+            if (len == 0)
+                return 0;
+
+            Ion.assert(Ion.IS_POW2(cap));
+            Ion.assert(len < cap);
+
+            for (var i = key; ; i++) {
+                i &= cap - 1;
+                if (keys[i] == key)
+                    return vals[i];
+                if (keys[i] == 0)
                     return 0;
+            }
+        }
 
-                assert(IS_POW2(cap));
-                assert(len < cap);
-
-                for (var i = key; ; i++) {
-                    i &= cap - 1;
-                    if (keys[i] == key)
-                        return vals[i];
-                    if (keys[i] == 0)
-                        return 0;
-                }
+        void map_put_uint64_from_uint64(ulong key, ulong val) {
+            Ion.assert(key != 0);
+            if (val == 0) {
+                return;
             }
 
-            void map_put_uint64_from_uint64(ulong key, ulong val) {
-                assert(key != 0);
-                if (val == 0) {
+            if (2 * len >= cap)
+                map_grow(2 * cap);
+
+            Ion.assert(2 * len < cap);
+            Ion.assert(Ion.IS_POW2(cap));
+
+
+            for (var i = key; ; i++) {
+                i &= cap - 1;
+                if (keys[i] == 0) {
+                    len++;
+                    keys[i] = key;
+                    vals[i] = val;
                     return;
                 }
 
-                if (2 * len >= cap)
-                    map_grow(2 * cap);
-
-                assert(2 * len < cap);
-                assert(IS_POW2(cap));
-
-
-                for (var i = key; ; i++) {
-                    i &= cap - 1;
-                    if (keys[i] == 0) {
-                        len++;
-                        keys[i] = key;
-                        vals[i] = val;
-                        return;
-                    }
-
-                    if (keys[i] == key) {
-                        vals[i] = val;
-                        return;
-                    }
+                if (keys[i] == key) {
+                    vals[i] = val;
+                    return;
                 }
             }
+        }
 
 
-            public void map_put(void* key, void* val) => map_put_uint64_from_uint64((ulong)key, (ulong)val);
-            public void map_put_from_uint64(ulong key, void* val) => map_put_uint64_from_uint64(key, (ulong)val);
-            public T* map_get<T>(void* key) where T : unmanaged => (T*)map_get_from_uint64((ulong)key);
-            public void* map_get_from_uint64(ulong key) => (void*)map_get_uint64_from_uint64(key);
-            public ulong map_get_uint64(void* key) => map_get_uint64_from_uint64((ulong)key);
-            public void map_put_uint64(void* key, ulong val) => map_put_uint64_from_uint64((ulong)key, val);
+        public void map_put(void* key, void* val) => map_put_uint64_from_uint64((ulong)key, (ulong)val);
+        public void map_put_from_uint64(ulong key, void* val) => map_put_uint64_from_uint64(key, (ulong)val);
+        public T* map_get<T>(void* key) where T : unmanaged => (T*)map_get_from_uint64((ulong)key);
+        public void* map_get_from_uint64(ulong key) => (void*)map_get_uint64_from_uint64(key);
+        public ulong map_get_uint64(void* key) => map_get_uint64_from_uint64((ulong)key);
+        public void map_put_uint64(void* key, ulong val) => map_put_uint64_from_uint64((ulong)key, val);
 
-            internal bool exists(void* key) => map_get_uint64_from_uint64((ulong)key) != 0;
+        internal bool exists(void* key) => map_get_uint64_from_uint64((ulong)key) != 0;
 
-            internal void free() {
-                xfree(keys);
-                xfree(vals);
-                this = default;
-            }
+        internal void free() {
+            Ion.xfree(keys);
+            Ion.xfree(vals);
+            this = default;
         }
     }
-
-
     [StructLayout(LayoutKind.Explicit)]
     internal unsafe struct Val
     {
@@ -734,15 +570,177 @@ namespace IonLang
         [FieldOffset(0)] public long ll;
         [FieldOffset(0)] public ulong ull;
         [FieldOffset(0)] public void* p;
+    }
 
-        public override string ToString() {
-            String str;
+    internal unsafe struct Buffer<T> where T : unmanaged
+    {
+        internal T* _begin, _top;
 
-            if ((ull >> 32) > 0)
-                str = Convert.ToString((int)(ull >> 32), 2) + Convert.ToString(l, 2).PadLeft(8, '0');
-            else
-                str = Convert.ToString(l, 2);
-            return $"[{str.Length}:{str}]";
+        const int START_CAPACITY = 4,
+                MULTIPLIER = 2;
+
+        internal int count;
+
+        int  buffer_size, item_size;
+        int _capacity, _multiplier;
+
+        public static implicit operator T*(Buffer<T> b) {
+            return b._begin;
+        }
+
+        public T* this[int i] => _begin + i;
+
+        public static Buffer<T> Create(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
+            Ion.assert(capacity >= START_CAPACITY);
+            Ion.assert(multiplier > 1);
+            var b = new Buffer<T>
+                {
+                item_size = sizeof(T),
+                _capacity = capacity,
+                _multiplier = multiplier,
+                count = 0
+            };
+            b.buffer_size = b._capacity * b.item_size;
+            b._begin = (T*)Ion.xmalloc(b.buffer_size);
+            b._top = b._begin;
+            return b;
+        }
+
+        public void Add(T val) {
+            Ion.Write(_top, ref val);
+
+            if (++count == _capacity) {
+                _capacity *= _multiplier;
+                buffer_size = _capacity * item_size;
+                _begin = Ion.xrealloc(_begin, buffer_size);
+                _top = _begin + count;
+            }
+            else {
+                _top++;
+            }
+        }
+
+        public void Add(T* val) {
+            Ion.Write(_top, val);
+
+            if (++count == _capacity) {
+                _capacity *= _multiplier;
+                buffer_size = _capacity * item_size;
+                _begin = Ion.xrealloc(_begin, buffer_size);
+                _top = _begin + count;
+            }
+            else {
+                _top++;
+            }
+        }
+
+        public void Append(T* val, int len) {
+            if (count + len >= _capacity) {
+                while (_capacity < len)
+                    _capacity *= _multiplier;
+                buffer_size = _capacity * item_size;
+                _begin = Ion.xrealloc(_begin, buffer_size);
+                _top = _begin + count;
+            }
+
+            Unsafe.CopyBlock(_top, val, (uint)(len * item_size));
+            count += len;
+            _top += len;
+        }
+
+        public void free() {
+            Ion.xfree(_begin);
+            this = default;
+        }
+
+        public void clear() {
+            _top = _begin;
+            count = 0;
         }
     }
+
+
+    internal unsafe struct PtrBuffer
+    {
+        const int START_CAPACITY = 64,
+                MULTIPLIER = 2;
+
+        public int count;
+        internal void** _begin, _top, _end;
+        public int Count => (int)(_top - _begin) / Ion.PTR_SIZE;
+        public int buf_byte_size;
+        int _capacity, _multiplier;
+
+        internal static PtrBuffer* buffers = Create();
+
+        public static PtrBuffer* GetPooledBuffer() {
+            if (buffers->count > 0)
+                return (PtrBuffer*)buffers->Remove();
+            var buf = Create();
+            return buf;
+        }
+
+
+        public static PtrBuffer* Create(int capacity = START_CAPACITY, int multiplier = MULTIPLIER) {
+            Ion.assert(multiplier >= MULTIPLIER);
+            Ion.assert(capacity > 0);
+            var b = (PtrBuffer*) Ion.xmalloc(sizeof(PtrBuffer));
+
+            b->_capacity = capacity;
+            b->_multiplier = multiplier;
+            b->count = 0;
+            b->buf_byte_size = capacity * Ion.PTR_SIZE;
+            b->_begin = (void**)Ion.xmalloc(b->buf_byte_size);
+            b->_top = b->_begin;
+            b->_end = b->_begin + b->buf_byte_size;
+            return b;
+        }
+
+        public void* Remove() {
+            Ion.assert(_top != _begin);
+            _top--;
+            count--;
+            return *_top;
+        }
+
+        public void Add(void* val) {
+            *_top = val;
+
+            if (++count == _capacity) {
+                _capacity *= _multiplier;
+                buf_byte_size = _capacity * Ion.PTR_SIZE;
+                _begin = (void**)Ion.xrealloc(_begin, buf_byte_size);
+                _top = _begin + count;
+                _end = _begin + _capacity;
+            }
+            else {
+                _top++;
+            }
+        }
+
+        public T** Cast<T>() where T : unmanaged {
+            return (T**)_begin;
+        }
+
+        public T* Get<T>(int i) where T : unmanaged {
+            return *(((T**)_begin) + i);
+        }
+
+        public void free() {
+            Ion.xfree(_begin);
+        }
+
+        public void clear() {
+            _top = _begin;
+            count = 0;
+        }
+
+        public void Release() {
+            clear();
+            fixed (void* v = &this) {
+                buffers->Add(v);
+            }
+        }
+    }
+
 }

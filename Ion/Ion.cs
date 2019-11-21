@@ -11,9 +11,9 @@ namespace IonLang
     {
         PtrBuffer* package_search_paths = PtrBuffer.Create();
         bool flag_verbose = false, flag_lazy = false;
-        bool flag_skip_lines = false;
+        bool flag_nosync = false;
         bool flag_notypeinfo = false, flag_fullgen = false; 
-        bool flag_check = false;
+        bool flag_check = false, flag_raw_code = false;
         string output_name = null;
 
         void add_package_search_path(string path) {
@@ -50,10 +50,11 @@ namespace IonLang
         bool parse_env_vars(string[] args) {
             flag_verbose = args.Contains("-v");
             flag_lazy = args.Contains("-z");
-            flag_skip_lines = args.Contains("-l");
+            flag_nosync = args.Contains("-l");
             flag_fullgen = args.Contains("-f");
             flag_notypeinfo = args.Contains("-g");
             flag_check = args.Contains("-c");
+            flag_raw_code = args.Contains("-r");
 
             int pos;
             var sys = Environment.GetEnvironmentVariable("IONOS");
@@ -117,16 +118,16 @@ namespace IonLang
 
         void ion_test(string pkg) {
 #if X64
-            string BACK_PATH = "../../../.."; // bin/x64/debug
+            string BACK_PATH = @"C:\Users\john\source\repos\IonDotNet\Ion";
             string ARCH = "x64";
 #else
-            string BACK_PATH = @"../../../.."; // bin/debug
+            string BACK_PATH = @"C:\Users\john\source\repos\IonDotNet\Ion";
             string ARCH = "x86";
 #endif
             var dir = new DirectoryInfo(BACK_PATH);
 
             Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
-            var b = ion_main(new []{pkg, "-v", "-dg", "-z", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
+            var b = ion_main(new []{pkg, "-f", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
             assert(b == 0);
         }
 
@@ -150,19 +151,30 @@ namespace IonLang
                 error_here("Failed to compile package 'builtin'.\n");
             }
             builtin_package->external_name = _I("");
+            enter_package(builtin_package);
+            Sym *any_sym = resolve_name(_I("any"));
+            if (any_sym == null || any_sym->kind != SymKind.SYM_TYPE) {
+                printf("error: Any type not defined");
+                return 1;
+            }
+            type_any = any_sym->type;
+            leave_package(builtin_package);
             Package *main_package = import_package(package_name.ToPtr());
             if (main_package == null) {
                 error_here("Failed to compile package '{0}'\n", package_name);
             }
             char *main_name = _I("main");
             Sym *main_sym = get_package_sym(main_package, main_name);
-            if (main_sym == null) {
-                error_here("No 'main' entry point defined in package '{0}'\n", package_name);
-            }
+            reachable_phase = REACHABLE_NATURAL;
 
-            main_sym->external_name = main_name;
-            reachable_phase = (byte)REACHABLE_NATURAL;
-            resolve_sym(main_sym);
+            if (!flag_raw_code) {
+                if (main_sym == null) {
+                    error_here("No 'main' entry point defined in package '{0}'\n", package_name);
+                }
+
+                main_sym->external_name = main_name;
+                resolve_sym(main_sym);
+            }
             for (int i = 0; i < package_list->count; i++) {
                 var pkg = package_list->Get<Package>(i);
                 if (pkg->always_reachable) {
@@ -175,9 +187,10 @@ namespace IonLang
                 printf("Reached {0} symbols in {1} packages from {2}/main\n", reachable_syms->count, package_list->count, package_name);
             }
             if (!flag_lazy) {
-                reachable_phase = (byte)REACHABLE_FORCED;
+                reachable_phase = REACHABLE_FORCED;
                 for (int i = 0; i < package_list->count; i++) {
-                    resolve_package_syms(package_list->Get<Package>(i));
+                    var pkg = package_list->Get<Package>(i);
+                    resolve_package_syms(pkg);
                 }
                 finalize_reachable_syms();
             }
@@ -198,6 +211,10 @@ namespace IonLang
                     return 1;
                 }
             }
+            printf("Intern: {0,00} MB\n", (float)Intern.intern_memory_usage / (1024 * 1024));
+            printf("Source: {0,00} MB\n", (float)source_memory_usage / (1024 * 1024));
+            printf("AST:    {0,00} MB\n", (float)ast_memory_usage / (1024 * 1024));
+            printf("Ratio:  {0,00}\n", (float)(Intern.intern_memory_usage + ast_memory_usage) / source_memory_usage);
             return 0;
         }
     }

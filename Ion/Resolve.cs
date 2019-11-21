@@ -31,12 +31,11 @@ namespace IonLang
         Map resolved_type_map;
         Map labels_map;
         Buffer<Label> labels = Buffer<Label>.Create();
-        Buffer<Sym> local_syms;
+        Sym* local_syms;
+        Sym* local_syms_end;
         PtrBuffer* package_list;
         PtrBuffer* sorted_syms;
         PtrBuffer* reachable_syms;
-
-        static uint next_typeid = 1;
 
 #if X64
         internal const int PTR_SIZE = 8;
@@ -45,7 +44,7 @@ namespace IonLang
 #endif
         const long PTR_ALIGN = 8;
 
-        byte reachable_phase = (byte)REACHABLE_NATURAL;
+        SymReachable reachable_phase = REACHABLE_NATURAL;
 
         Label* get_label(SrcPos pos, char* name) {
             Label *label;
@@ -109,7 +108,7 @@ namespace IonLang
         }
 
         bool is_local_sym(Sym* sym) {
-            return local_syms._begin <= sym && sym <= local_syms._top;
+            return local_syms <= sym && sym < local_syms_end;
         }
 
         Sym* sym_new(SymKind kind, char* name, Decl* decl) {
@@ -174,7 +173,7 @@ namespace IonLang
         }
 
         Sym* sym_get_local(char* name) {
-            for (var sym = local_syms._top - 1; sym >= local_syms._begin; sym--)
+            for (var sym = local_syms_end-1; sym >= local_syms; sym--)
                 if (sym->name == name)
                     return sym;
 
@@ -189,31 +188,30 @@ namespace IonLang
             if (sym_get_local(name) != null) {
                 return false;
             }
-            if (local_syms._top == local_syms._begin + MAX_LOCAL_SYMS)
+            if (local_syms_end == local_syms + MAX_LOCAL_SYMS)
                 fatal("Too many local symbols");
 
-
-            var sym = xmalloc<Sym>();
-            sym->name = name;
-            sym->kind = SYM_VAR;
-            sym->state = SYM_RESOLVED;
-            sym->type = type;
-            local_syms.Add(*sym);
+            *local_syms_end++ = new Sym {
+                name = name,
+                kind = SYM_VAR,
+                state = SYM_RESOLVED,
+                type = type
+            };
 
             return true;
         }
 
         Sym* sym_enter() {
-            return local_syms._top;
+            return local_syms_end;
         }
 
         void sym_leave(Sym* sym) {
-            local_syms._top = sym;
+            local_syms_end = sym;
         }
 
         void sym_global_put(char* name, Sym* sym) {
             Sym *old_sym = current_package->syms_map.map_get<Sym>(name);
-            if (old_sym != null) {
+            if (old_sym != null && sym->home_package != current_package && old_sym->home_package == current_package) {
                 if (sym == old_sym) {
                     return;
                 }
@@ -224,7 +222,12 @@ namespace IonLang
                 if (old_sym->decl != null) {
                     warning(old_sym->decl->pos, "Previous definition of '{0}'", _S(name));
                 }
-                fatal_error(pos, "Duplicate definition of global symbol '{0}'.", _S(name));
+                if (sym->home_package == current_package) {
+                    fatal_error(pos, "Duplicate definition of symbol '{0}'.", _S(name));
+                }
+                else {
+                    fatal_error(pos, "Conflicting import of symbol {0} into {1} from {2} and {3}.", _S(name), _S(current_package->path), _S(sym->home_package->path), _S(old_sym->home_package->path));
+                }
             }
             current_package->syms_map.map_put(name, sym);
             current_package->syms->Add(sym);
@@ -270,8 +273,22 @@ namespace IonLang
             sym_global_put(name, sym);
             return sym;
         }
+        Sym* sym_global_tuple(char* name, Type* type) {
+            Sym *sym = sym_new(SYM_TYPE, name, null);
+            sym->state = SYM_RESOLVED;
+            sym->type = type;
+            sym->external_name = name;
+            Package *old_package = enter_package(builtin_package);
+            sym_global_put(name, sym);
+            leave_package(old_package);
+            sorted_syms->Add(sym);
+            reachable_syms->Add(sym);
+            sym->reachable = REACHABLE_NATURAL;
+            return sym;
+        }
 
-        Type* get_resolved_type(void* ptr) {
+
+    Type* get_resolved_type(void* ptr) {
             return resolved_type_map.map_get<Type>(ptr);
         }
 
@@ -329,6 +346,12 @@ namespace IonLang
             if (dest == src) {
                 return true;
             }
+            else if (is_func_type(src) && src->func.intrinsic) {
+                return false;
+            }
+            else if (dest == type_any || dest == type_void) {
+                return true;
+            }
             else if (is_arithmetic_type(dest) && is_arithmetic_type(src)) {
                 return true;
             }
@@ -338,6 +361,9 @@ namespace IonLang
             else if (is_ptr_type(dest) && is_ptr_type(src)) {
                 if (is_const_type(dest->@base) && is_const_type(src->@base)) {
                     return dest->@base->@base == src->@base->@base || dest->@base->@base == type_void || src->@base->@base == type_void;
+                }
+                else if (is_aggregate_type(dest->@base) && is_aggregate_type(src->@base) && dest->@base == src->@base->aggregate.fields[0].type) {
+                    return true;
                 }
                 else {
                     Type *unqual_dest_base = unqualify_type(dest->@base);
@@ -398,6 +424,16 @@ namespace IonLang
                             strcpy(*buf, ": ".ToPtr());
                             put_type_name(buf, type->func.ret);
                         }
+                        break;
+                    case TYPE_TUPLE:
+                        strcpy(*buf, "{".ToPtr());
+                        for (int i = 0; i < type->aggregate.num_fields; i++) {
+                            if (i != 0) {
+                                strcpy(*buf, ", ".ToPtr());
+                            }
+                            put_type_name(buf, type->aggregate.fields[i].type);
+                        }
+                        strcpy(*buf, "}".ToPtr());
                         break;
                     default:
                         assert(0);
@@ -1192,7 +1228,7 @@ namespace IonLang
             return operand.type;
         }
 
-        Type* resolve_typespec(Typespec* typespec) {
+        Type* resolve_typespec_strict(Typespec* typespec, bool with_const) {
             if (typespec == null)
                 return type_void;
 
@@ -1204,10 +1240,10 @@ namespace IonLang
                         char* name2 = typespec->names[i];
                         Sym *sym2 = get_package_sym(package, name2);
                         if (sym2 == null) {
-                            fatal_error(typespec->pos, "Unresolved package '%s'", _S(name2));
+                            fatal_error(typespec->pos, "Unresolved package '{0}'", _S(name2));
                         }
                         if (sym2->kind != SYM_PACKAGE) {
-                            fatal_error(typespec->pos, "%s must denote a package", _S(name2));
+                            fatal_error(typespec->pos, "{0} must denote a package", _S(name2));
                             return null;
                         }
                         package = sym2->package;
@@ -1227,13 +1263,17 @@ namespace IonLang
                 }
                 break;
                 case TYPESPEC_CONST:
-                    result = type_const(resolve_typespec(typespec->@base));
+                    result = resolve_typespec_strict(typespec->@base, with_const);
+                    if (with_const) {
+                        result = type_const(result);
+                    }
                     break;
                 case TYPESPEC_PTR:
-                    result = type_ptr(resolve_typespec(typespec->@base));
+                    result = type_ptr(resolve_typespec_strict(typespec->@base, with_const));
                     break;
                 case TYPESPEC_ARRAY:
                     int size = 0;
+                    Type * @base = resolve_typespec_strict(typespec->@base, with_const);
                     if (typespec->num_elems != null) {
                         Operand operand = resolve_const_expr(typespec->num_elems);
                         if (!is_integer_type(operand.type)) {
@@ -1241,28 +1281,43 @@ namespace IonLang
                         }
                         cast_operand(&operand, type_int);
                         size = operand.val.i;
-                        if (size <= 0) {
-                            fatal_error(typespec->num_elems->pos, "Non-positive array size");
+                        if (size < 0) {
+                            fatal_error(typespec->num_elems->pos, "Negative array size");
                         }
                     }
 
-                    result = type_array(resolve_typespec(typespec->@base), size);
+                    result = type_array(@base, size, typespec->num_elems == null);
                     break;
-                case TYPESPEC_FUNC: {
-                    var args = PtrBuffer.GetPooledBuffer();
-                    try {
-                        for (var i = 0; i < typespec->func.num_args; i++)
-                            args->Add(resolve_typespec(typespec->func.args[i]));
-                        var ret = type_void;
-                        if (typespec->func.ret != null)
-                            ret = resolve_typespec(typespec->func.ret);
-                        result = type_func((Type**)args->_begin, args->count, ret, false);
+                case TYPESPEC_FUNC:
+                    var args = PtrBuffer.Create();
+                    for (var i = 0; i < typespec->func.num_args; i++) {
+                        Type *arg = resolve_typespec_strict(typespec->func.args[i], with_const);
+                        if (arg == type_void) {
+                            fatal_error(typespec->pos, "Function parameter type cannot be void");
+                        }
+                        args->Add(arg);
                     }
-                    finally {
-                        args->Release();
+                    var ret = type_void;
+                    if (typespec->func.ret != null)
+                        ret = resolve_typespec_strict(typespec->func.ret, with_const);
+                    if (is_array_type(ret)) {
+                        fatal_error(typespec->pos, "Function return type cannot be array");
                     }
-                }
-                break;
+                    // TODO: func pointers should be able to support varargs (including typed)
+                    result = type_func((Type**)args->_begin, args->count, ret, false, false, type_void);
+                    break;
+                case TYPESPEC_TUPLE:
+                    var fields = PtrBuffer.Create();
+                    for (int i = 0; i < typespec->tuple.num_fields; i++) {
+                        Type *field = resolve_typespec_strict(typespec->tuple.fields[i], with_const);
+                        if (field == type_void) {
+                            fatal_error(typespec->pos, "Tuple element types cannot be void");
+                        }
+                        fields->Add(field);
+                    }
+                    result = type_tuple((Type**)fields->_begin, fields->count);
+                    break;
+          
                 default:
                     assert(false);
                     return null;
@@ -1271,16 +1326,24 @@ namespace IonLang
             return result;
         }
 
+        Type* resolve_typespec(Typespec* typespec) {
+            return resolve_typespec_strict(typespec, false);
+        }
 
-        Type* complete_aggregate(Type* type, Aggregate* aggregate) {
+        Type *complete_aggregate_strict(Type *type, Aggregate *aggregate, bool with_const) {
             var fields = Buffer<TypeField>.Create();
             for (var i = 0; i < aggregate->num_items; i++) {
                 AggregateItem item = aggregate->items[i];
                 if (item.kind == AGGREGATE_ITEM_FIELD) {
-                    Type *item_type = resolve_typespec(item.type);
+                    Type *item_type = resolve_typespec_strict(item.type, with_const);
+                    if (is_incomplete_array_type(item_type)) {
+                        item_type = type_decay(item_type);
+                    }
                     complete_type(item_type);
                     if (type_sizeof(item_type) == 0) {
-                        fatal_error(item.pos, "Field type of size 0 is not allowed");
+                        if (!is_array_type(item_type) || type_sizeof(item_type->@base) == 0) {
+                            fatal_error(item.pos, "Field type of size 0 is not allowed");
+                        }
                     }
                     for (var j = 0; j < item.num_names; j++) {
                         fields.Add(new TypeField { name = item.names[j], type = item_type });
@@ -1288,7 +1351,7 @@ namespace IonLang
                 }
                 else {
                     assert(item.kind == AGGREGATE_ITEM_SUBAGGREGATE);
-                    Type *item_type = complete_aggregate(null, item.subaggregate);
+                    Type *item_type = complete_aggregate_strict(null, item.subaggregate, with_const);
                     fields.Add(new TypeField { type = item_type });
                 }
             }
@@ -1312,7 +1375,9 @@ namespace IonLang
             return type;
         }
 
-
+        Type* complete_aggregate(Type* type, Aggregate* aggregate) {
+            return complete_aggregate_strict(type, aggregate, type->sym != null && is_decl_foreign(type->sym->decl));
+        }
 
         void complete_type(Type* type) {
             if (type->kind == TYPE_COMPLETING) {
@@ -1341,7 +1406,12 @@ namespace IonLang
             Type *expected_type = unqualify_type(type);
             Operand operand = resolve_expected_expr(expr, expected_type);
             if (is_incomplete_array_type(type) && is_array_type(operand.type) && type->@base == operand.type->@base) {
-                // Incomplete array size, so infer the size from the initializer expression's type.
+                // Incomplete array size, so infer the size from the initializer expression's type.       
+                type->num_elems = operand.type->num_elems;
+                type->size = operand.type->size;
+                type->incomplete_elems = false;
+                set_resolved_expected_type(expr, type);
+                return type;
             } else {
                 if (type != null && is_ptr_type(type)) {
                     operand = operand_decay(operand);
@@ -1349,16 +1419,16 @@ namespace IonLang
                 if (!convert_operand(&operand, expected_type)) {
                     return null;
                 }
+                set_resolved_expected_type(expr, operand.type);
+                return operand.type;
             }
-            set_resolved_expected_type(expr, operand.type);
-            return operand.type;
         }
 
 
-        Type* resolve_init(SrcPos pos, Typespec* typespec, Expr* expr) {
+        Type* resolve_init(SrcPos pos, Typespec* typespec, Expr* expr, bool was_const) {
             Type *type;
             if (typespec != null) {
-                Type *declared_type = resolve_typespec(typespec);
+                Type *declared_type = resolve_typespec_strict(typespec, was_const);
                 type = declared_type;
                 if (expr != null) {
                     type = resolve_typed_init(pos, declared_type, expr);
@@ -1381,6 +1451,9 @@ namespace IonLang
                 expr->type = type;
             }
             complete_type(type);
+            if (is_incomplete_array_type(type)) {
+                return type_decay(type);
+            }
             if (type->size == 0) {
                 fatal_error(pos, "Cannot declare variable of size 0");
             }
@@ -1389,7 +1462,7 @@ namespace IonLang
 
         Type* resolve_decl_var(Decl* decl) {
             assert(decl->kind == DECL_VAR);
-            return resolve_init(decl->pos, decl->var.type, decl->var.expr);
+            return resolve_init(decl->pos, decl->var.type, decl->var.expr, is_decl_foreign(decl));
         }
 
         Type* resolve_decl_const(Decl* decl, Val* val) {
@@ -1409,29 +1482,38 @@ namespace IonLang
 
         Type* resolve_decl_func(Decl* decl) {
             assert(decl->kind == DECL_FUNC);
-            var @params = PtrBuffer.GetPooledBuffer();
-            try {
-                for (var i = 0; i < decl->func.num_params; i++) {
-                    Type *param = resolve_typespec(decl->func.@params[i].type);
-                    complete_type(param);
-                    if (param == type_void) {
-                        fatal_error(decl->pos, "Function parameter type cannot be void");
-                    }
-                    @params->Add(param);
+            bool foreign = get_decl_note(decl, foreign_name) != null;
+            bool intrinsic = get_decl_note(decl, intrinsic_name) != null;
+            bool with_const = foreign;
+            var @params = PtrBuffer.Create();
+            for (var i = 0; i < decl->func.num_params; i++) {
+                Type *param = resolve_typespec_strict(decl->func.@params[i].type, with_const);
+                complete_type(param);
+                if (param == type_void && !foreign) {
+                    fatal_error(decl->pos, "Function parameter type cannot be void");
                 }
-                var ret_type = type_void;
-                if (decl->func.ret_type != null) {
-                    ret_type = resolve_typespec(decl->func.ret_type);
-                    complete_type(ret_type);
-                }
-                if (is_array_type(ret_type)) {
-                    fatal_error(decl->pos, "Function return type cannot be array");
-                }
-                return type_func((Type**)@params->_begin, @params->count, ret_type, decl->func.has_varargs);
+                @params->Add(param);
             }
-            finally {
-                @params->Release();
+            var ret_type = type_void;
+            if (decl->func.ret_type != null) {
+                ret_type = resolve_typespec_strict(decl->func.ret_type, with_const);
+                complete_type(ret_type);
             }
+            if (is_array_type(ret_type)) {
+                fatal_error(decl->pos, "Function return type cannot be array");
+            }
+            Type *varargs_type = type_void;
+            if (decl->func.varargs_type != null) {
+                varargs_type = resolve_typespec_strict(decl->func.varargs_type, with_const);
+                complete_type(varargs_type);
+                if (is_integer_type(varargs_type) && type_rank(varargs_type) < type_rank(type_int)) {
+                    fatal_error(decl->pos, "Integer varargs type must have same or higher rank than int");
+                }
+                else if (varargs_type == type_float) {
+                    fatal_error(decl->pos, "Floating varargs type must be double, not float");
+                }
+            }
+            return type_func((Type**)@params->_begin, @params->count, ret_type, intrinsic, decl->func.has_varargs, varargs_type);
         }
 
         bool is_cond_operand(Operand operand) {
@@ -1459,7 +1541,8 @@ namespace IonLang
 
         void resolve_stmt_assign(Stmt* stmt) {
             assert(stmt->kind == STMT_ASSIGN);
-            Operand left = resolve_expr(stmt->assign.left);
+            Expr *left_expr = stmt->assign.left;
+            Operand left = resolve_expr(left_expr);
             if (!left.is_lvalue) {
                 fatal_error(stmt->pos, "Cannot assign to non-lvalue");
             }
@@ -1471,24 +1554,28 @@ namespace IonLang
             }
             char* assign_op_name = _token_kind_name(stmt->assign.op);
             TokenKind binary_op = assign_token_to_binary_token[(int)stmt->assign.op];
-            Operand right = resolve_expected_expr_rvalue(stmt->assign.right, left.type);
+            Expr *right_expr = stmt->assign.right;
+            Operand right = resolve_expected_expr_rvalue(right_expr, left.type);
             Operand result;
             if (stmt->assign.op == TOKEN_ASSIGN) {
                 result = right;
             }
             else if (stmt->assign.op == TOKEN_ADD_ASSIGN || stmt->assign.op == TOKEN_SUB_ASSIGN) {
                 if (left.type->kind == TYPE_PTR && is_integer_type(right.type)) {
+                    if (unqualify_type(left.type->@base) == type_void) {
+                        set_pointer_promo_type(left_expr, type_ptr(qualify_type(type_char, left.type->@base)));
+                    }
                     result = operand_rvalue(left.type);
                 }
                 else if (is_arithmetic_type(left.type) && is_arithmetic_type(right.type)) {
-                    result = resolve_expr_binary_op(binary_op, assign_op_name, stmt->pos, left, right);
+                    result = resolve_expr_binary_op(binary_op, assign_op_name, stmt->pos, left, right, left_expr, right_expr);
                 }
                 else {
                     fatal_error(stmt->pos, "Invalid operand types for {0}", _S(assign_op_name));
                 }
             }
             else {
-                result = resolve_expr_binary_op(binary_op, assign_op_name, stmt->pos, left, right);
+                result = resolve_expr_binary_op(binary_op, assign_op_name, stmt->pos, left, right, left_expr, right_expr);
             }
             if (!convert_operand(&result, left.type)) {
                 fatal_error(stmt->pos, "Invalid type in assignment. Expected {0}, got {1}", get_type_name(left.type), get_type_name(result.type));
@@ -1497,7 +1584,7 @@ namespace IonLang
 
         void resolve_stmt_init(Stmt* stmt) {
             assert(stmt->kind == STMT_INIT);
-            Type *type = resolve_init(stmt->pos, stmt->init.type, stmt->init.expr);
+            Type *type = resolve_init(stmt->pos, stmt->init.type, stmt->init.expr, false);
             if (!sym_push_var(stmt->init.name, type))
                 fatal_error(stmt->pos, "Shadowed definition of local symbol");
         }
@@ -1545,6 +1632,9 @@ namespace IonLang
                             fatal_error(stmt->pos, "#assert takes 1 argument");
                         }
                         resolve_cond_expr(stmt->note.args[0].expr);
+                    }
+                    else if (stmt->note.name == foreign_name) {
+                        // TODO: check args
                     }
                     else if (stmt->note.name == static_assert_name) {
                         resolve_static_assert(stmt->note);
@@ -1717,15 +1807,15 @@ namespace IonLang
                 reachable_syms->Add(sym);
                 sym->reachable = reachable_phase;
             }
-            Console.Write("".PadLeft(idd += 2));
-            Console.WriteLine("  Resolving: " + _S(sym->name));
+            //Console.Write("".PadLeft(idd += 2));
+            //Console.WriteLine("  Resolving: " + _S(sym->name));
             sym->state = SYM_RESOLVING;
             Decl *decl = sym->decl;
             Package *old_package = enter_package(sym->home_package);
             switch (sym->kind) {
                 case SYM_TYPE:
                     if (decl != null && decl->kind == DECL_TYPEDEF) {
-                        sym->type = resolve_typespec(decl->typedef_decl.type);
+                        sym->type = resolve_typespec_strict(decl->typedef_decl.type, is_decl_foreign(decl));
                     }
                     else if (decl->kind == DECL_ENUM) {
                         Type * @base = decl->enum_decl.type != null ? resolve_typespec(decl->enum_decl.type) : type_int;
@@ -1757,8 +1847,8 @@ namespace IonLang
 
             leave_package(old_package);
             sym->state = SYM_RESOLVED;
-            Console.Write("".PadLeft(idd));
-            Console.WriteLine("  Resolved: " + _S(sym->name));
+            //Console.Write("".PadLeft(idd));
+            //Console.WriteLine("  Resolved: " + _S(sym->name));
             idd -= 2;
             if (decl->is_incomplete || (decl->kind != DECL_STRUCT && decl->kind != DECL_UNION)) {
                 sorted_syms->Add(sym);
@@ -1768,7 +1858,7 @@ namespace IonLang
 
         void finalize_sym(Sym* sym) {
             assert(sym->state == SYM_RESOLVED);
-            if (sym->decl != null && !is_decl_foreign(sym->decl) && !sym->decl->is_incomplete) {
+            if (sym->decl != null && !sym->decl->is_incomplete) {
                 if (sym->kind == SYM_TYPE) {
                     complete_type(sym->type);
                 }
@@ -1828,7 +1918,7 @@ namespace IonLang
                 type = unqualify_type(operand.type);
                 complete_type(type);
             }
-            if (type->kind != TYPE_STRUCT && type->kind != TYPE_UNION) {
+            if (!is_aggregate_type(type)) {
                 fatal_error(expr->pos, "Can only access fields on aggregates or pointers to aggregates");
                 return default;
             }
@@ -2009,7 +2099,7 @@ namespace IonLang
             if (sym->kind == SYM_VAR)
             {
                 Operand operand = operand_lvalue(sym->type);
-                if (is_array_type(operand.type)) {
+                if (is_array_type(operand.type) && !is_incomplete_array_type(operand.type)) {
                     operand = operand_decay(operand);
                 }
                 return operand;
@@ -2084,8 +2174,26 @@ namespace IonLang
             return resolve_binary_op(op, left, right);
         }
 
-        Operand resolve_expr_binary_op(TokenKind op, char* op_name, SrcPos pos, Operand left, Operand right) {
+        bool compatible_pointer_arith(Type* left, Type* right, Expr* left_expr, Expr* right_expr) {
+            if (is_ptr_type(left) && is_ptr_type(right)) {
+                Type *left_base = unqualify_type(left->@base);
+                Type *right_base = unqualify_type(right->@base);
+                if (left_base == right_base) {
+                    return true;
+                }
+                if (left_base == type_void && right_base == type_char) {
+                    set_pointer_promo_type(left_expr, type_ptr(qualify_type(type_char, left->@base)));
+                    return true;
+                }
+                if (left_base == type_char && right_base == type_void) {
+                    set_pointer_promo_type(right_expr, type_ptr(qualify_type(type_char, right->@base)));
+                    return true;
+                }
+            }
+            return false;
+        }
 
+        Operand resolve_expr_binary_op(TokenKind op, char *op_name, SrcPos pos, Operand left, Operand right, Expr *left_expr, Expr *right_expr) {
             switch (op) {
                 case TOKEN_MUL:
                 case TOKEN_DIV:
@@ -2110,14 +2218,24 @@ namespace IonLang
                     }
                     else if (is_ptr_type(left.type) && is_integer_type(right.type)) {
                         complete_type(left.type->@base);
-                        if (type_sizeof(left.type->@base) == 0) {
+                        if (unqualify_type(left.type->@base) == type_void) {
+                            Type *promo_type = type_ptr(qualify_type(type_char, left.type->@base));
+                            set_pointer_promo_type(left_expr, promo_type);
+                            left.type = promo_type;
+                        }
+                        else if (type_sizeof(left.type->@base) == 0) {
                             fatal_error(pos, "Cannot do pointer arithmetic with size 0 base type");
                         }
                         return operand_rvalue(left.type);
                     }
                     else if (is_ptr_type(right.type) && is_integer_type(left.type)) {
                         complete_type(right.type->@base);
-                        if (type_sizeof(right.type->@base) == 0) {
+                        if (unqualify_type(right.type->@base) == type_void) {
+                            Type *promo_type = type_ptr(qualify_type(type_char, right.type->@base));
+                            set_pointer_promo_type(right_expr, promo_type);
+                            right.type = promo_type;
+                        }
+                        else if (type_sizeof(right.type->@base) == 0) {
                             fatal_error(pos, "Cannot do pointer arithmetic with size 0 base type");
                         }
                         return operand_rvalue(right.type);
@@ -2131,6 +2249,12 @@ namespace IonLang
                         return resolve_binary_arithmetic_op(op, left, right);
                     }
                     else if (is_ptr_type(left.type) && is_integer_type(right.type)) {
+                        Type *left_base = unqualify_type(left.type->@base);
+                        if (left_base == type_void) {
+                            Type *promo_type = type_ptr(qualify_type(type_char, left_base));
+                            set_pointer_promo_type(left_expr, promo_type);
+                            left.type = promo_type;
+                        }
                         complete_type(left.type->@base);
                         if (type_sizeof(left.type->@base) == 0) {
                             fatal_error(pos, "Cannot do pointer arithmetic with size 0 base type");
@@ -2138,8 +2262,14 @@ namespace IonLang
                         return operand_rvalue(left.type);
                     }
                     else if (is_ptr_type(left.type) && is_ptr_type(right.type)) {
-                        if (left.type->@base != right.type->@base) {
+                        if (!compatible_pointer_arith(left.type, right.type, left_expr, right_expr)) {
                             fatal_error(pos, "Cannot subtract pointers to different types");
+                        }
+                        Type *left_base = left.type->@base;
+                        Type *right_base = right.type->@base;
+                        if (unqualify_type(left_base) == type_void && unqualify_type(right_base) == type_void) {
+                            set_pointer_promo_type(left_expr, type_ptr(type_char));
+                            set_pointer_promo_type(right_expr, type_ptr(type_char));
                         }
                         return operand_rvalue(type_ssize);
                     }
@@ -2203,7 +2333,12 @@ namespace IonLang
                     }
                     else if (is_ptr_type(left.type) && is_ptr_type(right.type)) {
                         if (unqualify_type(left.type->@base) != unqualify_type(right.type->@base)) {
-                            fatal_error(pos, "Cannot compare pointers to different types");
+                            Type *left_base = unqualify_type(left.type->@base);
+                            Type *right_base = unqualify_type(right.type->@base);
+                            if (left_base != right_base) {
+                                set_pointer_promo_type(right_expr, type_ptr(qualify_type(type_char, left.type->@base)));
+                                set_pointer_promo_type(left_expr, type_ptr(qualify_type(type_char, left.type->@base)));
+                            }
                         }
                         return operand_rvalue(type_int);
                     }
@@ -2262,7 +2397,7 @@ namespace IonLang
             Operand right = resolve_expr_rvalue(expr->binary.right);
             TokenKind op = expr->binary.op;
             var op_name = _token_kind_name(op);
-            return resolve_expr_binary_op(op, op_name, expr->pos, left, right);
+            return resolve_expr_binary_op(op, op_name, expr->pos, left, right, expr->binary.left, expr->binary.right);
         }
 
         Operand resolve_expr_compound(Expr* expr, Type* expected_type) {
@@ -2278,7 +2413,7 @@ namespace IonLang
             bool is_const = is_const_type(type);
             type = unqualify_type(type);
 
-            if (type->kind == TYPE_STRUCT || type->kind == TYPE_UNION) {
+            if (type->kind == TYPE_STRUCT || type->kind == TYPE_UNION || type->kind == TYPE_TUPLE) {
                 var index = 0;
                 for (var i = 0; i < expr->compound.num_fields; i++) {
                     var field = expr->compound.fields[i];
@@ -2294,12 +2429,12 @@ namespace IonLang
                         fatal_error(field.pos, "Field initializer in struct/union compound literal out of range");
                     Type *field_type = type->aggregate.fields[index].type;
                     if (resolve_typed_init(field.pos, field_type, field.init) == null) {
-                        fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type. Expected {0}", get_type_name(field_type));
+                        fatal_error(field.pos, "Invalid type in compound literal initializer for aggregate type. Expected {0}.", get_type_name(field_type));
                     }
                     index++;
                 }
             }
-            else if (is_array_type(type)) {
+            else if (type->kind == TYPE_ARRAY || type->kind == TYPE_PTR) {
                 int index = 0, max_index = 0;
                 for (var i = 0; i < expr->compound.num_fields; i++) {
                     var field = expr->compound.fields[i];
@@ -2328,11 +2463,14 @@ namespace IonLang
                     max_index = (int)MAX(max_index, index);
                     index++;
                 }
-                if (type->num_elems == 0) {
-                    type = type_array(type->@base, max_index + 1);
+                if (type->incomplete_elems) {
+                    type = type_array(type->@base, max_index + 1, false);
                 }
             }
             else {
+                if (type == type_void) {
+                    fatal_error(expr->pos, "Anonymous compound literal in context expecting void type");
+                }
                 assert(is_scalar_type(type));
                 if (expr->compound.num_fields > 1) {
                     fatal_error(expr->pos, "Compound literal for scalar type cannot have more than one operand");
@@ -2348,6 +2486,291 @@ namespace IonLang
 
             return operand_lvalue(is_const ? type_const(type) : type);
         }
+
+        Operand resolve_expr_call_intrinsic(Operand func, Expr* expr) {
+            Sym *sym = get_resolved_sym(expr->call.expr);
+            assert(sym);
+            if (sym->name == _I("va_arg")) {
+                Operand args = resolve_expr(expr->call.args[0]);
+                if (!args.is_lvalue) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of va_arg must be lvalue");
+                }
+                Operand arg = resolve_expr(expr->call.args[1]);
+                if (!arg.is_lvalue) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 2 of va_arg must be lvalue");
+                }
+                return operand_rvalue(func.type->func.ret);
+            }
+            else if (sym->name == _I("aput")) {
+                Operand array = resolve_expr(expr->call.args[0]);
+                if (!is_ptr_type(array.type)) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have pointer type", _S(sym->name));
+                }
+                if (!array.is_lvalue) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must be lvalue", _S(sym->name));
+                }
+                Type *base_type = unqualify_type(array.type->@base);
+                if (base_type == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                if (!is_aggregate_type(base_type) && base_type->aggregate.num_fields != 2) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have aggregate base type with 2 fields", _S(sym->name));
+                }
+                Type *base_key_type = base_type->aggregate.fields[0].type;
+                if (type_padding(base_key_type) != 0) {
+                    fatal_error(expr->call.args[1]->pos, "Key type of {0} must contain no padding", _S(sym->name));
+                }
+                Operand key = resolve_expected_expr_rvalue(expr->call.args[1], base_key_type);
+                if (!convert_operand(&key, base_key_type)) {
+                    fatal_error(expr->call.args[1]->pos, "Argument 2 of {0} not convertible to argument 1's key type", _S(sym->name));
+                }
+                Type *base_value_type = base_type->aggregate.fields[1].type;
+                Operand value = resolve_expected_expr_rvalue(expr->call.args[2], base_value_type);
+                if (!is_convertible(&value, base_value_type)) {
+                    fatal_error(expr->call.args[2]->pos, "Argument 3 of {0} not convertible to argument 1's value type", _S(sym->name));
+                }
+                return operand_rvalue(func.type->func.ret);
+            }
+            else if (sym->name == _I("ageti") || sym->name == _I("adel")) {
+                Operand array = resolve_expr(expr->call.args[0]);
+                if (!is_ptr_type(array.type)) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have pointer type", _S(sym->name));
+                }
+                if (unqualify_type(array.type->@base) == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                Type *base_type = unqualify_type(array.type->@base);
+                if (base_type == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                if (!is_aggregate_type(base_type) && base_type->aggregate.num_fields != 2) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have aggregate base type with 2 fields", _S(sym->name));
+                }
+                Type *base_key_type = base_type->aggregate.fields[0].type;
+                if (type_padding(base_key_type) != 0) {
+                    fatal_error(expr->call.args[1]->pos, "Key type of {0} must contain no padding", _S(sym->name));
+                }
+                Operand key = resolve_expected_expr_rvalue(expr->call.args[1], base_key_type);
+                if (!convert_operand(&key, base_key_type)) {
+                    fatal_error(expr->call.args[1]->pos, "Argument 2 of {0} not convertible to argument 1's key type", _S(sym->name));
+                }
+                return operand_rvalue(func.type->func.ret);
+            }
+            else if (sym->name == _I("agetp")) {
+                Operand array = resolve_expr(expr->call.args[0]);
+                if (!is_ptr_type(array.type)) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have pointer type", _S(sym->name));
+                }
+                if (unqualify_type(array.type->@base) == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                Type *base_type = unqualify_type(array.type->@base);
+                if (base_type == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                if (!is_aggregate_type(base_type) && base_type->aggregate.num_fields != 2) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have aggregate base type with 2 fields", _S(sym->name));
+                }
+                Type *base_key_type = base_type->aggregate.fields[0].type;
+                if (type_padding(base_key_type) != 0) {
+                    fatal_error(expr->call.args[1]->pos, "Key type of {0} must contain no padding", _S(sym->name));
+                }
+                Operand key = resolve_expected_expr_rvalue(expr->call.args[1], base_key_type);
+                if (!convert_operand(&key, base_key_type)) {
+                    fatal_error(expr->call.args[1]->pos, "Argument 2 of {0} not convertible to argument 1's key type", _S(sym->name));
+                }
+                return operand_rvalue(type_ptr(array.type->@base->aggregate.fields[1].type));
+            }
+            else if (sym->name == _I("aget")) {
+                Operand array = resolve_expr(expr->call.args[0]);
+                if (!is_ptr_type(array.type)) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have pointer type", _S(sym->name));
+                }
+                if (unqualify_type(array.type->@base) == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                Type *base_type = unqualify_type(array.type->@base);
+                if (base_type == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                if (!is_aggregate_type(base_type) && base_type->aggregate.num_fields != 2) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have aggregate base type with 2 fields", _S(sym->name));
+                }
+                Type *base_key_type = base_type->aggregate.fields[0].type;
+                if (type_padding(base_key_type) != 0) {
+                    fatal_error(expr->call.args[1]->pos, "Key type of {0} must contain no padding", _S(sym->name));
+                }
+                Operand key = resolve_expected_expr_rvalue(expr->call.args[1], base_key_type);
+                if (!convert_operand(&key, base_key_type)) {
+                    fatal_error(expr->call.args[1]->pos, "Argument 2 of {0} not convertible to argument 1's key type", _S(sym->name));
+                }
+                return operand_rvalue(array.type->@base->aggregate.fields[1].type);
+            }
+            else if (sym->name == _I("apush") || sym->name == _I("aputv") || sym->name == _I("agetvi") || sym->name == _I("adelv")) {
+                Operand array = resolve_expr(expr->call.args[0]);
+                if (!is_ptr_type(array.type)) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have pointer type", _S(sym->name));
+                }
+                if (unqualify_type(array.type->@base) == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                if (!array.is_lvalue) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must be lvalue", _S(sym->name));
+                }
+                if (sym->name != _I("apush") && type_padding(array.type->@base) != 0) {
+                    fatal_error(expr->call.args[1]->pos, "Base type of {0} must contain no padding", _S(sym->name));
+                }
+                Operand elem = resolve_expected_expr_rvalue(expr->call.args[1], array.type->@base);
+                if (!convert_operand(&elem, array.type->@base)) {
+                    fatal_error(expr->call.args[1]->pos, "Argument 2 of {0} not convertible to argument 1 base type", _S(sym->name));
+                }
+                return operand_rvalue(func.type->func.ret);
+            }
+            else if (sym->name == _I("agetvp")) {
+                Operand array = resolve_expr(expr->call.args[0]);
+                if (!is_ptr_type(array.type)) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have pointer type", _S(sym->name));
+                }
+                if (unqualify_type(array.type->@base) == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                if (!array.is_lvalue) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must be lvalue", _S(sym->name));
+                }
+                if (type_padding(array.type->@base) != 0) {
+                    fatal_error(expr->call.args[1]->pos, "Base type of {0} must contain no padding", _S(sym->name));
+                }
+                Operand elem = resolve_expected_expr_rvalue(expr->call.args[1], array.type->@base);
+                if (!convert_operand(&elem, array.type->@base)) {
+                    fatal_error(expr->call.args[1]->pos, "Argument 2 of {0} not convertible to argument 1 base type", _S(sym->name));
+                }
+                return operand_rvalue(array.type);
+            }
+            else if (sym->name == _I("agetv")) {
+                Operand array = resolve_expr(expr->call.args[0]);
+                if (!is_ptr_type(array.type)) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have pointer type", _S(sym->name));
+                }
+                if (unqualify_type(array.type->@base) == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                if (!array.is_lvalue) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must be lvalue", _S(sym->name));
+                }
+                if (type_padding(array.type->@base) != 0) {
+                    fatal_error(expr->call.args[1]->pos, "Base type of {0} must contain no padding", _S(sym->name));
+                }
+                Operand elem = resolve_expected_expr_rvalue(expr->call.args[1], array.type->@base);
+                if (!convert_operand(&elem, array.type->@base)) {
+                    fatal_error(expr->call.args[1]->pos, "Argument 2 of {0} not convertible to argument 1 base type", _S(sym->name));
+                }
+                return operand_rvalue(array.type->@base);
+            }
+            else if (sym->name == _I("adefault")) {
+                Operand array = resolve_expr(expr->call.args[0]);
+                if (!is_ptr_type(array.type)) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have pointer type", _S(sym->name));
+                }
+                if (unqualify_type(array.type->@base) == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                if (!array.is_lvalue) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must be lvalue", _S(sym->name));
+                }
+                Type *base_type = unqualify_type(array.type->@base);
+                if (base_type == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                if (!is_aggregate_type(base_type) && base_type->aggregate.num_fields != 2) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have aggregate base type with 2 fields", _S(sym->name));
+                }
+                Type *base_val_type = base_type->aggregate.fields[1].type;
+                Operand key = resolve_expected_expr_rvalue(expr->call.args[1], base_val_type);
+                if (!convert_operand(&key, base_val_type)) {
+                    fatal_error(expr->call.args[1]->pos, "Argument 2 of {0} not convertible to argument 1's value type", _S(sym->name));
+                }
+                return operand_rvalue(type_void);
+            }
+            else if (sym->name == _I("afill")) {
+                Operand array = resolve_expr(expr->call.args[0]);
+                if (!is_ptr_type(array.type)) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have pointer type", _S(sym->name));
+                }
+                if (unqualify_type(array.type->@base) == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                if (!array.is_lvalue) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must be lvalue", _S(sym->name));
+                }
+                Operand elem = resolve_expected_expr_rvalue(expr->call.args[1], array.type->@base);
+                if (!convert_operand(&elem, array.type->@base)) {
+                    fatal_error(expr->call.args[1]->pos, "Argument 2 of {0} not convertible to argument 1 base type", _S(sym->name));
+                }
+                Operand count = resolve_expected_expr_rvalue(expr->call.args[2], type_usize);
+                if (!convert_operand(&count, type_usize)) {
+                    fatal_error(expr->call.args[2]->pos, "Argument 3 of {0} not convertible to usize", _S(sym->name));
+                }
+                return operand_rvalue(func.type->func.ret);
+            }
+            else if (sym->name == _I("acat")) {
+                assert(expr->call.num_args == 2);
+                Operand dest = resolve_expr(expr->call.args[0]);
+                if (!is_ptr_type(dest.type)) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have pointer type", _S(sym->name));
+                }
+                if (unqualify_type(dest.type->@base) == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of {0} must have non-void base type", _S(sym->name));
+                }
+                if (!dest.is_lvalue) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of acat must be lvalue");
+                }
+                Operand src = resolve_expr_rvalue(expr->call.args[1]);
+                if (!is_ptr_type(src.type)) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 2 of {0} must have pointer type", _S(sym->name));
+                }
+                if (unqualify_type(src.type->@base) == type_void) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 2 of {0} must have non-void base type", _S(sym->name));
+                }
+                if (dest.type->@base != unqualify_type(src.type->@base)) {
+                    fatal_error(expr->call.args[1]->pos, "Argument 1 and 2 of acat don't have identical base types");
+                }
+                return operand_rvalue(func.type->func.ret);
+            }
+            else if (sym->name == _I("acatn")) {
+                assert(expr->call.num_args == 3);
+                Operand dest = resolve_expr(expr->call.args[0]);
+                Operand src = resolve_expr_rvalue(expr->call.args[1]);
+                if (!dest.is_lvalue) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of acat must be lvalue");
+                }
+                if (dest.type->@base != unqualify_type(src.type->@base)) {
+                    fatal_error(expr->call.args[1]->pos, "Argument 1 and 2 of acatn don't have identical base types");
+                }
+                return operand_rvalue(func.type->func.ret);
+            }
+            else {
+                return resolve_expr_call_default(func, expr);
+            }
+        }
+
+
+
+
+        Operand resolve_expr_call_default(Operand func, Expr* expr) {
+            var num_params = func.type->func.num_params;
+            for (var i = 0; i < expr->call.num_args; i++) {
+                Type *param_type = i < num_params ? func.type->func.@params[i] : func.type->func.varargs_type;
+                Operand arg = resolve_expected_expr_rvalue(expr->call.args[i], param_type);
+                if (is_array_type(param_type)) {
+                    param_type = type_ptr(param_type->@base);
+                }
+                if (!convert_operand(&arg, param_type)) {
+                    fatal_error(expr->call.args[i]->pos, "Invalid type in function call argument. Expected {0}, got {1}", get_type_name(param_type), get_type_name(arg.type));
+                }
+            }
+            return operand_rvalue(func.type->func.ret);
+        }
+
 
         Operand resolve_expr_call(Expr* expr) {
             assert(expr->kind == EXPR_CALL);
@@ -2377,22 +2800,12 @@ namespace IonLang
             if (expr->call.num_args > num_params && !func.type->func.has_varargs) {
                 fatal_error(expr->pos, "Function call with too many arguments");
             }
-
-            for (var i = 0; i < num_params; i++) {
-                var param_type = func.type->func.@params[i];
-                var arg = resolve_expected_expr_rvalue(expr->call.args[i], param_type);
-                if (is_array_type(param_type)) {
-                    param_type = type_ptr(param_type->@base);
-                }
-                if (!convert_operand(&arg, param_type)) {
-                    fatal_error(expr->call.args[i]->pos, "Invalid type in function call argument. Expected {0}, got {1}", get_type_name(param_type), get_type_name(arg.type));
-                }
+            if (func.type->func.intrinsic) {
+                return resolve_expr_call_intrinsic(func, expr);
             }
-            for (var i = num_params; i < expr->call.num_args; i++) {
-                resolve_expr_rvalue(expr->call.args[i]);
+            else {
+                return resolve_expr_call_default(func, expr);
             }
-
-            return operand_rvalue(func.type->func.ret);
         }
 
         Operand resolve_expr_ternary(Expr* expr, Type* expected_type) {
@@ -2421,19 +2834,43 @@ namespace IonLang
             else if (is_ptr_type(right.type) && is_null_ptr(left)) {
                 return operand_rvalue(right.type);
             }
-            
+            else {
+                if (is_ptr_type(left.type) && is_ptr_type(right.type)) {
+                    if (left.type->@base == type_void && right.type->@base == type_char) {
+                        return operand_rvalue(right.type);
+                    }
+                    else if (left.type->@base == type_char && right.type->@base == type_void) {
+                        return operand_rvalue(left.type);
+                    }
+                }
+            }
             fatal_error(expr->pos, "Left and right operands of ternary expression must have arithmetic types or identical types");
             return default;
         }
 
         Operand resolve_expr_index(Expr* expr) {
             assert(expr->kind == EXPR_INDEX);
-            var operand = resolve_expr_rvalue(expr->index.expr);
-            if (operand.type->kind != TYPE_PTR)
-                fatal_error(expr->pos, "Can only index arrays and pointers");
             var index = resolve_expr(expr->index.index);
             if (!is_integer_type(index.type))
                 fatal_error(expr->pos, "Index expression must have integer type");
+            Operand operand = resolve_expr(expr->index.expr);
+            if (is_aggregate_type(operand.type)) {
+                if (!index.is_const) {
+                    fatal_error(expr->pos, "Aggregate field index must be an integer constant");
+                }
+                convert_operand(&index, type_llong);
+                set_resolved_val(expr->index.index, index.val);
+                long i = index.val.u;
+                if (!(0 <= i && i < (long)operand.type->aggregate.num_fields)) {
+                    fatal_error(expr->pos, "Aggregate field index out of range");
+                }
+                operand.type = operand.type->aggregate.fields[i].type;
+                return operand;
+            }
+            operand = operand_decay(operand);
+            if (!is_ptr_type(operand.type)) {
+                fatal_error(expr->pos, "Can only index aggregates, arrays and pointers");
+            }
             return operand_lvalue(operand.type->@base);
         }
 
@@ -2592,6 +3029,55 @@ namespace IonLang
             return operand_rvalue(type);
         }
 
+        void try_const_cast(Operand* operand, Expr* expr) {
+            Type *unqual = unqualify_ptr_type(operand->type);
+            if (!operand->is_lvalue && unqual != operand->type) {
+                set_type_conv(expr, unqual);
+                operand->type = unqual;
+            }
+        }
+
+        Type *type_allocator;
+        Type *type_allocator_ptr;
+
+        Operand resolve_expr_new(Expr* expr, Type* expected_type) {
+            if (type_allocator == null) {
+                Package *saved = enter_package(builtin_package);
+                Sym *sym = resolve_name(_I("Allocator"));
+                assert(sym);
+                assert(sym->kind == SYM_TYPE);
+                type_allocator = sym->type;
+                type_allocator_ptr = type_ptr(type_allocator);
+                leave_package(saved);
+            }
+            if (expr->new_expr.alloc != null) {
+                Operand alloc = resolve_expr(expr->new_expr.alloc);
+                if (!convert_operand(&alloc, type_allocator_ptr)) {
+                    //            if (!(is_ptr_type(alloc.type) && alloc.type->base->kind == TYPE_STRUCT && alloc.type->base->aggregate.fields[0].type == type_allocator)) {
+                    fatal_error(expr->new_expr.alloc->pos, "Allocator of new must have type Allocator* or be pointer to struct with leading field of type Allocator");
+                }
+            }
+            if (expr->new_expr.len != null) {
+                Operand len = resolve_expr_rvalue(expr->new_expr.len);
+                if (!is_integer_type(len.type)) {
+                    fatal_error(expr->new_expr.len->pos, "Length argument of new must have integer type");
+                }
+            }
+            Type *expected_base = null;
+            if (is_ptr_type(expected_type)) {
+                expected_base = expected_type->@base;
+            }
+            Operand arg = resolve_expected_expr(expr->new_expr.arg, expected_base);
+            if (!arg.is_lvalue) {
+                fatal_error(expr->new_expr.arg->pos, "Argument to new must be lvalue");
+            }
+            complete_type(arg.type);
+            if (type_sizeof(arg.type) == 0) {
+                fatal_error(expr->new_expr.arg->pos, "Type of argument to new has zero size");
+            }
+            return operand_rvalue(type_ptr(arg.type));
+        }
+
 
 
         Operand resolve_expected_expr(Expr* expr, Type* expected_type) {
@@ -2607,7 +3093,7 @@ namespace IonLang
                     result = operand_const(expr->float_lit.suffix == SUFFIX_D ? type_double : type_float, default);
                     break;
                 case EXPR_STR:
-                    result = operand_rvalue(type_array(type_char, strlen(expr->str_lit.val) + 1));
+                    result = operand_rvalue(type_array(type_char, strlen(expr->str_lit.val) + 1, false));
                     break;
                 case EXPR_NAME:
                     // HACK
@@ -2677,7 +3163,7 @@ namespace IonLang
                     break;
                 }
                 case EXPR_TYPEOF_TYPE: {
-                    Type *type = resolve_typespec(expr->typeof_type);
+                    Type *type = resolve_typespec_strict(expr->typeof_type, true);
                     result = operand_const(type_ullong, new Val { ull = type->typeid });
                     break;
                 }
@@ -2695,7 +3181,7 @@ namespace IonLang
                     break;
                 }
                 case EXPR_ALIGNOF_EXPR: {
-                    if (expr->sizeof_expr->kind == EXPR_NAME) {
+                    if (expr->alignof_expr->kind == EXPR_NAME) {
                         Sym *sym = resolve_name(expr->alignof_expr->name);
                         if (sym != null && sym->kind == SYM_TYPE) {
                             complete_type(sym->type);
@@ -2732,13 +3218,22 @@ namespace IonLang
                 case EXPR_MODIFY:
                     result = resolve_expr_modify(expr);
                     break;
+                case EXPR_NEW:
+                    result = resolve_expr_new(expr, expected_type);
+                    break;
                 default:
                     assert(false);
                     result = default;
                     break;
             }
-
-            set_resolved_type(expr, result.type);
+            try_const_cast(&result, expr);
+            if (expected_type != null && unqualify_type(expected_type) == type_any && unqualify_type(result.type) != type_any) {
+                set_implicit_any(expr);
+                set_resolved_type(expr, type_decay(result.type));
+            }
+            else {
+                set_resolved_type(expr, result.type);
+            }
 
             return result;
         }
@@ -2781,7 +3276,7 @@ namespace IonLang
                         decl_note_names.map_put(arg->name, (void*)1);
                     }
                     else if (decl->note.name == static_assert_name) {
-                        // TODO: decide how to handle top-level static asserts wrt laziness/tree shaking
+                        // TODO: decide how to handle top-level  asserts wrt laziness/tree shaking
                         if (!flag_lazy) {
                             resolve_static_assert(decl->note);
                         }
@@ -2796,17 +3291,54 @@ namespace IonLang
             }
         }
 
+        Map implicit_any_map;
+
+        bool is_implicit_any(Expr* expr) {
+            return implicit_any_map.map_get<Type>(expr) != null;
+        }
+
+        void set_implicit_any(Expr* expr) {
+            implicit_any_map.map_put(expr, (void*)1);
+        }
+
+        Map type_conv_map;
+
+        Type* type_conv(Expr* expr) {
+            Type *type = type_conv_map.map_get<Type>(expr);
+            if (type == null) {
+                return null;
+            }
+            return type;
+        }
+
+        void set_type_conv(Expr* expr, Type* type) {
+            type_conv_map.map_put(expr, type);
+        }
+
+        Map pointer_promo_map;
+
+        Type* pointer_promo_type(Expr* expr) {
+            Type *type = pointer_promo_map.map_get<Type>(expr);
+            if (type == null) {
+                return null;
+            }
+            return type;
+        }
+
+        void set_pointer_promo_type(Expr* expr, Type* type) {
+            pointer_promo_map.map_put(expr, type);
+        }
+
+
+
+
         bool is_package_dir(char* search_path, char* package_path) {
             char* path = stackalloc char[MAX_PATH];
             strcpy(path, search_path);
             path_join(path, package_path);
             var str = new string(path);
-            if (!Directory.Exists(str))
-                return false;
 
-            var dirs = Directory.EnumerateFiles(str, "*.ion");
-            
-            return dirs.Any();
+            return Directory.Exists(str) && Directory.EnumerateFiles(str, "*.ion").Any();
         }
 
         const int MAX_PATH = 512;
@@ -2910,6 +3442,8 @@ namespace IonLang
             }
         }
 
+        int source_memory_usage;
+
         bool parse_package(Package* package) {
             PtrBuffer* decls = PtrBuffer.Create();
 
@@ -2919,8 +3453,10 @@ namespace IonLang
                     continue;
                 }
                 else if(flag_verbose) {
+                    path_normalize(p);
                     System.Console.WriteLine("\t" + f);
                 }
+                source_memory_usage += f.Length;
                 char *code = read_file(f);
                 init_stream(code, p);
                 Decls *file_decls = parse_decls();
@@ -2928,7 +3464,7 @@ namespace IonLang
                     decls->Add(file_decls->decls[i]);
                 }
             }
-            package->decls = decls->Cast<Decl>(); // Optimise this
+            package->decls = decls->Cast<Decl>();
             package->num_decls = decls->count;
             return package != null;
 
@@ -2972,20 +3508,28 @@ namespace IonLang
                 var sym = reachable_syms->Get<Sym>(i);
                 finalize_sym(sym);
                 if (i == num_reachable - 1) {
-                    if (flag_verbose) {
+                    if (flag_verbose && false) {
                        // printf("New reachable symbols:");
-                        printf("\n");
+                        //printf("\n");
                         for (var k = prev_num_reachable; k < num_reachable; k++) {
                             //var s = reachable_syms->Get<Sym>(k);
                             //printf(" {0}: {1}/{2}",k, _S(s->home_package->path), _S(s->name));
                         }
                         //System.Console.ReadKey();
-                        printf("\n");
+                        //printf("\n");
                     }
                     prev_num_reachable = num_reachable;
                     num_reachable = reachable_syms->count;
                 }
             }
+        }
+
+        bool is_intrinsic(Sym* sym) {
+            if (sym == null || sym->kind != SYM_FUNC) {
+                return false;
+            }
+            assert(is_func_type(sym->type));
+            return sym->type->func.intrinsic;
         }
 
         void init_builtin_syms() {
@@ -3044,6 +3588,7 @@ namespace IonLang
             typeid_kind_names[(int)TYPE_STRUCT] = "TYPE_STRUCT".ToPtr();
             typeid_kind_names[(int)TYPE_UNION] = "TYPE_UNION".ToPtr();
             typeid_kind_names[(int)TYPE_FUNC] = "TYPE_FUNC".ToPtr();
+            typeid_kind_names[(int)TYPE_TUPLE] = "TYPE_TUPLE".ToPtr();
 
             sym_global_type("void".ToPtr(), type_void);
             sym_global_type("bool".ToPtr(), type_bool);
@@ -3104,8 +3649,8 @@ namespace IonLang
         public char *full_path;
         public Decl **decls;
         public int num_decls;
-        public Ion.Map syms_map;
-        public Ion.PtrBuffer* syms;
+        public Map syms_map;
+        public PtrBuffer* syms;
         public char *external_name;
         public bool always_reachable;
     }
@@ -3116,7 +3661,7 @@ namespace IonLang
         public Package* home_package;
         public SymKind kind;
         public SymState state;
-        public byte reachable;
+        public SymReachable reachable;
         public char *external_name;
         public Decl* decl;
         public Type* type;

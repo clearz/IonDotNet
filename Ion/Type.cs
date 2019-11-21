@@ -33,6 +33,7 @@ namespace IonLang
         TYPE_FUNC,
         TYPE_ARRAY,
         TYPE_STRUCT,
+        TYPE_TUPLE,
         TYPE_UNION,
         TYPE_CONST,
         NUM_TYPE_KINDS,
@@ -57,15 +58,20 @@ namespace IonLang
     internal unsafe struct Type
     {
         [FieldOffset(0)] public TypeKind kind;
-        [FieldOffset(4)] public long size;
-        [FieldOffset(12)] public long align;
-        [FieldOffset(20)] public bool nonmodifiable;
-        [FieldOffset(24)] public uint typeid;
-        [FieldOffset(28)] public Sym* sym;
-        [FieldOffset(    Ion.PTR_SIZE + 28)] public Type* @base;
-        [FieldOffset(2 * Ion.PTR_SIZE + 28)] public _aggregate aggregate;
-        [FieldOffset(2 * Ion.PTR_SIZE + 28)] public _func func;
-        [FieldOffset(2 * Ion.PTR_SIZE + 28)] public int num_elems;
+        [FieldOffset(4)] public bool nonmodifiable;
+        [FieldOffset(8)] public long size;
+        [FieldOffset(16)] public long align;
+        [FieldOffset(24)] public long padding;
+        [FieldOffset(32)] public uint typeid;
+        [FieldOffset(40)] public Sym* sym;
+        [FieldOffset(    Ion.PTR_SIZE + 40)] public Type* @base;
+
+        [FieldOffset(2 * Ion.PTR_SIZE + 40)] public _aggregate aggregate;
+
+        [FieldOffset(2 * Ion.PTR_SIZE + 40)] public _func func;
+
+        [FieldOffset(2 * Ion.PTR_SIZE + 40)] public bool incomplete_elems;
+        [FieldOffset(2 * Ion.PTR_SIZE + 41)] public int num_elems;
 
         internal struct _aggregate
         {
@@ -75,9 +81,11 @@ namespace IonLang
 
         internal struct _func
         {
+            public bool intrinsic;
             public Type** @params;
             public long num_params;
             public bool has_varargs;
+            public Type *varargs_type;
             public Type* ret;
         }
     }
@@ -88,32 +96,42 @@ namespace IonLang
         Map cached_array_types;
         Map cached_func_types;
         Map cached_const_types;
-        static Map typeid_map;
+        Map typeid_map;
 
-        static readonly Type* type_void    = basic_type_alloc(TYPE_VOID);
-        static readonly Type* type_bool    = basic_type_alloc(TYPE_BOOL);
-        static readonly Type* type_char    = basic_type_alloc(TYPE_CHAR);
-        static readonly Type* type_uchar   = basic_type_alloc(TYPE_UCHAR);
-        static readonly Type* type_schar   = basic_type_alloc(TYPE_SCHAR);
-        static readonly Type* type_short   = basic_type_alloc(TYPE_SHORT);
-        static readonly Type* type_ushort  = basic_type_alloc(TYPE_USHORT);
-        static readonly Type* type_int     = basic_type_alloc(TYPE_INT);
-        static readonly Type* type_uint    = basic_type_alloc(TYPE_UINT);
-        static readonly Type* type_long    = basic_type_alloc(TYPE_LONG); // 4 on 64-bit windows, 8 on 64-bit linux, probably factor this out to the backend
-        static readonly Type* type_ulong   = basic_type_alloc(TYPE_ULONG);
-        static readonly Type* type_llong   = basic_type_alloc(TYPE_LLONG);
-        static readonly Type* type_ullong  = basic_type_alloc(TYPE_ULLONG);
-        static readonly Type* type_float   = basic_type_alloc(TYPE_FLOAT);
-        static readonly Type* type_double  = basic_type_alloc(TYPE_DOUBLE);
+        readonly Type* type_void    = basic_type_alloc(TYPE_VOID);
+        readonly Type* type_bool    = basic_type_alloc(TYPE_BOOL);
+        readonly Type* type_char    = basic_type_alloc(TYPE_CHAR);
+        readonly Type* type_uchar   = basic_type_alloc(TYPE_UCHAR);
+        readonly Type* type_schar   = basic_type_alloc(TYPE_SCHAR);
+        readonly Type* type_short   = basic_type_alloc(TYPE_SHORT);
+        readonly Type* type_ushort  = basic_type_alloc(TYPE_USHORT);
+        readonly Type* type_int     = basic_type_alloc(TYPE_INT);
+        readonly Type* type_uint    = basic_type_alloc(TYPE_UINT);
+        readonly Type* type_long    = basic_type_alloc(TYPE_LONG);
+        readonly Type* type_ulong   = basic_type_alloc(TYPE_ULONG);
+        readonly Type* type_llong   = basic_type_alloc(TYPE_LLONG);
+        readonly Type* type_ullong  = basic_type_alloc(TYPE_ULLONG);
+        readonly Type* type_float   = basic_type_alloc(TYPE_FLOAT);
+        readonly Type* type_double  = basic_type_alloc(TYPE_DOUBLE);
 
-        static Type* type_usize, type_ssize, type_uintptr;
+        Type *type_char_ptr;
+        Type *type_alloc_func;
 
-        static readonly int[] type_ranks = new int[(int)NUM_TYPE_KINDS];
-        static readonly char*[] type_names = new char*[(int)NUM_TYPE_KINDS];
-        static readonly char*[] typeid_kind_names = new char*[(int)NUM_TYPE_KINDS];
-        bool is_const_type(Type* type) {
-            return type->kind == TYPE_CONST;
+        Type* type_usize, type_ssize, type_uintptr;
+
+        uint next_typeid = 1;
+
+        Type *type_any;
+
+
+        readonly int[] type_ranks = new int[(int)NUM_TYPE_KINDS];
+        readonly char*[] type_names = new char*[(int)NUM_TYPE_KINDS];
+        readonly char*[] typeid_kind_names = new char*[(int)NUM_TYPE_KINDS];
+        long type_padding(Type* type) {
+            assert(type->kind > TYPE_COMPLETING);
+            return type->padding;
         }
+
 
         bool is_integer_type(Type* type) {
             return TYPE_BOOL <= type->kind && type->kind <= TYPE_ENUM;
@@ -132,22 +150,31 @@ namespace IonLang
         }
 
         bool is_aggregate_type(Type* type) {
-            return type->kind == TYPE_STRUCT || type->kind == TYPE_UNION;
+            return type->kind == TYPE_STRUCT || type->kind == TYPE_UNION || type->kind == TYPE_TUPLE;
         }
 
         bool is_ptr_type(Type* type) {
-            return type->kind == TYPE_PTR;
-        }
-        bool is_ptr_like_type(Type* type) {
-            return type->kind == TYPE_PTR || type->kind == TYPE_FUNC;
-        }
-
-        bool is_array_type(Type* type) {
-            return type->kind == TYPE_ARRAY;
+            return type != null && type->kind == TYPE_PTR;
         }
 
         bool is_func_type(Type* type) {
-            return type->kind == TYPE_FUNC;
+            return type != null && type->kind == TYPE_FUNC;
+        }
+
+        bool is_ptr_like_type(Type* type) {
+            return type != null && type->kind == TYPE_PTR || type->kind == TYPE_FUNC;
+        }
+
+        bool is_const_type(Type* type) {
+            return type != null && type->kind == TYPE_CONST;
+        }
+
+        bool is_array_type(Type* type) {
+            return type != null && type->kind == TYPE_ARRAY;
+        }
+
+        bool is_incomplete_array_type(Type* type) {
+            return type != null && is_array_type(type) && type->num_elems == 0;
         }
 
 
@@ -165,6 +192,15 @@ namespace IonLang
                     return false;
             }
         }
+        Type* qualify_type(Type* type, Type* qual) {
+            type = unqualify_type(type);
+            while (qual->kind == TYPE_CONST) {
+                type = type_const(type);
+                qual = qual->@base;
+            }
+            return type;
+        }
+
 
         int aggregate_item_field_index(Type* type, char* name) {
             assert(is_aggregate_type(type));
@@ -246,6 +282,11 @@ namespace IonLang
             init_builtin_type(type_ullong);
             init_builtin_type(type_float);
             init_builtin_type(type_double);
+
+
+            type_char_ptr = type_ptr(type_char);
+
+            type_alloc_func = type_func(new []{ type_usize, type_usize}, 2, type_ptr(type_void), false, false, type_void);
         }
 
         static Type* basic_type_alloc(TypeKind kind, long size = 0, long align = 0, uint typeid = 0) {
@@ -309,7 +350,6 @@ namespace IonLang
             Unsafe.InitBlock(type, 0, (uint)sizeof(Type));
             type->kind = kind;
             type->typeid = next_typeid++;
-            System.Console.WriteLine("      ".PadLeft(idd) + kind + ": " + next_typeid);
             register_typeid(type);
             return type;
         }
@@ -340,21 +380,18 @@ namespace IonLang
             }
         }
 
-        bool is_incomplete_array_type(Type* type) {
-            return is_array_type(type) && type->num_elems == 0;
-        }
-
-        Type* type_array(Type* @base, int num_elems) {
+        Type* type_array(Type* @base, int num_elems, bool incomplete_elems) {
             var hash = Map.hash_mix(Map.hash_ptr(@base), Map.hash_uint64((ulong)num_elems));
             var key = hash != 0 ? hash : 1;
-            CachedArrayType *cached = (CachedArrayType*)cached_array_types.map_get_from_uint64(key);
-            for (CachedArrayType* it = cached; it != null; it = it->next) {
-                Type *t = it->type;
-                if (t->@base == @base && t->num_elems == num_elems) {
-                    return t;
+            var cached = (CachedArrayType*)cached_array_types.map_get_from_uint64(key);
+            if (!incomplete_elems) {
+                for (CachedArrayType* it = cached; it != null; it = it->next) {
+                    Type *t = it->type;
+                    if (t->@base == @base && t->num_elems == num_elems) {
+                        return t;
+                    }
                 }
             }
-
             complete_type(@base);
             Type *type = type_alloc(TYPE_ARRAY);
             type->nonmodifiable = @base->nonmodifiable;
@@ -362,15 +399,18 @@ namespace IonLang
             type->align = type_alignof(@base);
             type->@base = @base;
             type->num_elems = num_elems;
-            CachedArrayType *new_cached = xmalloc<CachedArrayType>();
-            new_cached->type = type;
-            new_cached->next = cached;
-            cached_array_types.map_put_from_uint64(key, new_cached);
+            type->incomplete_elems = incomplete_elems;
+            if (!incomplete_elems) {
+                CachedArrayType *new_cached = xmalloc<CachedArrayType>();
+                new_cached->type = type;
+                new_cached->next = cached;
+                cached_array_types.map_put_from_uint64(key, new_cached);
+            }
             return type;
         }
 
-        static bool memcmp(void* b1, void* b2, int count) {
-            for(int i=count;i>=0;i--) {
+         bool memcmp(void* b1, void* b2, int count) {
+            for(var i=count;i>=0;i--) {
 #if X64
                 if((ulong)((ulong*)b1 + i) != (ulong)((ulong*)b1 + i)) return false;
 #else
@@ -380,17 +420,18 @@ namespace IonLang
             return true;
         }
 
-        Type* type_func(Type** @params, int num_params, Type* ret, bool has_varargs = false) {
+        Type* type_func(Type** @params, int num_params, Type* ret, bool intrinsic, bool has_varargs, Type* varargs_type) {
             var params_size = num_params * PTR_SIZE;
-            ulong hash = Map.hash_mix(Map.hash_bytes(@params, params_size), Map.hash_ptr(ret));
+            var hash = Map.hash_mix(Map.hash_bytes(@params, params_size), Map.hash_ptr(ret));
             var key = hash != 0 ? hash : 1;
             
-            CachedFuncType *cached = (CachedFuncType*)cached_func_types.map_get_from_uint64(key);
-            for (CachedFuncType* it = cached; it != null; it = it->next) {
+            var cached = (TypeLink*)cached_func_types.map_get_from_uint64(key);
+            for (TypeLink* it = cached; it != null; it = it->next) {
                 Type *type1 = it->type;
-                    if (type1->func.num_params == num_params && type1->func.ret == ret && type1->func.has_varargs == has_varargs)
-                        if (memcmp(type1->func.@params, @params, num_params))
-                            return type1;
+                if (type1->func.num_params == num_params && type1->func.ret == ret && type1->func.intrinsic == intrinsic && type1->func.has_varargs == has_varargs && type1->func.varargs_type == varargs_type) {
+                    if (memcmp(type1->func.@params, @params, num_params))
+                        return type1;
+                }
             }
 
             Type *type = type_alloc(TYPE_FUNC);
@@ -398,18 +439,20 @@ namespace IonLang
             type->align = type_metrics[(int)TYPE_PTR].align;
             type->func.@params = (Type**)memdup(@params, params_size);
             type->func.num_params = num_params;
+            type->func.intrinsic = intrinsic;
             type->func.has_varargs = has_varargs;
+            type->func.varargs_type = varargs_type;
             type->func.ret = ret;
-            CachedFuncType *new_cached = xmalloc<CachedFuncType>();
+            TypeLink *new_cached = xmalloc<TypeLink>();
             new_cached->type = type;
             new_cached->next = cached;
             cached_func_types.map_put_from_uint64(key, new_cached);
             return type;
         }
 
-        Type* type_func(Type*[] params_a, int num_params, Type* ret, bool has_varargs = false) {
+        Type* type_func(Type*[] params_a, int num_params, Type* ret, bool intrinsic, bool has_varargs, Type* varargs_type) {
             fixed (Type** @params = params_a) {
-                return type_func(@params, num_params, ret, has_varargs);
+                return type_func(@params, num_params, ret, intrinsic, has_varargs, varargs_type);
             }
         }
 
@@ -436,6 +479,7 @@ namespace IonLang
             type->size = 0;
             type->align = 0;
             bool nonmodifiable = false;
+            long field_sizes = 0;
             var new_fields = Buffer<TypeField>.Create();
 
             for (var it = fields; it != fields + num_fields; it++) {
@@ -447,12 +491,13 @@ namespace IonLang
                 else {
                     add_type_fields(&new_fields, it->type, type->size);
                 }
-            
+                field_sizes += type_sizeof(it->type);
                 type->align = MAX(type->align, type_alignof(it->type));
                 type->size = type_sizeof(it->type) + ALIGN_UP(type->size, type_alignof(it->type));
                 nonmodifiable = it->type->nonmodifiable || nonmodifiable;
             }
             type->size = ALIGN_UP(type->size, type->align);
+            type->padding = type->size - field_sizes;
             type->aggregate.fields = new_fields;
             type->aggregate.num_fields = new_fields.count;
             type->nonmodifiable = nonmodifiable;
@@ -489,7 +534,75 @@ namespace IonLang
             return type;
         }
 
-        Type* type_incomplete(Sym* sym) {
+        void type_complete_tuple(Type* type, Type** fields, int num_fields) {
+            type->kind = TYPE_TUPLE;
+            type->size = 0;
+            type->align = 0;
+            bool nonmodifiable = false;
+            long elem_sizes = 0;
+            var new_fields = Buffer<TypeField>.Create();
+            for (int i = 0; i < num_fields; i++) {
+                Type *field = fields[i];
+                assert(IS_POW2(type_alignof(field)));
+                complete_type(fields[i]);
+                char* name = ("_" + i).ToPtr();
+                var new_field = new TypeField {
+
+                    name = _I(name),
+                    type = fields[i],
+                    offset = type->size,
+                };
+                new_fields.Add(new_field);
+                elem_sizes += type_sizeof(field);
+                type->align = MAX(type->align, type_alignof(field));
+                type->size = type_sizeof(field) + ALIGN_UP(type->size, type_alignof(field));
+                nonmodifiable = field->nonmodifiable || nonmodifiable;
+            }
+            type->size = ALIGN_UP(type->size, type->align);
+            type->padding = type->size - elem_sizes;
+            type->aggregate.fields = new_fields;
+            type->aggregate.num_fields = new_fields.count;
+            type->nonmodifiable = nonmodifiable;
+        }
+
+        Map cached_tuple_types;
+        PtrBuffer* tuple_types = PtrBuffer.Create();
+
+        Type* type_tuple(Type** fields, int num_fields) {
+            int fields_size = num_fields * PTR_SIZE;
+            var hash = Map.hash_bytes(fields, fields_size);
+            var key = hash != 0 ? hash : 1ul;
+            var cached = (TypeLink*)cached_tuple_types.map_get_from_uint64(key);
+            for (TypeLink* it = cached; it != null; it = it->next) {
+                Type *cached_type = it->type;
+                if (cached_type->aggregate.num_fields == num_fields) {
+                    for (int i = 0; i < num_fields; i++) {
+                        if (cached_type->aggregate.fields[i].type != fields[i]) {
+                            goto next;
+                        }
+                    }
+                    return cached_type;
+                }
+next:;
+            }
+            Type *type = type_alloc(TYPE_TUPLE);
+            type_complete_tuple(type, fields, num_fields);
+            TypeLink *new_cached = xmalloc<TypeLink>();
+            new_cached->type = type;
+            new_cached->next = cached;
+            cached_tuple_types.map_put_from_uint64(key, new_cached);
+            tuple_types->Add(type);
+            return type;
+    }
+
+    Type* unqualify_ptr_type(Type* type) {
+        if (type->kind == TYPE_PTR) {
+            type = type_ptr(unqualify_type(type->@base));
+        }
+        return type;
+    }
+
+    Type* type_incomplete(Sym* sym) {
             var type = type_alloc(TYPE_INCOMPLETE);
             type->sym = sym;
             return type;
@@ -502,9 +615,9 @@ namespace IonLang
         public CachedArrayType *next;
     }
 
-    internal unsafe struct CachedFuncType
+    internal unsafe struct TypeLink
     {
         public Type *type;
-        public CachedFuncType *next;
+        public TypeLink *next;
     }
 }

@@ -16,24 +16,20 @@
         }
 
         internal Decls* parse_decls() {
-            var buf = PtrBuffer.GetPooledBuffer();
-            try {
-                while (!is_token(TOKEN_EOF)) {
-                    buf->Add(parse_decl());
-                }
+            var buf = PtrBuffer.Create();
+            while (!is_token(TOKEN_EOF)) {
+                buf->Add(parse_decl());
+            }
 
-                return new_decls((Decl**)buf->_begin, buf->count);
-            }
-            finally {
-                buf->Release();
-            }
+            return new_decls((Decl**)buf->_begin, buf->count);
+            
         }
 
         Typespec* parse_type_func() {
-            var buf = PtrBuffer.GetPooledBuffer();
+            var buf = PtrBuffer.Create();
             var pos = token.pos;
             bool has_varargs = false;
-            try {
+
                 expect_token(TOKEN_LPAREN);
                 if (!is_token(TOKEN_RPAREN)) {
                     buf->Add(parse_type_func_param());
@@ -59,14 +55,27 @@
                     ret = parse_type();
 
                 return new_typespec_func(pos, (Typespec**)buf->_begin, buf->count, ret, has_varargs);
-            }
-            finally {
-                buf->Release();
-            }
+     
         }
 
+        Typespec* parse_type_tuple() {
+            SrcPos pos = token.pos;
+            PtrBuffer* fields = PtrBuffer.Create();
+            while (!is_token(TOKEN_RBRACE)) {
+                Typespec *field = parse_type();
+                fields->Add(field);
+                if (!match_token(TOKEN_COMMA)) {
+                    break;
+                }
+            }
+            expect_token(TOKEN_RBRACE);
+            return new_typespec_tuple(pos, (Typespec**)fields->_begin, fields->count);
+       
+        }
+
+
         Typespec* parse_type_base() {
-            var buf = PtrBuffer.GetPooledBuffer();
+            var buf = PtrBuffer.Create();
             var pos = token.pos;
             if (is_token(TOKEN_NAME)) {
                 buf->Add(token.name);
@@ -85,9 +94,27 @@
                 expect_token(TOKEN_RPAREN);
                 return type;
             }
+            if (match_token(TOKEN_LBRACE)) {
+                return parse_type_tuple();
+            }
 
             fatal_error_here("Unexpected token {0} in type", token_info());
             return null;
+        }
+
+        Expr* parse_expr_new(SrcPos pos) {
+            Expr *alloc = null;
+            if (match_token(TOKEN_LPAREN)) {
+                alloc = parse_expr();
+                expect_token(TOKEN_RPAREN);
+            }
+            Expr *len = null;
+            if (match_token(TOKEN_LBRACKET)) {
+                len = parse_expr();
+                expect_token(TOKEN_RBRACKET);
+            }
+            Expr *arg = parse_expr();
+            return new_expr_new(pos, alloc, len, arg);
         }
 
         Typespec* parse_type() {
@@ -149,7 +176,7 @@
             var pos = token.pos;
             expect_token(TOKEN_LBRACE);
             var buf = Buffer<CompoundField>.Create();
-            ; // Expr**
+
             while (!is_token(TOKEN_RBRACE)) {
                 buf.Add(parse_expr_compound_field());
                 if (!match_token(TOKEN_COMMA)) {
@@ -194,8 +221,9 @@
                     return parse_expr_compound(new_typespec_name(pos, &name, 1));
                 return new_expr_name(pos, name);
             }
-
-
+            if (match_keyword(new_keyword)) {
+                return parse_expr_new(pos);
+            }
             if (match_keyword(sizeof_keyword)) {
                 expect_token(TOKEN_LPAREN);
                 if (match_token(TOKEN_COLON)) {
@@ -208,7 +236,7 @@
                 expect_token(TOKEN_RPAREN);
                 return new_expr_sizeof_expr(pos, expr);
             }
-            else if (match_keyword(alignof_keyword)) {
+            if (match_keyword(alignof_keyword)) {
                 expect_token(TOKEN_LPAREN);
                 if (match_token(TOKEN_COLON)) {
                     Typespec *type = parse_type();
@@ -221,7 +249,7 @@
                     return new_expr_alignof_expr(pos, expr);
                 }
             }
-            else if (match_keyword(typeof_keyword)) {
+            if (match_keyword(typeof_keyword)) {
                 expect_token(TOKEN_LPAREN);
                 if (match_token(TOKEN_COLON)) {
                     Typespec *type = parse_type();
@@ -234,7 +262,7 @@
                     return new_expr_typeof_expr(pos, expr);
                 }
             }
-            else if (match_keyword(offsetof_keyword)) {
+            if (match_keyword(offsetof_keyword)) {
                 expect_token(TOKEN_LPAREN);
                 Typespec *type = parse_type();
                 expect_token(TOKEN_COMMA);
@@ -270,7 +298,7 @@
                 || is_token(TOKEN_INC) || is_token(TOKEN_DEC)) {
 
                 if (match_token(TOKEN_LPAREN)) {
-                    var buf = PtrBuffer.GetPooledBuffer();
+                    var buf = PtrBuffer.Create();
 
                     if (!is_token(TOKEN_RPAREN)) {
                         buf->Add(parse_expr());
@@ -280,7 +308,6 @@
 
                     expect_token(TOKEN_RPAREN);
                     expr = new_expr_call(pos, expr, (Expr**)buf->_begin, buf->count);
-                    buf->Release();
                 }
                 else if (match_token(TOKEN_LBRACKET)) {
                     var index = parse_expr();
@@ -419,17 +446,13 @@
             expect_token(TOKEN_LBRACE);
             var pos = token.pos;
 
-            var buf = PtrBuffer.GetPooledBuffer();
-            try {
-                while (!is_token_eof() && !is_token(TOKEN_RBRACE))
-                    buf->Add(parse_stmt());
+            var buf = PtrBuffer.Create();
+            while (!is_token_eof() && !is_token(TOKEN_RBRACE))
+                buf->Add(parse_stmt());
 
-                expect_token(TOKEN_RBRACE);
-                return stmt_list(pos, (Stmt**)buf->_begin, buf->count);
-            }
-            finally {
-                buf->Release();
-            }
+            expect_token(TOKEN_RBRACE);
+            return stmt_list(pos, (Stmt**)buf->_begin, buf->count);
+        
         }
 
         Stmt* parse_stmt_if(SrcPos pos) {
@@ -448,28 +471,23 @@
             var then_block = parse_stmt_block();
             var else_block = default(StmtList);
 
-            var buf = PtrBuffer.GetPooledBuffer();
-            try {
-                while (match_keyword(else_keyword)) {
-                    if (!match_keyword(if_keyword)) {
-                        else_block = parse_stmt_block();
-                        break;
-                    }
-
-                    var elseif_cond = parse_paren_expr();
-                    var elseif_block = parse_stmt_block();
-                    var elif = (ElseIf*) xmalloc(sizeof(ElseIf));
-                    elif->cond = elseif_cond;
-                    elif->block = elseif_block;
-                    buf->Add(elif);
+            var buf = PtrBuffer.Create();
+            while (match_keyword(else_keyword)) {
+                if (!match_keyword(if_keyword)) {
+                    else_block = parse_stmt_block();
+                    break;
                 }
 
-                return new_stmt_if(pos, init, cond, then_block, (ElseIf**)buf->_begin, buf->count,
-                    else_block);
+                var elseif_cond = parse_paren_expr();
+                var elseif_block = parse_stmt_block();
+                var elif = (ElseIf*) xmalloc(sizeof(ElseIf));
+                elif->cond = elseif_cond;
+                elif->block = elseif_block;
+                buf->Add(elif);
             }
-            finally {
-                buf->Release();
-            }
+
+            return new_stmt_if(pos, init, cond, then_block, (ElseIf**)buf->_begin, buf->count, else_block);
+           
         }
 
         Stmt* parse_stmt_while(SrcPos pos) {
@@ -540,26 +558,28 @@
         }
 
         Stmt* parse_stmt_for(SrcPos pos) {
-            expect_token(TOKEN_LPAREN);
             Stmt* init = null;
-            if (!is_token(TOKEN_SEMICOLON))
-                init = parse_simple_stmt();
-
-            expect_token(TOKEN_SEMICOLON);
             Expr* cond = null;
-            if (!is_token(TOKEN_SEMICOLON))
-                cond = parse_expr();
-
             Stmt* next = null;
-            if (match_token(TOKEN_SEMICOLON)) {
-                if (!is_token(TOKEN_RPAREN)) {
-                    next = parse_simple_stmt();
-                    if (next->kind == STMT_INIT) {
-                        error_here("Init statements not allowed in for-statement's next clause");
+            if (!is_token(TOKEN_LBRACE)) {
+                expect_token(TOKEN_LPAREN);
+                if (!is_token(TOKEN_SEMICOLON)) {
+                    init = parse_simple_stmt();
+                }
+                if (match_token(TOKEN_SEMICOLON)) {
+                    if (!is_token(TOKEN_SEMICOLON)) {
+                        cond = parse_expr();
+                    }
+                    if (match_token(TOKEN_SEMICOLON)) {
+                        if (!is_token(TOKEN_RPAREN)) {
+                            next = parse_simple_stmt();
+                            if (next->kind == STMT_INIT) {
+                                error_here("Init statements not allowed in for-statement's next clause");
+                            }
+                        }
                     }
                 }
             }
-
             expect_token(TOKEN_RPAREN);
             return new_stmt_for(pos, init, cond, next, parse_stmt_block());
         }
@@ -602,17 +622,17 @@
 
             var pos = token.pos;
 
-            var buf2 = PtrBuffer.GetPooledBuffer();
+            var buf = PtrBuffer.Create();
 
             while (!is_token_eof() && !is_token(TOKEN_RBRACE) && !is_keyword(case_keyword) &&
                    !is_keyword(default_keyword))
-                buf2->Add(parse_stmt());
+                buf->Add(parse_stmt());
 
             var block = new StmtList
                 {
                 pos = pos,
-                stmts = (Stmt**) buf2->_begin,
-                num_stmts = buf2->count
+                stmts = (Stmt**) buf->_begin,
+                num_stmts = buf->count
             };
             return new SwitchCase {
                 patterns = patterns,
@@ -726,7 +746,7 @@
             }
             expect_token(TOKEN_LBRACE);
             EnumItem* items = null;
-            var buf = Buffer<EnumItem>.Create(32);
+            var buf = Buffer<EnumItem>.Create(16);
             while (!is_token(TOKEN_RBRACE)) {
                 buf.Add(parse_decl_enum_item());
                 if (!match_token(TOKEN_COMMA))
@@ -852,6 +872,8 @@
         Decl* parse_decl_func(SrcPos pos) {
             var name = parse_name();
             bool has_varargs = false;
+            Typespec *varargs_type = null;
+
             expect_token(TOKEN_LPAREN);
             var buf = Buffer<FuncParam>.Create();
             if (!is_token(TOKEN_RPAREN)) {
@@ -860,6 +882,9 @@
                     if (match_token(TOKEN_ELLIPSIS)) {
                         if (has_varargs) {
                             error_here("Multiple ellipsis in function declaration");
+                        }
+                        if (!is_token(TOKEN_RPAREN)) {
+                            varargs_type = parse_type();
                         }
                         has_varargs = true;
                     }
@@ -886,7 +911,7 @@
                 block = parse_stmt_block();
                 is_incomplete = false;
             }
-            var decl = new_decl_func(pos, name, buf, buf.count, ret_type, has_varargs, block);
+            var decl = new_decl_func(pos, name, buf, buf.count, ret_type, has_varargs, varargs_type, block);
             decl->is_incomplete = is_incomplete;
             return decl;
         }
@@ -945,7 +970,7 @@ repeat:
                 goto repeat;
             }
 
-            var names = PtrBuffer.GetPooledBuffer();
+            var names = PtrBuffer.Create();
             names->Add(name);
 
             while (match_token(TOKEN_DOT)) {
