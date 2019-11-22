@@ -127,7 +127,7 @@ namespace IonLang
             var dir = new DirectoryInfo(BACK_PATH);
 
             Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
-            var b = ion_main(new []{pkg, "-f", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
+            var b = ion_main(new []{pkg, "-z", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
             assert(b == 0);
         }
 
@@ -165,7 +165,6 @@ namespace IonLang
             }
             char *main_name = _I("main");
             Sym *main_sym = get_package_sym(main_package, main_name);
-            reachable_phase = REACHABLE_NATURAL;
 
             if (!flag_raw_code) {
                 if (main_sym == null) {
@@ -175,6 +174,8 @@ namespace IonLang
                 main_sym->external_name = main_name;
                 resolve_sym(main_sym);
             }
+            reachable_phase = REACHABLE_NATURAL;
+
             for (int i = 0; i < package_list->count; i++) {
                 var pkg = package_list->Get<Package>(i);
                 if (pkg->always_reachable) {
@@ -182,7 +183,6 @@ namespace IonLang
                 }
             }
             finalize_reachable_syms();
-
             if (flag_verbose) {
                 printf("Reached {0} symbols in {1} packages from {2}/main\n", reachable_syms->count, package_list->count, package_name);
             }

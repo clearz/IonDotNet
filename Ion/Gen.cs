@@ -115,8 +115,16 @@ namespace IonLang
             gen_pos.line++;
         }
 
-        bool gen_reachable(Sym* sym) {
-            return flag_fullgen || sym->reachable == REACHABLE_NATURAL;
+        bool is_reachable(SymReachable reachable) {
+            return flag_fullgen || reachable == REACHABLE_NATURAL;
+        }
+
+        bool is_sym_reachable(Sym* sym) {
+            return is_reachable(sym->reachable);
+        }
+
+        bool is_tuple_reachable(Type* type) {
+            return is_reachable(get_reachable(type));
         }
 
         bool is_excluded_typeinfo(Type* type) {
@@ -128,8 +136,11 @@ namespace IonLang
                     return true;
                 }
                 else {
-                    return !gen_reachable(type->sym);
+                    return !is_sym_reachable(type->sym);
                 }
+            }
+            else if (type->kind == TYPE_TUPLE) {
+                return !is_tuple_reachable(type);
             }
             else {
                 assert(type->sym == null);
@@ -567,19 +578,22 @@ namespace IonLang
         }
 
         void gen_forward_decls() {
+            genln();
             for (int i = 0; i < tuple_types->count; i++) {
                 Type *type = tuple_types->Get<Type>(i);
-                char* id = type->typeid.itoa();
-                genlnf("typedef struct tuple");
-                c_write(id);
-                c_write(" tuple");
-                c_write(id);
-                c_write(';');
+                if (is_tuple_reachable(type)) {
+                    char* id = type->typeid.itoa();
+                    genlnf("typedef struct tuple");
+                    c_write(id);
+                    c_write(" tuple");
+                    c_write(id);
+                    c_write(';');
+                }
             }
             for (var it = (Sym**)sorted_syms->_begin; it != sorted_syms->_top; it++) {
                 var sym = *it;         
                 var decl = sym->decl;
-                if (decl == null || !gen_reachable(sym))
+                if (decl == null || !is_sym_reachable(sym))
                     continue;
                 if (is_decl_foreign(decl))
                     continue;
@@ -633,45 +647,6 @@ namespace IonLang
             c_write(';');
         }
 
-        void gen_aggregate_items(Aggregate* aggregate) {
-            gen_indent++;
-            for (var i = 0; i < aggregate->num_items; i++) {
-                AggregateItem item = aggregate->items[i];
-                if (item.kind == AGGREGATE_ITEM_FIELD) {
-                    for (var j = 0; j < item.num_names; j++) {
-                        gen_sync_pos(item.pos);
-                        if (item.type->kind == TYPESPEC_ARRAY && item.type->num_elems == null) {
-
-                            genln();
-                            typespec_to_cdecl(new_typespec_ptr(item.pos, item.type->@base), item.names[j]);
-                            c_write(';');
-                        }
-                        else {
-                            genln();
-                            typespec_to_cdecl(item.type, item.names[j]);
-                            c_write(';');
-                        }
-                    }
-                }
-                else if (item.kind == AGGREGATE_ITEM_SUBAGGREGATE) {
-                    if (item.subaggregate->kind == AGGREGATE_STRUCT)
-                        c_write(struct_keyword, 6);
-                    else
-                        c_write(union_keyword, 5);
-                    c_write(' ');
-                    c_write('{');
-                    gen_aggregate_items(item.subaggregate);
-                    c_write('}');
-                    c_write(';');
-                }
-                else {
-                    assert(0);
-                }
-            }
-            gen_indent--;
-        }
-
-
         void gen_aggregate(Decl* decl) {
             assert(decl->kind == DECL_STRUCT || decl->kind == DECL_UNION);
             if (decl->is_incomplete) {
@@ -692,16 +667,44 @@ namespace IonLang
             genln();
             c_write('}');
             c_write(';');
-        }
 
-        char* typeid_kind_name(Type* type) {
-            if (type->kind < NUM_TYPE_KINDS) {
-                char *name = typeid_kind_names[(int)type->kind];
-                if (name != null) {
-                    return name;
+            void gen_aggregate_items(Aggregate* aggregate) {
+                gen_indent++;
+                for (var i = 0; i < aggregate->num_items; i++) {
+                    AggregateItem item = aggregate->items[i];
+                    if (item.kind == AGGREGATE_ITEM_FIELD) {
+                        for (var j = 0; j < item.num_names; j++) {
+                            gen_sync_pos(item.pos);
+                            genln();
+                            if (item.type->kind == TYPESPEC_ARRAY && item.type->num_elems == null) {
+                                typespec_to_cdecl(new_typespec_ptr(item.pos, item.type->@base), item.names[j]);
+                                c_write(';');
+                            }
+                            else {
+                                typespec_to_cdecl(item.type, item.names[j]);
+                                c_write(';');
+                            }
+                        }
+                    }
+                    else if (item.kind == AGGREGATE_ITEM_SUBAGGREGATE) {
+                        genln();
+                        if (item.subaggregate->kind == AGGREGATE_STRUCT)
+                            c_write(struct_keyword, 6);
+                        else
+                            c_write(union_keyword, 5);
+                        c_write(' ');
+                        c_write('{');
+                        gen_aggregate_items(item.subaggregate);
+                        genln();
+                        c_write('}');
+                        c_write(';');
+                    }
+                    else {
+                        assert(0);
+                    }
                 }
+                gen_indent--;
             }
-            return typeid_kind_names[(int)TYPE_NONE];
         }
 
         void gen_typeid(Type* type) {
@@ -723,6 +726,16 @@ namespace IonLang
                 c_write(' ');
                 type_to_cdecl(type, null);
                 c_write(')');
+            }
+
+            char* typeid_kind_name(Type* type) {
+                if (type->kind < NUM_TYPE_KINDS) {
+                    char *name = typeid_kind_names[(int)type->kind];
+                    if (name != null) {
+                        return name;
+                    }
+                }
+                return typeid_kind_names[(int)TYPE_NONE];
             }
         }
 
@@ -1796,8 +1809,12 @@ namespace IonLang
         }
 
         void gen_sorted_decls() {
+            genln();
             for (int i = 0; i < tuple_types->count; i++) {
                 Type *type = tuple_types->Get<Type>(i);
+                if (!is_tuple_reachable(type))
+                    continue;
+                
                 char* id = type->typeid.itoa();
                 genlnf("struct tuple");
                 c_write(id);
@@ -1813,11 +1830,12 @@ namespace IonLang
                 c_write('}');
                 c_write(';');
             }
+            genln();
             var sym_cnt = sorted_syms->count;
 
             for (var i = 0; i < sym_cnt; i++) {
                 var sym = *(Sym**) (sorted_syms->_begin + i);
-                if (gen_reachable(sym)) {
+                if (sym->reachable == REACHABLE_NATURAL) {
                     gen_decl(sym);
                 }
             }
@@ -1931,12 +1949,14 @@ namespace IonLang
         }
 
         void gen_preamble() {
+            genln();
             if (gen_preamble_buf.Length > 0) {
                 genlnf(gen_preamble_buf);
             }
         }
 
         void gen_postamble() {
+            genln();
             if (gen_postamble_buf.Length > 0) {
                 genlnf(gen_postamble_buf);
             }
@@ -1948,11 +1968,11 @@ namespace IonLang
             } else {
                 strcpy(path, package->full_path);
                 path_join(path, filename);
-                path_absolute(path);
+                path_absolute(ref path);
             }
         }
 
-        void path_absolute(char* path) {
+        void path_absolute(ref char* path) {
             path = Path.GetFullPath(_S(path)).ToPtr();
         }
 
@@ -2241,14 +2261,11 @@ namespace IonLang
         void gen_all() {
             preprocess_packages();
             gen_foreign_headers();
-            genln();
             gen_forward_decls();
-            genln();
             gen_sorted_decls();
             gen_typeinfos();
             gen_defs();
             gen_foreign_sources();
-            genln();
             gen_postamble();
 
             var buf = gen_buf;

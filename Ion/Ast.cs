@@ -27,11 +27,11 @@ namespace IonLang
             return ptr;
         }
         Note new_note(SrcPos pos, char* name, NoteArg* args, int num_args) {
-            return new Note { pos = pos, name = name, args = (NoteArg*)ast_dup(args, num_args * sizeof(NoteArg)), num_args = num_args };
+            return new Note { pos = pos, name = name, args = args, num_args = num_args };
         }
 
         Notes new_notes(Note* notes, int num_notes) {
-            return new Notes {notes = (Note*)ast_dup(notes, num_notes * sizeof(Note)), num_notes = num_notes};
+            return new Notes {notes = (Note*)notes, num_notes = num_notes};
         }
 
         Note* get_decl_note(Decl* decl, char* name) {
@@ -166,7 +166,7 @@ namespace IonLang
         Decl* new_decl_func(SrcPos pos, char* name, FuncParam* @params, int num_params, Typespec* ret_type, bool has_varargs, Typespec *varargs_type, StmtList block)
         {
             var d = new_decl(DECL_FUNC, pos, name);
-            d->func.@params = (FuncParam*) ast_dup(@params, num_params * sizeof(FuncParam));
+            d->func.@params = @params;
             d->func.num_params = num_params;
             d->func.ret_type = ret_type;
             d->func.has_varargs = has_varargs;

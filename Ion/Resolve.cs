@@ -19,7 +19,8 @@ namespace IonLang
     using static TokenSuffix;
     using static StmtKind;
 
-    unsafe partial class Ion {
+    unsafe partial class Ion
+    {
         const int MAX_LOCAL_SYMS = 1024;
 
         Package *current_package;
@@ -173,7 +174,7 @@ namespace IonLang
         }
 
         Sym* sym_get_local(char* name) {
-            for (var sym = local_syms_end-1; sym >= local_syms; sym--)
+            for (var sym = local_syms_end - 1; sym >= local_syms; sym--)
                 if (sym->name == name)
                     return sym;
 
@@ -190,7 +191,7 @@ namespace IonLang
             }
             if (local_syms_end == local_syms + MAX_LOCAL_SYMS)
                 fatal("Too many local symbols");
-
+           // Console.WriteLine("New Sym: " + _S(name));
             *local_syms_end++ = new Sym {
                 name = name,
                 kind = SYM_VAR,
@@ -273,6 +274,7 @@ namespace IonLang
             sym_global_put(name, sym);
             return sym;
         }
+
         Sym* sym_global_tuple(char* name, Type* type) {
             Sym *sym = sym_new(SYM_TYPE, name, null);
             sym->state = SYM_RESOLVED;
@@ -288,7 +290,7 @@ namespace IonLang
         }
 
 
-    Type* get_resolved_type(void* ptr) {
+        Type* get_resolved_type(void* ptr) {
             return resolved_type_map.map_get<Type>(ptr);
         }
 
@@ -1214,6 +1216,18 @@ namespace IonLang
             resolved_val_map.map_put_uint64(ptr, u64);
         }
 
+        Map reachable_map;
+        void set_reachable(void* ptr) {
+            if (reachable_map.exists(ptr))
+                return;
+            reachable_map.map_put(ptr, (void*)(int)reachable_phase);
+        }
+
+        SymReachable get_reachable(void* ptr) {
+            return (SymReachable)reachable_map.map_get_uint64(ptr);
+        }
+
+
         Type* unify_arithmetic_types(Type* left_type, Type* right_type) {
             Operand left = operand_rvalue(left_type);
             Operand right = operand_rvalue(right_type);
@@ -1316,8 +1330,9 @@ namespace IonLang
                         fields->Add(field);
                     }
                     result = type_tuple((Type**)fields->_begin, fields->count);
+                    set_reachable(result);
                     break;
-          
+
                 default:
                     assert(false);
                     return null;
@@ -1330,7 +1345,7 @@ namespace IonLang
             return resolve_typespec_strict(typespec, false);
         }
 
-        Type *complete_aggregate_strict(Type *type, Aggregate *aggregate, bool with_const) {
+        Type* complete_aggregate_strict(Type* type, Aggregate* aggregate, bool with_const) {
             var fields = Buffer<TypeField>.Create();
             for (var i = 0; i < aggregate->num_items; i++) {
                 AggregateItem item = aggregate->items[i];
@@ -1401,7 +1416,7 @@ namespace IonLang
             sorted_syms->Add(type->sym);
             leave_package(old_package);
         }
-        
+
         Type* resolve_typed_init(SrcPos pos, Type* type, Expr* expr) {
             Type *expected_type = unqualify_type(type);
             Operand operand = resolve_expected_expr(expr, expected_type);
@@ -1412,7 +1427,8 @@ namespace IonLang
                 type->incomplete_elems = false;
                 set_resolved_expected_type(expr, type);
                 return type;
-            } else {
+            }
+            else {
                 if (type != null && is_ptr_type(type)) {
                     operand = operand_decay(operand);
                 }
@@ -1803,12 +1819,16 @@ namespace IonLang
 
             assert(sym->state == SYM_UNRESOLVED);
             assert(sym->reachable == 0);
-            if (!is_local_sym(sym)) {
-                reachable_syms->Add(sym);
-                sym->reachable = reachable_phase;
-            }
+            
+            //if (!is_local_sym(sym)) {
+            //    reachable_syms->Add(sym);
+            //    sym->reachable = reachable_phase;
+            //} Cannot find a local sym here so no need for check
+
+            reachable_syms->Add(sym);
+            sym->reachable = reachable_phase;
             //Console.Write("".PadLeft(idd += 2));
-            //Console.WriteLine("  Resolving: " + _S(sym->name));
+            //Console.WriteLine("Resolving: " + _S(sym->name));
             sym->state = SYM_RESOLVING;
             Decl *decl = sym->decl;
             Package *old_package = enter_package(sym->home_package);
@@ -1853,7 +1873,7 @@ namespace IonLang
             if (decl->is_incomplete || (decl->kind != DECL_STRUCT && decl->kind != DECL_UNION)) {
                 sorted_syms->Add(sym);
             }
-           
+
         }
 
         void finalize_sym(Sym* sym) {
@@ -1983,6 +2003,8 @@ namespace IonLang
                     cast_operand(&operand, type_ullong);
                     operand.val.ull = eval_unary_op_ull(op, operand.val.ull);
                 }
+                cast_operand(&operand, type);
+                return operand.val;
             }
             return default;
         }
@@ -2090,14 +2112,13 @@ namespace IonLang
             return default;
         }
 
-        Operand resolve_name_operand(SrcPos pos, char *name) {
+        Operand resolve_name_operand(SrcPos pos, char* name) {
             Sym *sym = resolve_name(name);
             if (sym == null) {
                 fatal_error(pos, "Unresolved name '{0}'", _S(name));
             }
 
-            if (sym->kind == SYM_VAR)
-            {
+            if (sym->kind == SYM_VAR) {
                 Operand operand = operand_lvalue(sym->type);
                 if (is_array_type(operand.type) && !is_incomplete_array_type(operand.type)) {
                     operand = operand_decay(operand);
@@ -2159,7 +2180,7 @@ namespace IonLang
             }
             return default;
         }
-        
+
         Operand resolve_binary_op(TokenKind op, Operand left, Operand right) {
             if (left.is_const && right.is_const) {
                 return operand_const(left.type, eval_binary_op(op, left.type, left.val, right.val));
@@ -2193,7 +2214,7 @@ namespace IonLang
             return false;
         }
 
-        Operand resolve_expr_binary_op(TokenKind op, char *op_name, SrcPos pos, Operand left, Operand right, Expr *left_expr, Expr *right_expr) {
+        Operand resolve_expr_binary_op(TokenKind op, char* op_name, SrcPos pos, Operand left, Operand right, Expr* left_expr, Expr* right_expr) {
             switch (op) {
                 case TOKEN_MUL:
                 case TOKEN_DIV:
@@ -3376,7 +3397,7 @@ namespace IonLang
             return package;
         }
 
-        void import_all_package_symbols(Package* package) {  
+        void import_all_package_symbols(Package* package) {
             // TODO: should have a more general mechanism
             char *main_name = _I("main");
             for (int i = 0; i < package->syms->count; i++) {
@@ -3385,7 +3406,7 @@ namespace IonLang
                     sym_global_put(sym->name, sym);
                 }
             }
-            
+
         }
 
         void import_package_symbols(Decl* decl, Package* package) {
@@ -3452,7 +3473,7 @@ namespace IonLang
                 if (is_excluded_target_filename(p)) {
                     continue;
                 }
-                else if(flag_verbose) {
+                else if (flag_verbose) {
                     path_normalize(p);
                     System.Console.WriteLine("\t" + f);
                 }
@@ -3488,6 +3509,7 @@ namespace IonLang
         }
 
         void resolve_package_syms(Package* package) {
+            //Console.WriteLine("ENTER: resolving package syms for: '{0}'\n", _S(package->path));
             Package *old_package = enter_package(package);
             for (int i = 0; i < package->syms->count; i++) {
                 var sym = package->syms->Get<Sym>(i);
@@ -3509,7 +3531,7 @@ namespace IonLang
                 finalize_sym(sym);
                 if (i == num_reachable - 1) {
                     if (flag_verbose && false) {
-                       // printf("New reachable symbols:");
+                        // printf("New reachable symbols:");
                         //printf("\n");
                         for (var k = prev_num_reachable; k < num_reachable; k++) {
                             //var s = reachable_syms->Get<Sym>(k);
@@ -3535,7 +3557,7 @@ namespace IonLang
         void init_builtin_syms() {
 
             assert(current_package);
-            
+
             type_ranks[(int)TYPE_BOOL] = 1;
             type_ranks[(int)TYPE_CHAR] = 2;
             type_ranks[(int)TYPE_SCHAR] = 2;
