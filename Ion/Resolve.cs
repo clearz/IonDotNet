@@ -3477,8 +3477,8 @@ namespace IonLang
                     path_normalize(p);
                     System.Console.WriteLine("\t" + f);
                 }
-                source_memory_usage += f.Length;
-                char *code = read_file(f);
+                char *code = read_file(f, out int len);
+                source_memory_usage += len;
                 init_stream(code, p);
                 Decls *file_decls = parse_decls();
                 for (int i = 0; i < file_decls->num_decls; i++) {

@@ -512,6 +512,7 @@ namespace IonLang
                     genln();
                     if (foreign) {
                         gen_buf = buf;
+                        gen_pos = default; // Bugfix: added to fix #line sync problems
                     }
 
                 }

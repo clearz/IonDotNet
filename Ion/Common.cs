@@ -275,8 +275,9 @@ namespace IonLang
             return dest;
         }
 
-        static char* read_file(string path) {
+        static char* read_file(string path, out int len) {
             var text = File.ReadAllText(path);
+            len = text.Length;
             var buf = text.ToPtr();
             return buf;
         }

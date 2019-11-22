@@ -127,7 +127,7 @@ namespace IonLang
             var dir = new DirectoryInfo(BACK_PATH);
 
             Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
-            var b = ion_main(new []{pkg, "-z", "-l", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
+            var b = ion_main(new []{pkg, "-z", "-sl", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
             assert(b == 0);
         }
 
@@ -211,10 +211,10 @@ namespace IonLang
                     return 1;
                 }
             }
-            printf("Intern: {0,00} MB\n", (float)Intern.intern_memory_usage / (1024 * 1024));
-            printf("Source: {0,00} MB\n", (float)source_memory_usage / (1024 * 1024));
-            printf("AST:    {0,00} MB\n", (float)ast_memory_usage / (1024 * 1024));
-            printf("Ratio:  {0,00}\n", (float)(Intern.intern_memory_usage + ast_memory_usage) / source_memory_usage);
+            printf("Intern: {0:0.00d} MB\n", (float)Intern.intern_memory_usage / (1024 * 1024));
+            printf("Source: {0:0.00} MB\n", (float)source_memory_usage / (1024 * 1024));
+            printf("AST:    {0:0.00} MB\n", (float)ast_memory_usage / (1024 * 1024));
+            printf("Ratio:  {0:0.00}\n", (float)(Intern.intern_memory_usage + ast_memory_usage) / source_memory_usage);
             return 0;
         }
     }
