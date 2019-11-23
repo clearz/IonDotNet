@@ -1420,24 +1420,27 @@ namespace IonLang
         Type* resolve_typed_init(SrcPos pos, Type* type, Expr* expr) {
             Type *expected_type = unqualify_type(type);
             Operand operand = resolve_expected_expr(expr, expected_type);
-            if (is_incomplete_array_type(type) && is_array_type(operand.type) && type->@base == operand.type->@base) {
-                // Incomplete array size, so infer the size from the initializer expression's type.       
-                type->num_elems = operand.type->num_elems;
-                type->size = operand.type->size;
-                type->incomplete_elems = false;
-                set_resolved_expected_type(expr, type);
-                return type;
-            }
-            else {
-                if (type != null && is_ptr_type(type)) {
-                    operand = operand_decay(operand);
+            if (is_incomplete_array_type(type)) {
+                if (is_array_type(operand.type) && type->@base == operand.type->@base) {
+                    // Incomplete array size, so infer the size from the initializer expression's type.
+                    type->num_elems = operand.type->num_elems;
+                    type->size = operand.type->size;
+                    type->incomplete_elems = false;
+                    set_resolved_expected_type(expr, type);
+                    return type;
+                } else if (is_ptr_type(operand.type) && type->@base == operand.type->@base) {
+                    set_resolved_expected_type(expr, operand.type);
+                    return operand.type;
                 }
-                if (!convert_operand(&operand, expected_type)) {
-                    return null;
-                }
-                set_resolved_expected_type(expr, operand.type);
-                return operand.type;
             }
+            if (type != null && is_ptr_type(type)) {
+                operand = operand_decay(operand);
+            }
+            if (!convert_operand(&operand, expected_type)) {
+                return null;
+            }
+            set_resolved_expected_type(expr, operand.type);
+            return operand.type;
         }
 
 
@@ -2508,7 +2511,7 @@ namespace IonLang
             return operand_lvalue(is_const ? type_const(type) : type);
         }
 
-        Operand resolve_expr_call_intrinsic(Operand func, Expr* expr) {
+        Operand resolve_expr_call_intrinsic(Operand func, Expr* expr, Type* expected_type) {
             Sym *sym = get_resolved_sym(expr->call.expr);
             assert(sym);
             if (sym->name == _I("va_arg")) {
@@ -2769,6 +2772,21 @@ namespace IonLang
                 }
                 return operand_rvalue(func.type->func.ret);
             }
+            else if (sym->name == _I("anew")) {
+                assert(expr->call.num_args == 1);
+                Operand allocator = resolve_expr_rvalue(expr->call.args[0]);
+                if (!convert_operand(&allocator, type_allocator_ptr)) {
+                    fatal_error(expr->call.args[0]->pos, "Argument 1 of %s must have type Allocator*", _S(sym->name));
+                }
+                if (expected_type == null || (!is_ptr_type(expected_type) && !is_array_type(expected_type))) {
+                    fatal_error(expr->pos, "anew can only be used when its inferred type is array or pointer type");
+                }
+                complete_type(expected_type->@base);
+                if (type_sizeof(expected_type->@base) == 0) {
+                    fatal_error(expr->pos, "anew base type cannot be incomplete or have size 0");
+                }
+                return operand_rvalue(type_ptr(expected_type->@base));
+            }
             else {
                 return resolve_expr_call_default(func, expr);
             }
@@ -2793,7 +2811,7 @@ namespace IonLang
         }
 
 
-        Operand resolve_expr_call(Expr* expr) {
+        Operand resolve_expr_call(Expr* expr, Type* expected_type) {
             assert(expr->kind == EXPR_CALL);
             if (expr->call.expr->kind == EXPR_NAME) {
                 Sym *sym = resolve_name(expr->call.expr->name);
@@ -2822,7 +2840,7 @@ namespace IonLang
                 fatal_error(expr->pos, "Function call with too many arguments");
             }
             if (func.type->func.intrinsic) {
-                return resolve_expr_call_intrinsic(func, expr);
+                return resolve_expr_call_intrinsic(func, expr, expected_type);
             }
             else {
                 return resolve_expr_call_default(func, expr);
@@ -2898,7 +2916,7 @@ namespace IonLang
         Operand resolve_expr_cast(Expr* expr) {
             assert(expr->kind == EXPR_CAST);
             var type = resolve_typespec(expr->cast.type);
-            var operand = resolve_expr_rvalue(expr->cast.expr);
+            var operand = resolve_expected_expr_rvalue(expr->cast.expr, type);
             if (!cast_operand(&operand, type)) {
                 fatal_error(expr->pos, "Invalid type cast from {0} to {0}", get_type_name(operand.type), get_type_name(type));
             }
@@ -3062,7 +3080,7 @@ namespace IonLang
         Type *type_allocator_ptr;
 
         Operand resolve_expr_new(Expr* expr, Type* expected_type) {
-            if (type_allocator == null) {
+            /* if (type_allocator == null) {
                 Package *saved = enter_package(builtin_package);
                 Sym *sym = resolve_name(_I("Allocator"));
                 assert(sym);
@@ -3070,7 +3088,7 @@ namespace IonLang
                 type_allocator = sym->type;
                 type_allocator_ptr = type_ptr(type_allocator);
                 leave_package(saved);
-            }
+            } */
             if (expr->new_expr.alloc != null) {
                 Operand alloc = resolve_expr(expr->new_expr.alloc);
                 if (!convert_operand(&alloc, type_allocator_ptr)) {
@@ -3125,7 +3143,7 @@ namespace IonLang
                     result = resolve_expr_cast(expr);
                     break;
                 case EXPR_CALL:
-                    result = resolve_expr_call(expr);
+                    result = resolve_expr_call(expr, expected_type);
                     break;
                 case EXPR_INDEX:
                     result = resolve_expr_index(expr);
@@ -3628,10 +3646,18 @@ namespace IonLang
             sym_global_type("ullong".ToPtr(), type_ullong);
             sym_global_type("float".ToPtr(), type_float);
             sym_global_type("double".ToPtr(), type_double);
+        }
 
-
+        void postinit_builtin() {
+            assert(current_package == builtin_package);
+            Sym *sym = resolve_name(_I("Allocator"));
+            if (sym != null)
+                assert(sym->kind == SYM_TYPE);
+            type_allocator = sym->type;
+            type_allocator_ptr = type_ptr(type_allocator);
         }
     }
+   
 
     internal unsafe struct Operand
     {

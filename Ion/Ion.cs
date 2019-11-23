@@ -152,6 +152,7 @@ namespace IonLang
             }
             builtin_package->external_name = _I("");
             enter_package(builtin_package);
+            postinit_builtin();
             Sym *any_sym = resolve_name(_I("any"));
             if (any_sym == null || any_sym->kind != SymKind.SYM_TYPE) {
                 printf("error: Any type not defined");
@@ -159,6 +160,12 @@ namespace IonLang
             }
             type_any = any_sym->type;
             leave_package(builtin_package);
+            fixed(char* c = package_name)
+                for (char* ptr = c; *ptr != '\0'; ptr++) {
+                    if (*ptr == '.') {
+                        *ptr = '/';
+                    }
+                }
             Package *main_package = import_package(package_name.ToPtr());
             if (main_package == null) {
                 error_here("Failed to compile package '{0}'\n", package_name);

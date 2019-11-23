@@ -775,8 +775,7 @@ namespace IonLang
             else if (sym->name == _I("apush") || sym->name == _I("aputv") || sym->name == _I("adelv") ||
               sym->name == _I("agetvi") || sym->name == _I("agetvp") || sym->name == _I("agetv") ||
               sym->name == _I("asetcap") || sym->name == _I("afit") || sym->name == _I("acat") ||
-              sym->name == _I("adeli") || sym->name == _I("aindexv") || sym->name == _I("asetlen") ||
-              sym->name == _I("ainit")) {
+              sym->name == _I("adeli") || sym->name == _I("aindexv") || sym->name == _I("asetlen")) {
                 // (t, a, v)
                 c_write(sym->name);
                 c_write('(');
@@ -918,6 +917,17 @@ namespace IonLang
                 c_write('(');
                 gen_expr(expr->call.args[2]);
                 c_write(')');
+                c_write(')');
+            }
+            else if (sym->name == _I("anew")) {
+                Type *result_type = get_resolved_type(expr);
+                assert(is_ptr_type(result_type));
+                c_write(sym->name);
+                c_write('(');
+                type_to_cdecl(result_type->@base, null);
+                c_write(',');
+                c_write(' ');
+                gen_expr(expr->call.args[0]);
                 c_write(')');
             }
             else if (sym->name == _I("ahdrsize") || sym->name == _I("ahdralign") || sym->name == _I("ahdr") ||
@@ -1378,6 +1388,20 @@ namespace IonLang
                             Type *init_type = get_resolved_type(stmt->init.type);
                             type_to_cdecl(type_decay(init_type), stmt->init.name);
                             c_write(" = 0");
+                        }
+                        else if (incomplete && is_ptr_type(get_resolved_type(stmt->init.expr))) {
+                            type_to_cdecl(get_resolved_type(stmt->init.expr), stmt->init.name);
+                            c_write(' ');
+                            c_write('=');
+                            c_write(' ');
+                            if (stmt->init.expr != null) {
+                                gen_expr(stmt->init.expr);
+                            }
+                            else {
+                                c_write('{');
+                                c_write('0');
+                                c_write('}');
+                            }
                         }
                         else {
                             if (incomplete) {
