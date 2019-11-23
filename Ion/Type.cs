@@ -97,6 +97,8 @@ namespace IonLang
         Map cached_func_types;
         Map cached_const_types;
         Map typeid_map;
+        Map cached_tuple_types;
+        PtrBuffer* tuple_types = PtrBuffer.Create();
 
         readonly Type* type_void    = basic_type_alloc(TYPE_VOID);
         readonly Type* type_bool    = basic_type_alloc(TYPE_BOOL);
@@ -123,15 +125,14 @@ namespace IonLang
 
         Type *type_any;
 
-
         readonly int[] type_ranks = new int[(int)NUM_TYPE_KINDS];
         readonly char*[] type_names = new char*[(int)NUM_TYPE_KINDS];
         readonly char*[] typeid_kind_names = new char*[(int)NUM_TYPE_KINDS];
+
         long type_padding(Type* type) {
             assert(type->kind > TYPE_COMPLETING);
             return type->padding;
         }
-
 
         bool is_integer_type(Type* type) {
             return TYPE_BOOL <= type->kind && type->kind <= TYPE_ENUM;
@@ -177,7 +178,6 @@ namespace IonLang
             return type != null && is_array_type(type) && type->num_elems == 0;
         }
 
-
         bool is_signed_type(Type* type) {
             switch (type->kind) {
                 case TYPE_CHAR:
@@ -192,6 +192,7 @@ namespace IonLang
                     return false;
             }
         }
+
         Type* qualify_type(Type* type, Type* qual) {
             type = unqualify_type(type);
             while (qual->kind == TYPE_CONST) {
@@ -200,7 +201,6 @@ namespace IonLang
             }
             return type;
         }
-
 
         int aggregate_item_field_index(Type* type, char* name) {
             assert(is_aggregate_type(type));
@@ -285,7 +285,6 @@ namespace IonLang
 
 
             type_char_ptr = type_ptr(type_char);
-
             type_alloc_func = type_func(new []{ type_usize, type_usize}, 2, type_ptr(type_void), false, false, type_void);
         }
 
@@ -330,7 +329,6 @@ namespace IonLang
 
                 cached_ptr_types.map_put(@base, type);
             }
-
             return type;
         }
 
@@ -564,9 +562,6 @@ namespace IonLang
             type->aggregate.num_fields = new_fields.count;
             type->nonmodifiable = nonmodifiable;
         }
-
-        Map cached_tuple_types;
-        PtrBuffer* tuple_types = PtrBuffer.Create();
 
         Type* type_tuple(Type** fields, int num_fields) {
             int fields_size = num_fields * PTR_SIZE;

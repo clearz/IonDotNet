@@ -22,21 +22,34 @@ namespace IonLang
     unsafe partial class Ion
     {
         const int MAX_LOCAL_SYMS = 1024;
+        const int MAX_PATH = 512;
 
         Package *current_package;
         Package *builtin_package;
+
         Map package_map;
         Map decl_note_names;
         Map resolved_sym_map;
         Map resolved_expected_type_map;
         Map resolved_type_map;
         Map labels_map;
+        Map pointer_promo_map;
+        Map resolved_val_map;
+        Map reachable_map;
+        Map implicit_any_map;
+        Map type_conv_map;
+
         Buffer<Label> labels = Buffer<Label>.Create();
         Sym* local_syms;
         Sym* local_syms_end;
         PtrBuffer* package_list;
         PtrBuffer* sorted_syms;
         PtrBuffer* reachable_syms;
+
+        Type *type_allocator;
+        Type *type_allocator_ptr;
+
+        int source_memory_usage;
 
 #if X64
         internal const int PTR_SIZE = 8;
@@ -61,6 +74,7 @@ namespace IonLang
 
             return label;
         }
+
         void reference_label(SrcPos pos, char* name) {
             Label *label = get_label(pos, name);
             label->referenced = true;
@@ -85,6 +99,7 @@ namespace IonLang
             }
             labels.clear();
         }
+
         Sym* get_package_sym(Package* package, char* name) {
             return package->syms_map.map_get<Sym>(name);
         }
@@ -1199,8 +1214,6 @@ namespace IonLang
             assert(left->type == right->type);
         }
 
-        Map resolved_val_map;
-
         Val get_resolved_val(void* ptr) {
             ulong u64 = resolved_val_map.map_get_uint64(ptr);
             Val val = default;
@@ -1216,7 +1229,6 @@ namespace IonLang
             resolved_val_map.map_put_uint64(ptr, u64);
         }
 
-        Map reachable_map;
         void set_reachable(void* ptr) {
             if (reachable_map.exists(ptr))
                 return;
@@ -1226,7 +1238,6 @@ namespace IonLang
         SymReachable get_reachable(void* ptr) {
             return (SymReachable)reachable_map.map_get_uint64(ptr);
         }
-
 
         Type* unify_arithmetic_types(Type* left_type, Type* right_type) {
             Operand left = operand_rvalue(left_type);
@@ -1443,7 +1454,6 @@ namespace IonLang
             return operand.type;
         }
 
-
         Type* resolve_init(SrcPos pos, Typespec* typespec, Expr* expr, bool was_const) {
             Type *type;
             if (typespec != null) {
@@ -1539,7 +1549,6 @@ namespace IonLang
             operand = operand_decay(operand);
             return is_scalar_type(operand.type);
         }
-
 
         void resolve_cond_expr(Expr* expr) {
             var cond = resolve_expr_rvalue(expr);
@@ -1918,7 +1927,6 @@ namespace IonLang
             }
             return null;
         }
-
 
         Operand resolve_expr_field(Expr* expr) {
             assert(expr->kind == EXPR_FIELD);
@@ -2792,9 +2800,6 @@ namespace IonLang
             }
         }
 
-
-
-
         Operand resolve_expr_call_default(Operand func, Expr* expr) {
             var num_params = func.type->func.num_params;
             for (var i = 0; i < expr->call.num_args; i++) {
@@ -2809,7 +2814,6 @@ namespace IonLang
             }
             return operand_rvalue(func.type->func.ret);
         }
-
 
         Operand resolve_expr_call(Expr* expr, Type* expected_type) {
             assert(expr->kind == EXPR_CALL);
@@ -3076,9 +3080,6 @@ namespace IonLang
             }
         }
 
-        Type *type_allocator;
-        Type *type_allocator_ptr;
-
         Operand resolve_expr_new(Expr* expr, Type* expected_type) {
             /* if (type_allocator == null) {
                 Package *saved = enter_package(builtin_package);
@@ -3116,8 +3117,6 @@ namespace IonLang
             }
             return operand_rvalue(type_ptr(arg.type));
         }
-
-
 
         Operand resolve_expected_expr(Expr* expr, Type* expected_type) {
             Operand result;
@@ -3330,8 +3329,6 @@ namespace IonLang
             }
         }
 
-        Map implicit_any_map;
-
         bool is_implicit_any(Expr* expr) {
             return implicit_any_map.map_get<Type>(expr) != null;
         }
@@ -3339,8 +3336,6 @@ namespace IonLang
         void set_implicit_any(Expr* expr) {
             implicit_any_map.map_put(expr, (void*)1);
         }
-
-        Map type_conv_map;
 
         Type* type_conv(Expr* expr) {
             Type *type = type_conv_map.map_get<Type>(expr);
@@ -3354,7 +3349,6 @@ namespace IonLang
             type_conv_map.map_put(expr, type);
         }
 
-        Map pointer_promo_map;
 
         Type* pointer_promo_type(Expr* expr) {
             Type *type = pointer_promo_map.map_get<Type>(expr);
@@ -3368,9 +3362,6 @@ namespace IonLang
             pointer_promo_map.map_put(expr, type);
         }
 
-
-
-
         bool is_package_dir(char* search_path, char* package_path) {
             char* path = stackalloc char[MAX_PATH];
             strcpy(path, search_path);
@@ -3379,8 +3370,6 @@ namespace IonLang
 
             return Directory.Exists(str) && Directory.EnumerateFiles(str, "*.ion").Any();
         }
-
-        const int MAX_PATH = 512;
 
         bool copy_package_full_path(char* dest, char* package_path) {
             for (int i = 0; i < package_search_paths->count; i++) {
@@ -3480,8 +3469,6 @@ namespace IonLang
                 }
             }
         }
-
-        int source_memory_usage;
 
         bool parse_package(Package* package) {
             PtrBuffer* decls = PtrBuffer.Create();

@@ -1332,4 +1332,3 @@ func main(argc: int, argv: char**): int {
     subtest1.LIBC.getchar();
     return 0;
 }
-i
