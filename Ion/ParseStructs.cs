@@ -429,8 +429,10 @@ namespace IonLang
             public char* name;
             public Typespec *type;
             public Expr* expr;
+            public bool is_undef;
         }
     }
+
     enum AggregateKind
     {
         AGGREGATE_NONE,

@@ -44,13 +44,10 @@ namespace IonLang
         char *import_keyword;
         char *goto_keyword;
         char *new_keyword;
+        char *undef_keyword;
 
-        Buffer<char> str_buf;
-        char* stream;
         char* struct_keyword;
         char* switch_keyword;
-
-        Token token;
 
         char* typedef_keyword;
         char* union_keyword;
@@ -66,6 +63,10 @@ namespace IonLang
         char *assert_name;
         char *declare_note_name;
         char *static_assert_name;
+
+        Token token;
+        Buffer<char> str_buf;
+        char* stream;
 
         TokenKind[] assign_token_to_binary_token = new TokenKind[(int)NUM_TOKEN_KINDS];
 
@@ -267,6 +268,9 @@ namespace IonLang
 
             new_keyword = _I("new");
             keywords->Add(new_keyword);
+
+            undef_keyword = _I("undef");
+            keywords->Add(undef_keyword);
 
             default_keyword = _I("default");
             keywords->Add(default_keyword);

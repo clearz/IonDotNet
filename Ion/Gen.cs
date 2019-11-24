@@ -345,7 +345,7 @@ namespace IonLang
         }
 
         void gen_buf_pos(ref StringBuilder pbuf, SrcPos pos) {
-            if (flag_nosync) {
+            if (flag_nosync || pbuf.Length == 0 || is_foreign) {
                 return;
             }
             var buf = pbuf;
@@ -487,6 +487,7 @@ namespace IonLang
             }
         }
 
+        bool is_foreign = false;
         void gen_defs() {
             for (Sym** it = (Sym**)sorted_syms->_begin; it < sorted_syms->_top; it++) {
                 Sym* sym = *it;
@@ -495,9 +496,9 @@ namespace IonLang
                     continue;
                 }
                 if (decl->kind == DECL_FUNC) {
-                    bool foreign = is_decl_foreign(decl);
+                    is_foreign = is_decl_foreign(decl);
                     var buf = gen_buf;
-                    if (foreign) {
+                    if (is_foreign) {
                         gen_buf = new StringBuilder();
                     }
                     if (get_decl_note(decl, inline_name) != null) {
@@ -510,9 +511,8 @@ namespace IonLang
                     c_write(' ');
                     gen_stmt_block(decl->func.block);
                     genln();
-                    if (foreign) {
+                    if (is_foreign) {
                         gen_buf = buf;
-                        gen_pos = default; // Bugfix: added to fix #line sync problems
                     }
 
                 }
@@ -948,10 +948,254 @@ namespace IonLang
             }
         }
 
-        static  readonly char* generic_alloc_copy = "generic_alloc_copy".ToPtr();
+        static readonly char* generic_alloc_copy = "generic_alloc_copy".ToPtr();
+        static readonly char* tls_alloc = "tls_alloc_copy".ToPtr();
         readonly char* alloc_copy = generic_alloc_copy + 8;
-         readonly char* allocator_cast = "(Allocator *)".ToPtr();
+        readonly char* allocator_cast = "(Allocator *)".ToPtr();
         void gen_expr_new(Expr* expr) {
+            assert(expr->kind == EXPR_NEW);
+            Type *type = get_resolved_type(expr);
+            assert(is_ptr_type(type));
+            if (expr->new_expr.alloc != null) {
+                if (expr->new_expr.len != null) {
+                    if (expr->new_expr.arg == null) { //              (( [TYPE] )generic_alloc((Allocator *)( [ALLOC] ), [LEN] * sizeof( [BASE] ), alignof( [BASE] )))
+                        c_write('(');
+                        c_write('(');
+                        type_to_cdecl(type, null);
+                        c_write(')');
+                        c_write(generic_alloc_copy, 13);
+                        c_write('(');
+                        c_write(allocator_cast, 13);
+                        c_write('(');
+                        gen_expr(expr->new_expr.alloc);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        gen_expr(expr->new_expr.len);
+                        c_write('*');
+                        c_write(' ');
+                        c_write(sizeof_keyword, 6);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write(alignof_keyword, 7);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(')');
+                        c_write(')');
+                    }
+                    else { //                                           (( [TYPE] )generic_alloc_copy((Allocator *)( [ALLOC] ), [LEN] * sizeof( [BASE] ), alignof( [BASE] ), &( [ARG] )))
+                        c_write('(');
+                        c_write('(');
+                        type_to_cdecl(type, null);
+                        c_write(')');
+                        c_write(generic_alloc_copy, 18);
+                        c_write('(');
+                        c_write(allocator_cast, 13);
+                        c_write('(');
+                        gen_expr(expr->new_expr.alloc);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        gen_expr(expr->new_expr.len);
+                        c_write(' ');
+                        c_write('*');
+                        c_write(' ');
+                        c_write(sizeof_keyword, 6);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write(alignof_keyword, 7);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write('&');
+                        c_write('(');
+                        gen_expr(expr->new_expr.arg);
+                        c_write(')');
+                        c_write(')');
+                        c_write(')');
+
+                    }
+                }
+                else { //                                           (( [TYPE] )generic_alloc((Allocator *)( [ALLOC] ), sizeof( [BASE] ), alignof( [BASE] )))
+                    if (expr->new_expr.arg == null) {
+                        c_write('(');
+                        c_write('(');
+                        type_to_cdecl(type, null);
+                        c_write(')');
+                        c_write(generic_alloc_copy, 13);
+                        c_write('(');
+                        c_write(allocator_cast, 13);
+                        c_write('(');
+                        gen_expr(expr->new_expr.alloc);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write(sizeof_keyword, 6);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write(alignof_keyword, 7);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(')');
+                        c_write(')');
+                    }
+                    else { //                                           (( [TYPE] )generic_alloc_copy((Allocator *)( [ALLOC] ), sizeof( [BASE] ), alignof( [BASE] ), &( [ARG] )))
+                        c_write('(');
+                        c_write('(');
+                        type_to_cdecl(type, null);
+                        c_write(')');
+                        c_write(generic_alloc_copy, 18);
+                        c_write('(');
+                        c_write(allocator_cast, 13);
+                        c_write('(');
+                        gen_expr(expr->new_expr.alloc);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write(sizeof_keyword, 6);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write(alignof_keyword, 7);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write('&');
+                        c_write('(');
+                        gen_expr(expr->new_expr.arg);
+                        c_write(')');
+                        c_write(')');
+                        c_write(')');
+
+                    }
+                }
+            }
+            else {
+                if (expr->new_expr.len != null) {
+                    if (expr->new_expr.arg == null) {  // (( [TYPE] )tls_alloc( [LEN] * sizeof( [BASE] ), alignof( [BASE] )))
+                        c_write('(');
+                        c_write('(');
+                        type_to_cdecl(type, null);
+                        c_write(')');
+                        c_write(tls_alloc, 9);
+                        c_write('(');
+                        gen_expr(expr->new_expr.len);
+                        c_write(' ');
+                        c_write('*');
+                        c_write(' ');
+                        c_write(sizeof_keyword, 6);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write(alignof_keyword, 7);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(')');
+                        c_write(')');
+                    }
+                    else {                             // (( [TYPE] )alloc_copy( [LEN] * sizeof( [BASE] ), alignof( [BASE] ), &( [ARG] )))
+                        c_write('(');
+                        c_write('(');
+                        type_to_cdecl(type, null);
+                        c_write(')');
+                        c_write(alloc_copy, 10);
+                        c_write('(');
+                        gen_expr(expr->new_expr.len);
+                        c_write(' ');
+                        c_write('*');
+                        c_write(' ');
+                        c_write(sizeof_keyword, 6);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write(alignof_keyword, 7);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write('&');
+                        c_write('(');
+                        gen_expr(expr->new_expr.arg);
+                        c_write(')');
+                        c_write(')');
+                        c_write(')');
+                    }
+                }
+                else {
+                    if (expr->new_expr.arg == null) { // (( [TYPE] )tls_alloc(sizeof( [BASE] ), alignof( [BASE] )))
+                        c_write('(');
+                        c_write('(');
+                        type_to_cdecl(type, null);
+                        c_write(')');
+                        c_write(tls_alloc, 9);
+                        c_write('(');
+                        c_write(sizeof_keyword, 6);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write(alignof_keyword, 7);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(')');
+                        c_write(')');
+                    }
+                    else {  // (( [TYPE] )alloc_copy(sizeof( [BASE] ), alignof( [BASE] ), &( [EXPR] )))
+                        c_write('(');
+                        c_write('(');
+                        type_to_cdecl(type, null);
+                        c_write(')');
+                        c_write(alloc_copy, 10);
+                        c_write('(');
+                        c_write(sizeof_keyword, 6);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write(alignof_keyword, 7);
+                        c_write('(');
+                        type_to_cdecl(type->@base, null);
+                        c_write(')');
+                        c_write(',');
+                        c_write(' ');
+                        c_write('&');
+                        c_write('(');
+                        gen_expr(expr->new_expr.arg);
+                        c_write(')');
+                        c_write(')');
+                        c_write(')');
+                    }
+                }
+            }
+        }
+
+        void gen_expr_new2(Expr* expr) {
             assert(expr->kind == EXPR_NEW);
             Type *type = get_resolved_type(expr);
             assert(is_ptr_type(type));
@@ -971,7 +1215,7 @@ namespace IonLang
                     c_write(',');
                     c_write(' ');
                     gen_expr(expr->new_expr.len);
-      
+
                 }
                 else {
                     c_write('(');
@@ -1391,16 +1635,16 @@ namespace IonLang
                         }
                         else if (incomplete && is_ptr_type(get_resolved_type(stmt->init.expr))) {
                             type_to_cdecl(get_resolved_type(stmt->init.expr), stmt->init.name);
-                            c_write(' ');
-                            c_write('=');
-                            c_write(' ');
                             if (stmt->init.expr != null) {
-                                gen_expr(stmt->init.expr);
+                                if (!stmt->init.is_undef) {
+                                    c_write(' ');
+                                    c_write('=');
+                                    c_write(' ');
+                                    gen_expr(stmt->init.expr);
+                                }
                             }
                             else {
-                                c_write('{');
-                                c_write('0');
-                                c_write('}');
+                                c_write(" = {0}");
                             }
                         }
                         else {
@@ -1410,16 +1654,16 @@ namespace IonLang
                             }
 
                             typespec_to_cdecl(stmt->init.type, stmt->init.name);
-                            c_write(' ');
-                            c_write('=');
-                            c_write(' ');
                             if (stmt->init.expr != null) {
-                                gen_expr(stmt->init.expr);
+                                if (!stmt->init.is_undef) {
+                                    c_write(' ');
+                                    c_write('=');
+                                    c_write(' ');
+                                    gen_expr(stmt->init.expr);
+                                }
                             }
                             else {
-                                c_write('{');
-                                c_write('0');
-                                c_write('}');
+                                c_write(" = {0}");
                             }
                         }
                     }
@@ -1974,16 +2218,14 @@ namespace IonLang
         }
 
         void gen_preamble() {
-            genln();
             if (gen_preamble_buf.Length > 0) {
-                genlnf(gen_preamble_buf);
+                c_write(gen_preamble_buf);
             }
         }
 
         void gen_postamble() {
-            genln();
             if (gen_postamble_buf.Length > 0) {
-                genlnf(gen_postamble_buf);
+                c_write(gen_postamble_buf);
             }
         }
 

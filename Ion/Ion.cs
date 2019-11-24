@@ -12,7 +12,7 @@ namespace IonLang
         PtrBuffer* package_search_paths = PtrBuffer.Create();
         bool flag_verbose = false, flag_lazy = false;
         bool flag_nosync = false;
-        bool flag_notypeinfo = false, flag_fullgen = false; 
+        bool flag_notypeinfo = false, flag_fullgen = false;
         bool flag_check = false, flag_raw_code = false;
         string output_name = null;
 
@@ -160,7 +160,7 @@ namespace IonLang
             }
             type_any = any_sym->type;
             leave_package(builtin_package);
-            fixed(char* c = package_name)
+            fixed (char* c = package_name)
                 for (char* ptr = c; *ptr != '\0'; ptr++) {
                     if (*ptr == '.') {
                         *ptr = '/';
