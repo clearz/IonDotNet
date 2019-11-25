@@ -541,8 +541,8 @@ namespace IonLang
             var new_fields = Buffer<TypeField>.Create();
             for (int i = 0; i < num_fields; i++) {
                 Type *field = fields[i];
-                assert(IS_POW2(type_alignof(field)));
                 complete_type(fields[i]);
+                assert(IS_POW2(type_alignof(field)));
                 char* name = ("_" + i).ToPtr();
                 var new_field = new TypeField {
 
