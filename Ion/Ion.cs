@@ -12,7 +12,7 @@ namespace IonLang
         PtrBuffer* package_search_paths = PtrBuffer.Create();
         bool flag_verbose = false, flag_lazy = false;
         bool flag_nosync = false;
-        bool flag_notypeinfo = false, flag_fullgen = false;
+        bool flag_notypeinfo = false, flag_fullgen = false; 
         bool flag_check = false, flag_raw_code = false;
         string output_name = null;
 
@@ -116,21 +116,6 @@ namespace IonLang
             return 1;
         }
 
-        void ion_test(string pkg) {
-#if X64
-            string BACK_PATH = @"C:\Users\john\source\repos\IonDotNet\Ion";
-            string ARCH = "x64";
-#else
-            string BACK_PATH = @"C:\Users\john\source\repos\IonDotNet\Ion";
-            string ARCH = "x86";
-#endif
-            var dir = new DirectoryInfo(BACK_PATH);
-
-            Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
-            var b = ion_main(new []{pkg, "-z", "-sl", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });
-            assert(b == 0);
-        }
-
         int ion_main(string[] args) {
             if (args.Length == 0) {
                 return usage();
@@ -146,6 +131,7 @@ namespace IonLang
                 printf("Target operating system: {0}\n", os_names[(int)target_os]);
                 printf("Target architecture: {0}\n", arch_names[(int)target_arch]);
             }
+
             builtin_package = import_package("builtin".ToPtr());
             if (builtin_package == null) {
                 error_here("Failed to compile package 'builtin'.\n");
@@ -160,7 +146,7 @@ namespace IonLang
             }
             type_any = any_sym->type;
             leave_package(builtin_package);
-            fixed (char* c = package_name)
+            fixed(char* c = package_name)
                 for (char* ptr = c; *ptr != '\0'; ptr++) {
                     if (*ptr == '.') {
                         *ptr = '/';
@@ -177,7 +163,6 @@ namespace IonLang
                 if (main_sym == null) {
                     error_here("No 'main' entry point defined in package '{0}'\n", package_name);
                 }
-
                 main_sym->external_name = main_name;
                 resolve_sym(main_sym);
             }
@@ -218,7 +203,7 @@ namespace IonLang
                     return 1;
                 }
             }
-            printf("Intern: {0:0.00d} MB\n", (float)Intern.intern_memory_usage / (1024 * 1024));
+            printf("Intern: {0:0.00} MB\n", (float)Intern.intern_memory_usage / (1024 * 1024));
             printf("Source: {0:0.00} MB\n", (float)source_memory_usage / (1024 * 1024));
             printf("AST:    {0:0.00} MB\n", (float)ast_memory_usage / (1024 * 1024));
             printf("Ratio:  {0:0.00}\n", (float)(Intern.intern_memory_usage + ast_memory_usage) / source_memory_usage);

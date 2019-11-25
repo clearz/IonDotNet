@@ -346,7 +346,13 @@ namespace IonLang
         Type* type_decay(Type* type) {
             type = unqualify_type(type);
             if (type->kind == TYPE_ARRAY) {
-                type = type_ptr(type->@base);
+                return type_ptr(type->@base);
+            }
+            return type;
+        }
+        Type* incomplete_decay(Type* type) {
+            if (is_incomplete_array_type(type) || is_ptr_type(type)) {
+                return type_ptr(incomplete_decay(type->@base));
             }
             return type;
         }
@@ -1320,9 +1326,7 @@ namespace IonLang
                         if (arg == type_void) {
                             fatal_error(typespec->pos, "Function parameter type cannot be void");
                         }
-                        if (is_incomplete_array_type(arg)) {
-                            arg = type_decay(arg);
-                        }
+                        arg = incomplete_decay(arg);
                         args->Add(arg);
                     }
                     var ret = type_void;
@@ -1365,9 +1369,7 @@ namespace IonLang
                 AggregateItem item = aggregate->items[i];
                 if (item.kind == AGGREGATE_ITEM_FIELD) {
                     Type *item_type = resolve_typespec_strict(item.type, with_const);
-                    if (is_incomplete_array_type(item_type)) {
-                        item_type = type_decay(item_type);
-                    }
+                    item_type = incomplete_decay(item_type);
                     complete_type(item_type);
                     if (type_sizeof(item_type) == 0) {
                         if (!is_array_type(item_type) || type_sizeof(item_type->@base) == 0) {
@@ -1491,8 +1493,8 @@ namespace IonLang
                 expr->type = type;
             }
             complete_type(type);
-            if (is_incomplete_array_type(declared_type) && (expr == null || is_ptr_type(inferred_type))) {
-                type = type_decay(type);
+            if (expr == null || is_ptr_type(inferred_type)) {
+                type = incomplete_decay(type);
             }
             if (type->size == 0) {
                 fatal_error(pos, "Cannot declare variable of size 0");
@@ -1528,9 +1530,7 @@ namespace IonLang
             var @params = PtrBuffer.Create();
             for (var i = 0; i < decl->func.num_params; i++) {
                 Type *param = resolve_typespec_strict(decl->func.@params[i].type, with_const);
-                if (is_incomplete_array_type(param)) {
-                    param = type_decay(param);
-                }
+                param = incomplete_decay(param);
                 complete_type(param);
                 if (param == type_void && !foreign) {
                     fatal_error(decl->pos, "Function parameter type cannot be void");
@@ -1819,8 +1819,13 @@ namespace IonLang
 
             Package *old_package = enter_package(sym->home_package);
             var scope = sym_enter();
-            for (var i = 0; i < decl->func.num_params; i++) {
-                var param = decl->func.@params[i];
+            for (var i = 0; i < decl->func.num_params; i++) { 
+                FuncParam param = decl->func.@params[i];
+                Type *param_type = resolve_typespec(param.type);
+                param_type = incomplete_decay(param_type);
+                if (is_array_type(param_type)) {
+                    param_type = type_ptr(param_type->@base);
+                }
                 sym_push_var(param.name, resolve_typespec(param.type));
             }
             Type *ret_type = resolve_typespec(decl->func.ret_type);
@@ -1832,8 +1837,6 @@ namespace IonLang
             }
             leave_package(old_package);
         }
-
-        private int idd = 0;
         void resolve_sym(Sym* sym) {
             if (sym->state == SYM_RESOLVED)
                 return;
@@ -1846,15 +1849,8 @@ namespace IonLang
             assert(sym->state == SYM_UNRESOLVED);
             assert(sym->reachable == 0);
             
-            //if (!is_local_sym(sym)) {
-            //    reachable_syms->Add(sym);
-            //    sym->reachable = reachable_phase;
-            //} Cannot find a local sym here so no need for check
-
             reachable_syms->Add(sym);
             sym->reachable = reachable_phase;
-            //Console.Write("".PadLeft(idd += 2));
-            //Console.WriteLine("Resolving: " + _S(sym->name));
             sym->state = SYM_RESOLVING;
             Decl *decl = sym->decl;
             Package *old_package = enter_package(sym->home_package);
@@ -1893,9 +1889,6 @@ namespace IonLang
 
             leave_package(old_package);
             sym->state = SYM_RESOLVED;
-            //Console.Write("".PadLeft(idd));
-            //Console.WriteLine("  Resolved: " + _S(sym->name));
-            idd -= 2;
             if (decl->is_incomplete || (decl->kind != DECL_STRUCT && decl->kind != DECL_UNION)) {
                 sorted_syms->Add(sym);
             }
