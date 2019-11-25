@@ -545,7 +545,8 @@ namespace IonLang
             genln();
 
             if (decl->func.ret_type != null) {
-                typespec_to_cdecl(decl->func.ret_type, null);
+                var c = incomplete_decay(get_resolved_type(decl->func.ret_type));
+                type_to_cdecl(c, null);
                 c_write(' ');
                 c_write(get_gen_name(decl));
                 c_write('(');
@@ -561,12 +562,12 @@ namespace IonLang
                 c_write(void_str);
             else
                 for (var i = 0; i < decl->func.num_params; i++) {
-                    var param = decl->func.@params + i;
+                    FuncParam param = decl->func.@params[i];
                     if (i != 0) {
                         c_write(',');
                         c_write(' ');
                     }
-                    typespec_to_cdecl(param->type, param->name);
+                    type_to_cdecl(incomplete_decay(get_resolved_type(param.type)), param.name);
                 }
             if (decl->func.has_varargs) {
                 c_write(',');
