@@ -22,7 +22,6 @@
             }
 
             return new_decls((Decl**)buf->_begin, buf->count);
-            
         }
 
         Typespec* parse_type_func() {

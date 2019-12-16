@@ -1,6 +1,5 @@
 ﻿//#define DEBUG_VERBOSE
 using System;
-using System.Globalization;
 using System.IO;
 using System.Text;
 
@@ -39,7 +38,6 @@ namespace IonLang
             var size = gen_indent * 4;
 
             gen_buf.Append(string.Empty.PadRight(size));
-            gen_pos.line++;
         }
 
         void writeln() {
@@ -159,15 +157,14 @@ namespace IonLang
                     }
                     else if (sym->home_package->external_name != null) {
                         char *external_name = sym->home_package->external_name;
-                        const int SIZE = 256;
-                        char* buf = stackalloc char[SIZE];
+                        char* buf = stackalloc char[MAX_PATH];
                         if (sym->kind == SYM_CONST) {
                             char *cptr = buf;
-                            for (char *str = external_name; *str != '\0' && cptr < buf + SIZE - 1; str++, cptr++) {
+                            for (char* str = external_name; *str != '\0' && cptr < buf + MAX_PATH - 1; str++, cptr++) {
                                 *cptr = char.ToUpper(*str);
                             }
                             *cptr = '\0';
-                            if (cptr < buf + SIZE) {
+                            if (cptr < buf + MAX_PATH) {
                                 external_name = buf;
                             }
                         }
@@ -365,7 +362,7 @@ namespace IonLang
 
             assert(pos.name != null && pos.line != 0);
             if (gen_pos.line != pos.line || gen_pos.name != pos.name) {
-                genln();
+                c_write('\n');
                 c_write(lineStr, 6);
                 c_write(pos.line.itoa());
                 if (gen_pos.name != pos.name) {
@@ -432,9 +429,9 @@ namespace IonLang
 
                     break;
                 case TYPESPEC_TUPLE:
-                        Type *type = get_resolved_type(typespec);
-                        c_write("tuple");
-                        c_write(type->typeid.itoa());
+                    Type *type = get_resolved_type(typespec);
+                    c_write("tuple");
+                    c_write(type->typeid.itoa());
                     if (str != null) {
                         c_write(' ');
                         c_write(str);
@@ -501,12 +498,8 @@ namespace IonLang
                     if (is_foreign) {
                         gen_buf = new StringBuilder();
                     }
-                    if (get_decl_note(decl, inline_name) != null) {
-                        genlnf("INLINE");
-                    }
-                    if (get_decl_note(decl, _I("noinline")) != null) {
-                        genlnf("NOINLINE");
-                    }
+
+                    gen_sync_pos(decl->pos);
                     gen_func_decl(decl);
                     c_write(' ');
                     gen_stmt_block(decl->func.block);
@@ -541,7 +534,12 @@ namespace IonLang
 
         void gen_func_decl(Decl* decl) {
             assert(decl->kind == DECL_FUNC);
-            gen_sync_pos(decl->pos);
+            if (get_decl_note(decl, inline_name) != null) {
+                genlnf("INLINE");
+            }
+            if (get_decl_note(decl, _I("noinline")) != null) {
+                genlnf("NOINLINE");
+            }
             genln();
 
             if (decl->func.ret_type != null) {
@@ -580,7 +578,6 @@ namespace IonLang
         }
 
         void gen_forward_decls() {
-            genln();
             for (int i = 0; i < tuple_types->count; i++) {
                 Type *type = tuple_types->Get<Type>(i);
                 if (is_tuple_reachable(type)) {
@@ -593,7 +590,7 @@ namespace IonLang
                 }
             }
             for (var it = (Sym**)sorted_syms->_begin; it != sorted_syms->_top; it++) {
-                var sym = *it;         
+                var sym = *it;
                 var decl = sym->decl;
                 if (decl == null || !is_sym_reachable(sym))
                     continue;
@@ -626,6 +623,7 @@ namespace IonLang
                         break;
                 }
             }
+            genln();
         }
 
         void gen_tuple_decl(Type* type) {
@@ -853,7 +851,8 @@ namespace IonLang
                 c_write(' ');
                 c_write('(');
                 gen_expr(expr->call.args[2]);
-                c_write(')');c_write(')');
+                c_write(')');
+                c_write(')');
             }
             else if (sym->name == _I("aindex") || sym->name == _I("ageti") || sym->name == _I("adel")) {
                 c_write(sym->name);
@@ -1396,7 +1395,8 @@ namespace IonLang
                 case EXPR_FLOAT:
                     bool is_double = expr->type != null && expr->type->kind == TYPE_DOUBLE;
                     int len = (int)(expr->float_lit.end - expr->float_lit.start);
-                    if ((is_double && expr->float_lit.suffix == SUFFIX_D) || expr->float_lit.suffix == SUFFIX_D) len--; // remove prefix 'd' from literal
+                    if ((is_double && expr->float_lit.suffix == SUFFIX_D) || expr->float_lit.suffix == SUFFIX_D)
+                        len--; // remove prefix 'd' from literal
                     c_write(expr->float_lit.start, len);
                     if (!is_double)
                         c_write('f');
@@ -1478,7 +1478,7 @@ namespace IonLang
 
                         c_write(name);
                     }
-              
+
                     break;
                 }
                 case EXPR_COMPOUND:
@@ -1961,7 +1961,7 @@ namespace IonLang
                             for (j = 0; j < block.num_stmts; j++) {
                                 gen_stmt(block.stmts[j]);
                             }
-                            if (block.num_stmts == 0 || block.stmts[j-1]->kind != STMT_BREAK) {
+                            if (block.num_stmts == 0 || block.stmts[j - 1]->kind != STMT_BREAK) {
                                 genlnf(break_keyword, 5);
                                 c_write(';');
                             }
@@ -1995,7 +1995,7 @@ namespace IonLang
             }
         }
 
-         bool is_char_lit(Expr* expr) {
+        bool is_char_lit(Expr* expr) {
             return expr->kind == EXPR_INT && expr->int_lit.mod == MOD_CHAR;
         }
 
@@ -2025,10 +2025,10 @@ namespace IonLang
                     c_write(')');
                     break;
                 case DECL_VAR:
+                    genlnf(externStr, 6);
                     if (is_decl_threadlocal(decl)) {
                         genlnf("THREADLOCAL");
                     }
-                    genlnf(externStr, 6);
                     c_write(' ');
                     if (decl->var.type != null && !is_incomplete_array_typespec(decl->var.type)) {
                         typespec_to_cdecl(decl->var.type, get_gen_name(sym));
@@ -2079,12 +2079,11 @@ namespace IonLang
         }
 
         void gen_sorted_decls() {
-            genln();
             for (int i = 0; i < tuple_types->count; i++) {
                 Type *type = tuple_types->Get<Type>(i);
                 if (!is_tuple_reachable(type))
                     continue;
-                
+
                 char* id = type->typeid.itoa();
                 genlnf("struct tuple");
                 c_write(id);
@@ -2110,13 +2109,13 @@ namespace IonLang
                 }
             }
         }
-         Map gen_foreign_headers_map;
-         PtrBuffer* gen_foreign_headers_buf = PtrBuffer.Create();
-         PtrBuffer* gen_foreign_sources_buf = PtrBuffer.Create();
-         PtrBuffer* gen_sources_buf = PtrBuffer.Create();
+        Map gen_foreign_headers_map;
+        PtrBuffer* gen_foreign_headers_buf = PtrBuffer.Create();
+        PtrBuffer* gen_foreign_sources_buf = PtrBuffer.Create();
+        PtrBuffer* gen_sources_buf = PtrBuffer.Create();
 
 
-         void add_foreign_header(char* name) {
+        void add_foreign_header(char* name) {
             name = _I(name);
             if (!gen_foreign_headers_map.exists(name)) {
                 gen_foreign_headers_map.map_put(name, (void*)1);
@@ -2125,7 +2124,7 @@ namespace IonLang
         }
 
 
-         void add_foreign_source(char* name) {
+        void add_foreign_source(char* name) {
             gen_foreign_sources_buf->Add(_I(name));
         }
 
@@ -2145,18 +2144,19 @@ namespace IonLang
                     gen_include(gen_foreign_headers_buf->Get<char>(i));
                 }
             }
+            genln();
         }
 
-         readonly char *header_name = _I("header");
-         readonly char *source_name = _I("source");
-         readonly char *preamble_name = _I("preamble");
-         readonly char *postamble_name = _I("postamble");
+        readonly char *header_name = _I("header");
+        readonly char *source_name = _I("source");
+        readonly char *preamble_name = _I("preamble");
+        readonly char *postamble_name = _I("postamble");
 
         void preprocess_package(Package* package) {
             if (package->external_name == null) {
                 char *external_name = stackalloc char[256];
                 int i = 0;
-                for (char *ptr = package->path; *ptr != '\0'; ptr++, i++) {
+                for (char* ptr = package->path; *ptr != '\0'; ptr++, i++) {
                     if (*ptr == '/')
                         external_name[i] = '_';
                     else
@@ -2233,7 +2233,8 @@ namespace IonLang
         void put_include_path(char* path, Package* package, char* filename) {
             if (*filename == '<') {
                 strcpy(path, filename);
-            } else {
+            }
+            else {
                 strcpy(path, package->full_path);
                 path_join(path, filename);
                 path_absolute(ref path);
@@ -2528,16 +2529,24 @@ namespace IonLang
 
         void gen_all() {
             preprocess_packages();
+            genlnf("//- Foreign Headers");
             gen_foreign_headers();
+            genlnf("//- Forward Declerations");
             gen_forward_decls();
+            genlnf("//- Sorted Declerations");
             gen_sorted_decls();
+            genlnf("//- Typeinfo");
             gen_typeinfos();
+            genlnf("//- Definitions");
             gen_defs();
+            genlnf("//- Foreign Sources");
             gen_foreign_sources();
+            genlnf("//- Postamble");
             gen_postamble();
 
             var buf = gen_buf;
             gen_buf = new StringBuilder();
+            c_write("//- Preamble\n");
             gen_preamble();
             gen_buf.Append(buf);
         }

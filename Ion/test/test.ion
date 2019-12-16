@@ -1,29 +1,21 @@
-﻿enum TokenKind {
-    TOKEN_NONE,
-    TOKEN_INT,
-    TOKEN_STR,
-}
+﻿func test_limits() {
+    ushort_min := USHORT_MIN;
+    ushort_max := USHORT_MAX;
+    int_min := INT_MIN;
+    int_max := INT_MAX;
+    uint_min := UINT_MIN;
+    uint_max := UINT_MAX;
 
-struct Token {
-    kind: TokenKind;
-    union {
-        struct {
-            val: llong;
-            mod: uint16;
-        }
-        str: char const*;
-    }
+    usize_min := USIZE_MIN;
+    usize_max := USIZE_MAX;
+    ssize_min := SSIZE_MIN;
+    ssize_max := SSIZE_MAX;
+    uintptr_min := UINTPTR_MIN;
+    uintptr_max := UINTPTR_MAX;
+    intptr_min := INTPTR_MIN;
+    intptr_max := INTPTR_MAX;
 }
-
-func test_token() {
-    t1 := Token{kind = TOKEN_INT, val = 42};
-    t2 := Token{kind = TOKEN_STR, str = "Hello"};
-}
-
-#static_assert(offsetof(Token, val) == offsetof(Token, str))
-#static_assert(sizeof(Token) == 24)
 
 func main(argc: int, argv: char**) {
-
-
+	test_limits();
 }
