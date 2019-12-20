@@ -1,0 +1,86 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <Platforms>AnyCPU;x64;x86</Platforms>
+    <LangVersion>preview</LangVersion>
+    <RootNamespace>IonLang</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE;X64</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>false</Optimize>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>false</Optimize>
+    <DefineConstants>TRACE;X64</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="noir\**" />
+    <Compile Remove="riscv\**" />
+    <Compile Remove="system_packages\**" />
+    <Compile Remove="test1\**" />
+    <Compile Remove="test\**" />
+    <Compile Remove="x64\**" />
+    <EmbeddedResource Remove="noir\**" />
+    <EmbeddedResource Remove="riscv\**" />
+    <EmbeddedResource Remove="system_packages\**" />
+    <EmbeddedResource Remove="test1\**" />
+    <EmbeddedResource Remove="test\**" />
+    <EmbeddedResource Remove="x64\**" />
+    <None Remove="noir\**" />
+    <None Remove="riscv\**" />
+    <None Remove="system_packages\**" />
+    <None Remove="test1\**" />
+    <None Remove="test\**" />
+    <None Remove="x64\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="test3.c" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Memory" Version="4.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="test3.ion">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="REM $(TargetDir)$(TargetName) test1.ion -o $(SolutionDir)TestCompiler\test1.c" />
+  </Target>
+
+</Project>
