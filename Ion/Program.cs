@@ -17,14 +17,13 @@ namespace IonLang
         }
 
         void ion_test(string pkg) {
+            string BASE_PATH = @"../../../../../ion-pkgs";
 #if X64
-            string BACK_PATH = @"C:\Users\john\source\repos\IonDotNet\Ion";
             string ARCH = "x64";
 #else
-            string BACK_PATH = @"C:\Users\john\source\repos\IonDotNet\Ion";
             string ARCH = "x86";
 #endif
-            var dir = new DirectoryInfo(BACK_PATH);
+            var dir = new DirectoryInfo(BASE_PATH);
 
             Environment.SetEnvironmentVariable("IONHOME", dir.FullName, EnvironmentVariableTarget.Process);
             var b = ion_main(new []{pkg, "-z", "-sl", "-a", ARCH, "-s", "win32", "-o", @$"{dir.Parent.FullName}\TestCompiler\test.c" });

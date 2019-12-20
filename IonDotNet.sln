@@ -10,6 +10,108 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestCompiler", "TestCompile
 		{BA61BB2C-A575-46AF-BFE1-774EFED00BE4} = {BA61BB2C-A575-46AF-BFE1-774EFED00BE4}
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ion-packages", "ion-packages", "{EBE7A531-F4CE-4275-8DCD-99E6454B67DE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "system-packages", "system-packages", "{23200273-6356-43A8-A4EC-4874CC0664BE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "builtin", "builtin", "{0F74701D-22B0-4EC6-96BC-D90764312E37}"
+	ProjectSection(SolutionItems) = preProject
+		ion-pkgs\system_packages\builtin\alloc.ion = ion-pkgs\system_packages\builtin\alloc.ion
+		ion-pkgs\system_packages\builtin\config_linux.ion = ion-pkgs\system_packages\builtin\config_linux.ion
+		ion-pkgs\system_packages\builtin\config_osx.ion = ion-pkgs\system_packages\builtin\config_osx.ion
+		ion-pkgs\system_packages\builtin\config_win32.ion = ion-pkgs\system_packages\builtin\config_win32.ion
+		ion-pkgs\system_packages\builtin\config_x64.ion = ion-pkgs\system_packages\builtin\config_x64.ion
+		ion-pkgs\system_packages\builtin\config_x86.ion = ion-pkgs\system_packages\builtin\config_x86.ion
+		ion-pkgs\system_packages\builtin\notes.ion = ion-pkgs\system_packages\builtin\notes.ion
+		ion-pkgs\system_packages\builtin\tests.ion = ion-pkgs\system_packages\builtin\tests.ion
+		ion-pkgs\system_packages\builtin\typeinfo.ion = ion-pkgs\system_packages\builtin\typeinfo.ion
+		ion-pkgs\system_packages\builtin\types.ion = ion-pkgs\system_packages\builtin\types.ion
+		ion-pkgs\system_packages\builtin\types_linux.ion = ion-pkgs\system_packages\builtin\types_linux.ion
+		ion-pkgs\system_packages\builtin\types_linux_x64.ion = ion-pkgs\system_packages\builtin\types_linux_x64.ion
+		ion-pkgs\system_packages\builtin\types_linux_x86.ion = ion-pkgs\system_packages\builtin\types_linux_x86.ion
+		ion-pkgs\system_packages\builtin\types_osx.ion = ion-pkgs\system_packages\builtin\types_osx.ion
+		ion-pkgs\system_packages\builtin\types_osx_x64.ion = ion-pkgs\system_packages\builtin\types_osx_x64.ion
+		ion-pkgs\system_packages\builtin\types_win32.ion = ion-pkgs\system_packages\builtin\types_win32.ion
+		ion-pkgs\system_packages\builtin\types_win32_x64.ion = ion-pkgs\system_packages\builtin\types_win32_x64.ion
+		ion-pkgs\system_packages\builtin\types_win32_x86.ion = ion-pkgs\system_packages\builtin\types_win32_x86.ion
+		ion-pkgs\system_packages\builtin\types_x64.ion = ion-pkgs\system_packages\builtin\types_x64.ion
+		ion-pkgs\system_packages\builtin\types_x86.ion = ion-pkgs\system_packages\builtin\types_x86.ion
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "libc", "libc", "{37D93F58-4773-4C7C-970A-E9793CF10E3B}"
+	ProjectSection(SolutionItems) = preProject
+		ion-pkgs\system_packages\libc\ctype.ion = ion-pkgs\system_packages\libc\ctype.ion
+		ion-pkgs\system_packages\libc\errno.ion = ion-pkgs\system_packages\libc\errno.ion
+		ion-pkgs\system_packages\libc\errno_linux.ion = ion-pkgs\system_packages\libc\errno_linux.ion
+		ion-pkgs\system_packages\libc\errno_osx.ion = ion-pkgs\system_packages\libc\errno_osx.ion
+		ion-pkgs\system_packages\libc\errno_win32.ion = ion-pkgs\system_packages\libc\errno_win32.ion
+		ion-pkgs\system_packages\libc\longjmp.ion = ion-pkgs\system_packages\libc\longjmp.ion
+		ion-pkgs\system_packages\libc\math.ion = ion-pkgs\system_packages\libc\math.ion
+		ion-pkgs\system_packages\libc\stdarg.ion = ion-pkgs\system_packages\libc\stdarg.ion
+		ion-pkgs\system_packages\libc\stdio.ion = ion-pkgs\system_packages\libc\stdio.ion
+		ion-pkgs\system_packages\libc\stdio_linux.ion = ion-pkgs\system_packages\libc\stdio_linux.ion
+		ion-pkgs\system_packages\libc\stdio_osx.ion = ion-pkgs\system_packages\libc\stdio_osx.ion
+		ion-pkgs\system_packages\libc\stdio_win32.ion = ion-pkgs\system_packages\libc\stdio_win32.ion
+		ion-pkgs\system_packages\libc\stdlib.ion = ion-pkgs\system_packages\libc\stdlib.ion
+		ion-pkgs\system_packages\libc\string.ion = ion-pkgs\system_packages\libc\string.ion
+		ion-pkgs\system_packages\libc\time.ion = ion-pkgs\system_packages\libc\time.ion
+		ion-pkgs\system_packages\libc\time_linux.ion = ion-pkgs\system_packages\libc\time_linux.ion
+		ion-pkgs\system_packages\libc\time_osx.ion = ion-pkgs\system_packages\libc\time_osx.ion
+		ion-pkgs\system_packages\libc\time_win32.ion = ion-pkgs\system_packages\libc\time_win32.ion
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sdl", "sdl", "{92AAD097-BF4A-471D-93A8-0F9FA16B95BF}"
+	ProjectSection(SolutionItems) = preProject
+		ion-pkgs\system_packages\sdl\audio.ion = ion-pkgs\system_packages\sdl\audio.ion
+		ion-pkgs\system_packages\sdl\clipboard.ion = ion-pkgs\system_packages\sdl\clipboard.ion
+		ion-pkgs\system_packages\sdl\file.ion = ion-pkgs\system_packages\sdl\file.ion
+		ion-pkgs\system_packages\sdl\input.ion = ion-pkgs\system_packages\sdl\input.ion
+		ion-pkgs\system_packages\sdl\log.ion = ion-pkgs\system_packages\sdl\log.ion
+		ion-pkgs\system_packages\sdl\pixels.ion = ion-pkgs\system_packages\sdl\pixels.ion
+		ion-pkgs\system_packages\sdl\platform.ion = ion-pkgs\system_packages\sdl\platform.ion
+		ion-pkgs\system_packages\sdl\rect.ion = ion-pkgs\system_packages\sdl\rect.ion
+		ion-pkgs\system_packages\sdl\render.ion = ion-pkgs\system_packages\sdl\render.ion
+		ion-pkgs\system_packages\sdl\sdl.ion = ion-pkgs\system_packages\sdl\sdl.ion
+		ion-pkgs\system_packages\sdl\shared-object.ion = ion-pkgs\system_packages\sdl\shared-object.ion
+		ion-pkgs\system_packages\sdl\surface.ion = ion-pkgs\system_packages\sdl\surface.ion
+		ion-pkgs\system_packages\sdl\test.ion = ion-pkgs\system_packages\sdl\test.ion
+		ion-pkgs\system_packages\sdl\thread.ion = ion-pkgs\system_packages\sdl\thread.ion
+		ion-pkgs\system_packages\sdl\timer.ion = ion-pkgs\system_packages\sdl\timer.ion
+		ion-pkgs\system_packages\sdl\version.ion = ion-pkgs\system_packages\sdl\version.ion
+		ion-pkgs\system_packages\sdl\video.ion = ion-pkgs\system_packages\sdl\video.ion
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "std", "std", "{BD52D089-28A7-4A9B-8F82-FB46A2713730}"
+	ProjectSection(SolutionItems) = preProject
+		ion-pkgs\system_packages\std\std.ion = ion-pkgs\system_packages\std\std.ion
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{80561FD6-3A22-4D20-B342-DA11057ED972}"
+	ProjectSection(SolutionItems) = preProject
+		ion-pkgs\test\test.ion = ion-pkgs\test\test.ion
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test1", "test1", "{488BD4E4-46F1-46A5-BE94-4B029FB45DA1}"
+	ProjectSection(SolutionItems) = preProject
+		ion-pkgs\test1\test1.ion = ion-pkgs\test1\test1.ion
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "noir", "noir", "{B0F2EBBB-594C-4A40-BFBF-540EE1A0D9D9}"
+	ProjectSection(SolutionItems) = preProject
+		ion-pkgs\noir\noir.ion = ion-pkgs\noir\noir.ion
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "riscv", "riscv", "{91891278-1BC8-4F22-9AA0-2F712E0D1F77}"
+	ProjectSection(SolutionItems) = preProject
+		ion-pkgs\riscv\assembler.ion = ion-pkgs\riscv\assembler.ion
+		ion-pkgs\riscv\riscv.ion = ion-pkgs\riscv\riscv.ion
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "subtest1", "subtest1", "{34FF167C-F6E4-4B75-A924-B8212287AE86}"
+	ProjectSection(SolutionItems) = preProject
+		ion-pkgs\test1\subtest1\subtest1.ion = ion-pkgs\test1\subtest1\subtest1.ion
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +147,18 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{23200273-6356-43A8-A4EC-4874CC0664BE} = {EBE7A531-F4CE-4275-8DCD-99E6454B67DE}
+		{0F74701D-22B0-4EC6-96BC-D90764312E37} = {23200273-6356-43A8-A4EC-4874CC0664BE}
+		{37D93F58-4773-4C7C-970A-E9793CF10E3B} = {23200273-6356-43A8-A4EC-4874CC0664BE}
+		{92AAD097-BF4A-471D-93A8-0F9FA16B95BF} = {23200273-6356-43A8-A4EC-4874CC0664BE}
+		{BD52D089-28A7-4A9B-8F82-FB46A2713730} = {23200273-6356-43A8-A4EC-4874CC0664BE}
+		{80561FD6-3A22-4D20-B342-DA11057ED972} = {EBE7A531-F4CE-4275-8DCD-99E6454B67DE}
+		{488BD4E4-46F1-46A5-BE94-4B029FB45DA1} = {EBE7A531-F4CE-4275-8DCD-99E6454B67DE}
+		{B0F2EBBB-594C-4A40-BFBF-540EE1A0D9D9} = {EBE7A531-F4CE-4275-8DCD-99E6454B67DE}
+		{91891278-1BC8-4F22-9AA0-2F712E0D1F77} = {EBE7A531-F4CE-4275-8DCD-99E6454B67DE}
+		{34FF167C-F6E4-4B75-A924-B8212287AE86} = {488BD4E4-46F1-46A5-BE94-4B029FB45DA1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5FE9B5F0-1822-45DF-8273-CC7F58004DB7}
