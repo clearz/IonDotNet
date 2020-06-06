@@ -3413,7 +3413,7 @@ namespace IonLang
                     return null;
                 }
                 path_normalize(full_path);
-                package->full_path = (char*)xcalloc(strlen(full_path), sizeof(char));
+                package->full_path = (char*)xcalloc(strlen(full_path)+1, sizeof(char));
                 strcpy(package->full_path, full_path);
                 package->syms = PtrBuffer.Create();
                 add_package(package);

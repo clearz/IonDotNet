@@ -3480,9 +3480,10 @@ namespace IonLangManaged
                 }
 
                 string code = File.ReadAllText(path, Encoding.ASCII);
-                fixed (char* c = code)
+                fixed (char* c = code) {
                     init_stream(c, path);
-                parse_decls(package.decls);
+                    parse_decls(package.decls);
+                }
             }
 
             return package.decls.Count > 0;
